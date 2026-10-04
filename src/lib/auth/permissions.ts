@@ -29,6 +29,17 @@ export const PERMISSIONS = {
   "export.names": "ส่งออก Excel ที่มีชื่อผู้ต้องขัง",
   "roster.view": "ดูใบรายชื่อนับยอด (ผู้ควบคุม)",
   "dashboard.view": "ดูแดชบอร์ดผู้บริหาร",
+  // ขั้นที่ 2
+  "assessment.view": "ดูแบบประเมินด้านความรู้/ทัศนคติ/พฤติกรรม",
+  "assessment.edit": "บันทึกแบบประเมินด้านความรู้/ทัศนคติ/พฤติกรรม",
+  "assessment.summary": "ดูสรุปผลประเมิน (ไม่ระบุชื่อ)",
+  "forms.manage": "แก้คลังแบบประเมิน (ข้อคำถาม/เกณฑ์)",
+  "bst.view": "ดูงาน บสต./รท.101",
+  "bst.edit": "บันทึกงาน บสต./รท.101 และการติดตาม",
+  "contacts.edit": "บันทึกข้อมูลญาติ/ผู้ติดต่อ",
+  "behavior.edit": "บันทึกพฤติกรรมด่วน",
+  "reports.view": "ดู/พิมพ์รายงานรายบุคคล-รายรุ่น",
+  "shift.use": "ใช้กล่องจดหมายเวร",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -53,12 +64,13 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   rehab: [
     "course.view", "registry.view", "registry.edit", "registry.import", "national_id.view_full",
     "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "export.names",
+    "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use",
   ],
-  medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit"],
-  mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit"],
-  assistant: ["schedule.view", "attendance.edit_own"],
-  finance: ["course.view", "schedule.view"],
-  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view"],
+  medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
+  mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
+  assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
+  finance: ["course.view", "schedule.view", "shift.use"],
+  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "bst.view"],
   warden: ["roster.view"],
 };
 

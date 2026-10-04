@@ -172,6 +172,74 @@ describe("นำเข้า Excel (7.3)", () => {
   });
 });
 
+describe("ขั้น 2: บสต./ติดตาม/แบบประเมิน", () => {
+  it("ยืนยันรับเข้า → สร้างงาน บสต./รท.101 (ลงทะเบียน คัดกรอง บำบัด)", async () => {
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "B-1"), actor);
+    const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all();
+    expect(tasks.map((t) => `${t.system}:${t.step}`).sort()).toEqual(["bst:register", "bst:screen", "bst:treat", "rt101:register", "rt101:screen", "rt101:treat"]);
+    expect(tasks.find((t) => t.step === "treat")!.dueDate).toBe("2026-10-28");
+  });
+
+  it("ครบหลักสูตร → ติดตามเดือน 1 3 6 12; พ้นโทษระหว่างติดตาม → ปิดการติดตาม + บันทึกจำหน่าย; ยกเลิกแล้วย้อนครบ", async () => {
+    const { completeEnrollments } = await import("@/lib/services/followup");
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "F-9"), actor);
+    completeEnrollments(db, [r.enrollment.id], "completed", "2026-10-21", { userId: 1 });
+    const fus = db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all();
+    expect(fus.map((f) => f.dueDate)).toEqual(["2026-11-21", "2027-01-21", "2027-04-21", "2027-10-21"]);
+
+    recordReleases(db, { incarcerationIds: [r.incarcerationId!], releasedDate: "2026-12-01", reason: "completed_sentence" }, { userId: 1 });
+    const after = db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all();
+    expect(after.every((f) => f.status === "closed")).toBe(true);
+    expect(after[0].reason).toBe("ปิดการติดตาม – พ้นโทษ");
+    const dis = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.step, "discharge")).all();
+    expect(dis.every((t) => t.status === "pending" && t.dueDate === "2026-12-08")).toBe(true);
+
+    const ev = db.select().from(schema.releaseEvents).get()!;
+    cancelRelease(db, ev.id, "บันทึกผิด", { userId: 1 });
+    expect(db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all().every((f) => f.status === "pending")).toBe(true);
+  });
+
+  it("ออกระหว่างอบรม → งาน บสต. ที่เหลือ = ติดตามไม่ได้", () => {
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "U-1"), actor);
+    recordReleases(db, { incarcerationIds: [r.incarcerationId!], releasedDate: "2026-10-08", reason: "transfer" }, { userId: 1 });
+    const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all();
+    expect(tasks.filter((t) => t.step !== "discharge").every((t) => t.status === "unfollowable" && t.reason === "ติดตามไม่ได้ – ย้ายเรือนจำ")).toBe(true);
+  });
+
+  it("บันทึกแบบประเมิน: เกณฑ์ตามเวอร์ชัน สิทธิ์ตามหมวด และแจ้งเตือนเฉพาะบทบาทสุขภาพ", async () => {
+    const { saveAssessment, getForm } = await import("@/lib/services/assessments");
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "A-9"), actor);
+    const dep = getForm(db, "DEP")!;
+    const rehabOnly = (p: string) => ["assessment.edit", "assessment.view"].includes(p);
+    expect(() => saveAssessment(db, { enrollmentId: r.enrollment.id, formId: dep.id, round: "pre", assessedDate: "2026-10-02", answers: { q2: [false, false] } }, { userId: 1, can: rehabOnly as never })).toThrow(/ไม่มีสิทธิ์/);
+    const nurse = (p: string) => ["health.view", "health.edit", "health.mental_edit"].includes(p);
+    const res = saveAssessment(db, {
+      enrollmentId: r.enrollment.id, formId: dep.id, round: "pre", assessedDate: "2026-10-02",
+      answers: { q2: [true, true], q9: [3, 3, 3, 0, 0, 0, 0, 0, 0], q8: [true, true, true, true, false, false, false, false], q8control: true },
+    }, { userId: 1, can: nurse as never });
+    expect(res.result.details.q8).toBe(17);
+    const notes = db.select().from(schema.notifications).where(eq(schema.notifications.kind, "assessment_DEP")).all();
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.every((n) => ["medical", "mental_health", "admin"].includes(n.role!))).toBe(true);
+    expect(notes.some((n) => n.severity === "danger")).toBe(true);
+  });
+
+  it("สภาวะกาย/จิต \"ยังเข้าร่วมไม่ได้\" → ยืนยันรับเข้าไม่ได้ ยกเว้นผู้ดูแล", async () => {
+    const { saveAssessment, getForm } = await import("@/lib/services/assessments");
+    const { confirmAdmissions } = await import("@/lib/services/registry");
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "C-9", { confirmAdmission: false }), actor);
+    const cond = getForm(db, "COND")!;
+    saveAssessment(db, { enrollmentId: r.enrollment.id, formId: cond.id, round: "pre", assessedDate: "2026-10-02", answers: { opinion: "unfit", unfitReasons: ["physical"] } }, { userId: 1, can: (() => true) as never });
+    expect(confirmAdmissions(db, [r.enrollment.id], actor).skipped[0].reason).toContain("ยังเข้าร่วมไม่ได้");
+    expect(confirmAdmissions(db, [r.enrollment.id], admin).done).toEqual([r.enrollment.id]);
+  });
+});
+
 describe("ประวัติการใช้งาน", () => {
   it("แก้ไข/ลบ audit log ไม่ได้แม้เข้าฐานข้อมูลตรง", () => {
     db.insert(schema.auditLogs).values({ at: new Date(), action: "test" }).run();

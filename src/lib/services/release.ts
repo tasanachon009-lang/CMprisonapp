@@ -5,12 +5,14 @@ import { schema } from "../db";
 import { writeAudit } from "../audit";
 import { RuleError } from "./registry";
 import { lookupLabel } from "../bootstrap";
+import { applyReleaseToFollowup, revertFollowupEffects, type FollowupEffects } from "./followup";
 
 type AttendanceRow = typeof schema.attendance.$inferSelect;
 
 export type ReleaseEffects = {
   enrollments: Array<{ id: number; from: string; leftDate: string | null; leftReason: string | null }>;
   removedAttendance: AttendanceRow[];
+  followup?: FollowupEffects;
 };
 
 /**
@@ -84,6 +86,11 @@ export function recordReleases(
       }
       if (!ongoing.length) actions.push("ไม่มีหลักสูตรที่กำลังอบรมอยู่");
 
+      // งาน บสต./ติดตาม: บันทึกจำหน่าย + ติดตามไม่ได้ / ปิดการติดตาม (สเปก 8, docs/decisions.md)
+      const fu = applyReleaseToFollowup(tx, incId, input.reason, input.releasedDate, actor.userId);
+      effects.followup = fu.effects;
+      actions.push(...fu.actions);
+
       tx.update(schema.releaseEvents).set({ effects }).where(eq(schema.releaseEvents.id, event.id)).run();
       writeAudit(tx, { userId: actor.userId, action: "release.record", entity: "incarceration", entityId: incId, personId: inc.personId, after: { releasedDate: input.releasedDate, reason: input.reason, effects }, ip: actor.ip });
       summary.push({ incarcerationId: incId, inmateNo: inc.inmateNo, name: `${person.firstName} ${person.lastName}`, actions });
@@ -99,6 +106,7 @@ export function cancelRelease(db: DB, eventId: number, reason: string, actor: { 
     const ev = tx.select().from(schema.releaseEvents).where(eq(schema.releaseEvents.id, eventId)).get();
     if (!ev || ev.cancelledAt) throw new RuleError("ไม่พบรายการ หรือถูกยกเลิกไปแล้ว");
     const effects = (ev.effects ?? { enrollments: [], removedAttendance: [] }) as ReleaseEffects;
+    revertFollowupEffects(tx, effects.followup);
     for (const e of effects.enrollments) {
       tx.update(schema.enrollments)
         .set({ status: e.from, statusBeforeRelease: null, leftDate: e.leftDate, leftReason: e.leftReason, releaseEventId: null, updatedBy: actor.userId, updatedAt: new Date() })

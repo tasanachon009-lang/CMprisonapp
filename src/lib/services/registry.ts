@@ -6,12 +6,10 @@ import { personSearchKey } from "../search";
 import { isValidNationalId, normalizeNationalId } from "../thai-id";
 import { writeAudit } from "../audit";
 import { cohortLabel } from "./cohorts";
+import { ensureIntakeTasks } from "./followup";
+import { RuleError } from "../errors";
 
-export class RuleError extends Error {
-  constructor(message: string, public result?: RuleResult, public code?: string) {
-    super(message);
-  }
-}
+export { RuleError };
 
 export const ENROLLMENT_STATUS_LABEL: Record<string, string> = {
   draft: "ร่าง (รอยืนยันรับเข้า)",
@@ -281,6 +279,8 @@ export function registerEnrollment(db: DB, input: RegisterInput, actor: Actor) {
       ip: actor.ip,
     });
 
+    if (status === "active") ensureIntakeTasks(tx, enrollment.id, actor.userId);
+
     // ไม่ยินยอม → แจ้งหัวหน้า/รอง
     if (input.consentRefused) {
       tx.insert(schema.notifications)
@@ -313,11 +313,23 @@ export function confirmAdmissions(db: DB, enrollmentIds: number[], actor: Actor)
         skipped.push({ id: e.id, reason: "ยังไม่มีหลักฐานการลงนามยินยอม" });
         continue;
       }
+      // ผลประเมินสภาวะกาย/จิต "ยังเข้าร่วมไม่ได้" → ยืนยันรับเข้าไม่ได้ (ยกเว้นผู้ดูแล)
+      const cond = tx
+        .select({ total: schema.assessmentResults.total })
+        .from(schema.assessmentResults)
+        .innerJoin(schema.assessmentForms, eq(schema.assessmentForms.id, schema.assessmentResults.formId))
+        .where(and(eq(schema.assessmentResults.enrollmentId, e.id), eq(schema.assessmentForms.code, "COND"), isNull(schema.assessmentResults.deletedAt)))
+        .get();
+      if (cond && cond.total === 0 && !actor.canOverride) {
+        skipped.push({ id: e.id, reason: "ผลประเมินสภาวะกาย/จิต: ยังเข้าร่วมไม่ได้ (ผู้ดูแลยืนยันได้)" });
+        continue;
+      }
       tx.update(schema.enrollments)
         .set({ status: "active", updatedBy: actor.userId, updatedAt: new Date(), version: e.version + 1 })
         .where(eq(schema.enrollments.id, e.id))
         .run();
       writeAudit(tx, { userId: actor.userId, action: "update", entity: "enrollment", entityId: e.id, before: { status: "draft" }, after: { status: "active" }, ip: actor.ip });
+      ensureIntakeTasks(tx, e.id, actor.userId);
       done.push(e.id);
     }
     return { done, skipped };

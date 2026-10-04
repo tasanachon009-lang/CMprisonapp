@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
 import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS } from "./reference-data";
+import { FORM_DEFS } from "./assessments/forms";
 
 /**
  * ใส่ข้อมูลอ้างอิงเริ่มต้น (ทำซ้ำได้ ไม่ทับค่าที่ผู้ใช้แก้แล้ว)
@@ -19,6 +20,16 @@ export function bootstrapReferenceData(db: DB) {
     }
     for (const [date, name] of DEFAULT_HOLIDAYS) {
       tx.insert(schema.holidays).values({ date, name }).onConflictDoNothing().run();
+    }
+    for (const f of FORM_DEFS) {
+      const existing = tx.select().from(schema.assessmentForms).where(eq(schema.assessmentForms.code, f.code)).get();
+      if (existing) continue;
+      const form = tx
+        .insert(schema.assessmentForms)
+        .values({ code: f.code, name: f.name, shortName: f.shortName, category: f.category, kind: f.kind, sensitive: f.sensitive, rounds: f.rounds, courseCodes: f.courseCodes, description: f.description ?? null, sortOrder: f.sortOrder })
+        .returning()
+        .get();
+      tx.insert(schema.assessmentFormVersions).values({ formId: form.id, version: 1, items: f.items, scoring: f.scoring, effectiveFrom: "2000-01-01", note: "ค่าเริ่มต้นจากสเปก" }).run();
     }
     for (const c of COURSES) {
       const existing = tx.select().from(schema.courses).where(eq(schema.courses.code, c.code)).get();

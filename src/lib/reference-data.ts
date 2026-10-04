@@ -131,6 +131,20 @@ export const LOOKUPS: Record<string, Array<[code: string, label: string]>> = {
     ["room2", "ห้องอบรม 2"],
     ["yard", "ลานกิจกรรม"],
   ],
+  behavior_category: [
+    ["helping", "ช่วยเหลือส่วนรวม"],
+    ["fighting", "ทะเลาะวิวาท"],
+    ["smoking", "สูบบุหรี่"],
+    ["emotion", "อารมณ์"],
+    ["participation", "การมีส่วนร่วม"],
+    ["other", "อื่นๆ"],
+  ],
+  doc_type: [
+    ["medical_cert", "ใบตรวจร่างกาย/ใบรับรองแพทย์"],
+    ["lab", "ผลตรวจทางห้องปฏิบัติการ"],
+    ["court", "เอกสารศาล"],
+    ["other", "อื่นๆ"],
+  ],
   substance: [
     ["meth", "ยาบ้า (เมทแอมเฟตามีน)"],
     ["ice", "ไอซ์"],
@@ -175,6 +189,15 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "security.maxFailedAttempts": 5,
   "security.lockoutMinutes": 15,
   "security.officeHours": { start: "07:00", end: "18:00" },
+  /** ติดตามหลังบำบัด: เดือนที่ (ตั้งค่าได้) */
+  "followup.months": [1, 3, 6, 12],
+  /** กำหนดลง บสต./รท.101 (วันนับจากวันลงทะเบียน/วันจบ) */
+  "bst.dueDays": { register: 7, screen: 7, treat: 7, followup: 7, discharge: 7 },
+  /**
+   * ผู้จบหลักสูตรแล้วออกจากเรือนจำระหว่างติดตาม: "close" ปิดการติดตาม | "continue" ติดตามต่อ (รายเหตุผล)
+   * ค่าเริ่มต้น = ปิดการติดตาม (เจ้าของโครงการตัดสินใจ 4 ต.ค. 2569 — docs/decisions.md)
+   */
+  "release.followupPolicy": { completed_sentence: "close", parole: "close", sentence_reduction: "close", bail: "close", transfer: "close", death: "close", other: "close" },
   "backup.externalDir": "",
   "backup.removableDir": "",
 };

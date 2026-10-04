@@ -20,7 +20,7 @@ export function closeChecklist(db: DB, cohortId: number) {
   const postDue = dueAssessments(db, cohortId).filter((d) => d.round === "post").length;
   const preDue = dueAssessments(db, cohortId).filter((d) => d.round === "pre").length;
   const intakeTasks = enr.length
-    ? db.select().from(schema.bstTasks).where(and(inArray(schema.bstTasks.enrollmentId, enr.map((e) => e.id)), inArray(schema.bstTasks.step, ["register", "screen", "treat"]), eq(schema.bstTasks.status, "pending"))).all().length
+    ? db.select().from(schema.bstTasks).where(and(inArray(schema.bstTasks.enrollmentId, enr.map((e) => e.id)), eq(schema.bstTasks.system, "bst"), inArray(schema.bstTasks.step, ["register", "screen", "treat"]), eq(schema.bstTasks.status, "pending"))).all().length
     : 0;
   const items = [
     { key: "ended", label: "อบรมครบตามกำหนดแล้ว", ok: todayISO() > c.endDate, detail: `วันสุดท้าย ${c.endDate}` },
@@ -28,7 +28,7 @@ export function closeChecklist(db: DB, cohortId: number) {
     { key: "status", label: "สรุปสถานะทุกคน (ครบหลักสูตร/ไม่ผ่าน/ออกก่อนกำหนด)", ok: ongoing === 0, detail: ongoing ? `ยังค้าง ${ongoing} คน` : "" },
     { key: "post", label: "ประเมินหลังเรียนครบ", ok: postDue === 0, detail: postDue ? `ยังขาด ${postDue} รายการ` : "" },
     { key: "pre", label: "ประเมินก่อนเรียนครบ", ok: preDue === 0, detail: preDue ? `ยังขาด ${preDue} รายการ` : "" },
-    { key: "bst", label: "ลง บสต./รท.101 ช่วงบำบัดครบ", ok: intakeTasks === 0, detail: intakeTasks ? `ค้าง ${intakeTasks} งาน` : "" },
+    { key: "bst", label: "ลง บสต. ช่วงบำบัด (ลงทะเบียน/คัดกรอง/บำบัด) ครบ", ok: intakeTasks === 0, detail: intakeTasks ? `ค้าง ${intakeTasks} งาน` : "" },
   ];
   return { cohort: c, items, ready: items.every((i) => i.ok) };
 }

@@ -173,42 +173,108 @@ describe("นำเข้า Excel (7.3)", () => {
 });
 
 describe("ขั้น 2: บสต./ติดตาม/แบบประเมิน", () => {
-  it("ยืนยันรับเข้า → สร้างงาน บสต./รท.101 (ลงทะเบียน คัดกรอง บำบัด)", async () => {
+  it("ยืนยันรับเข้า → สร้างงาน บสต. ลงทะเบียน/คัดกรอง/บำบัด เท่านั้น (รท.101 ยังไม่เกิด)", async () => {
     const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
     const r = registerEnrollment(db, input(c.id, "B-1"), actor);
     const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all();
-    expect(tasks.map((t) => `${t.system}:${t.step}`).sort()).toEqual(["bst:register", "bst:screen", "bst:treat", "rt101:register", "rt101:screen", "rt101:treat"]);
+    expect(tasks.map((t) => `${t.system}:${t.step}`).sort()).toEqual(["bst:register", "bst:screen", "bst:treat"]);
     expect(tasks.find((t) => t.step === "treat")!.dueDate).toBe("2026-10-28");
   });
 
-  it("ครบหลักสูตร → ติดตามเดือน 1 3 6 12; พ้นโทษระหว่างติดตาม → ปิดการติดตาม + บันทึกจำหน่าย; ยกเลิกแล้วย้อนครบ", async () => {
+  it("ครบหลักสูตร → บสต. จำหน่าย (นับจากวันจบ) + ติดตาม 1/3/6/12 + รท.101 1 งาน; ไม่ผ่าน → ไม่มี รท.101", async () => {
+    const { completeEnrollments } = await import("@/lib/services/followup");
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const ok = registerEnrollment(db, input(c.id, "F-1"), actor);
+    const fail = registerEnrollment(db, input(c.id, "F-2"), actor);
+    completeEnrollments(db, [ok.enrollment.id], "completed", "2026-10-21", { userId: 1 });
+    completeEnrollments(db, [fail.enrollment.id], "failed", "2026-10-21", { userId: 1 });
+    const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, ok.enrollment.id)).all();
+    expect(tasks.filter((t) => t.system === "rt101").map((t) => t.step)).toEqual(["record"]);
+    expect(tasks.find((t) => t.system === "rt101")!.dueDate).toBe("2026-10-28");
+    expect(tasks.find((t) => t.step === "discharge")!.dueDate).toBe("2026-10-28");
+    expect(tasks.filter((t) => t.step.startsWith("followup")).every((t) => t.system === "bst")).toBe(true);
+    const fus = db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, ok.enrollment.id)).all();
+    expect(fus.map((f) => f.dueDate)).toEqual(["2026-11-21", "2027-01-21", "2027-04-21", "2027-10-21"]);
+    expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, fail.enrollment.id)).all().some((t) => t.system === "rt101")).toBe(false);
+  });
+
+  it("กด \"ลง บสต. แล้ว\" ที่ขั้นจำหน่าย → นับกำหนดติดตามใหม่จากวันจำหน่ายจริง / ยกเลิก → กลับไปนับจากวันจบ", async () => {
+    const { completeEnrollments, markTask } = await import("@/lib/services/followup");
+    const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "D-1"), actor);
+    completeEnrollments(db, [r.enrollment.id], "completed", "2026-10-21", { userId: 1 });
+    const dis = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.step, "discharge")).get()!;
+    markTask(db, dis.id, "2026-11-02", { userId: 1 });
+    const fus = () => db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all().map((f) => f.dueDate);
+    expect(fus()).toEqual(["2026-12-02", "2027-02-02", "2027-05-02", "2027-11-02"]);
+    expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.step, "followup1")).get()!.dueDate).toBe("2026-12-09");
+    markTask(db, dis.id, null, { userId: 1 });
+    expect(fus()[0]).toBe("2026-11-21");
+  });
+
+  it("หลักสูตร 3 วัน: ต้องลง รท.101 (ไม่ลง บสต. ไม่ติดตาม)", async () => {
+    const { completeEnrollments } = await import("@/lib/services/followup");
+    const pre3 = db.select().from(schema.courses).where(eq(schema.courses.code, "PRE3")).get()!;
+    expect(pre3.requiresRt101).toBe(true);
+    db.update(schema.courses).set({ enabled: true }).where(eq(schema.courses.id, pre3.id)).run();
+    const c = createCohort(db, { courseId: pre3.id, startDate: "2026-10-05" }, 1);
+    const r = registerEnrollment(db, input(c.id, "P-1"), actor);
+    expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all()).toEqual([]);
+    completeEnrollments(db, [r.enrollment.id], "completed", "2026-10-07", { userId: 1 });
+    expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all().map((t) => `${t.system}:${t.step}`)).toEqual(["rt101:record"]);
+    expect(db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all()).toEqual([]);
+  });
+
+  it("พ้นโทษระหว่างติดตาม → ปิดการติดตาม · งานจำหน่ายคงไว้ · งาน รท.101 ยังคงอยู่ · ยกเลิกแล้วย้อนครบ", async () => {
     const { completeEnrollments } = await import("@/lib/services/followup");
     const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
     const r = registerEnrollment(db, input(c.id, "F-9"), actor);
     completeEnrollments(db, [r.enrollment.id], "completed", "2026-10-21", { userId: 1 });
-    const fus = db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all();
-    expect(fus.map((f) => f.dueDate)).toEqual(["2026-11-21", "2027-01-21", "2027-04-21", "2027-10-21"]);
-
     recordReleases(db, { incarcerationIds: [r.incarcerationId!], releasedDate: "2026-12-01", reason: "completed_sentence" }, { userId: 1 });
     const after = db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all();
     expect(after.every((f) => f.status === "closed")).toBe(true);
     expect(after[0].reason).toBe("ปิดการติดตาม – พ้นโทษ");
-    const dis = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.step, "discharge")).all();
-    expect(dis.every((t) => t.status === "pending" && t.dueDate === "2026-12-08")).toBe(true);
+    const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all();
+    expect(tasks.find((t) => t.step === "discharge")).toMatchObject({ status: "pending", dueDate: "2026-10-28" });
+    expect(tasks.find((t) => t.system === "rt101")).toMatchObject({ status: "pending", step: "record" });
+    expect(tasks.filter((t) => t.step.startsWith("followup")).every((t) => t.status === "closed")).toBe(true);
 
     const ev = db.select().from(schema.releaseEvents).get()!;
     cancelRelease(db, ev.id, "บันทึกผิด", { userId: 1 });
     expect(db.select().from(schema.followups).where(eq(schema.followups.enrollmentId, r.enrollment.id)).all().every((f) => f.status === "pending")).toBe(true);
+    expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.step, "discharge")).get()!.dueDate).toBe("2026-10-28");
   });
 
-  it("ออกระหว่างอบรม → งาน บสต. ที่เหลือ = ติดตามไม่ได้", () => {
+  it("ออกระหว่างอบรม → งาน บสต. ที่เหลือ = ติดตามไม่ได้ + สร้างงานจำหน่าย · ไม่มีงาน รท.101 (ไม่จบหลักสูตร)", () => {
     const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
     const r = registerEnrollment(db, input(c.id, "U-1"), actor);
     recordReleases(db, { incarcerationIds: [r.incarcerationId!], releasedDate: "2026-10-08", reason: "transfer" }, { userId: 1 });
     const tasks = db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all();
     expect(tasks.filter((t) => t.step !== "discharge").every((t) => t.status === "unfollowable" && t.reason === "ติดตามไม่ได้ – ย้ายเรือนจำ")).toBe(true);
+    expect(tasks.find((t) => t.step === "discharge")).toMatchObject({ system: "bst", status: "pending", dueDate: "2026-10-15" });
+    expect(tasks.some((t) => t.system === "rt101")).toBe(false);
   });
 
+  it("ตัวชี้วัด: % ลงทะเบียน บสต. ครบ, % ติดตามครบ 4 ครั้ง, % ลง รท.101 ครบ", async () => {
+    const { bstIndicators, rt101Indicators } = await import("@/lib/queries/bst");
+    const T = (o: object) => ({ id: 0, enrollmentId: 1, system: "bst", step: "register", dueDate: "2026-01-01", status: "pending", doneDate: null, doneBy: null, reason: null, note: null, ...o }) as never;
+    const F = (o: object) => ({ id: 0, enrollmentId: 1, seq: 1, dueDate: "2026-01-01", status: "done", relapse: "no", ...o }) as never;
+    const ind = bstIndicators(
+      [T({ enrollmentId: 1, status: "done" }), T({ enrollmentId: 2 }), T({ enrollmentId: 3, status: "unfollowable", reason: "ติดตามไม่ได้ – ย้ายเรือนจำ" }), T({ enrollmentId: 4, dueDate: "2099-01-01" })],
+      [
+        ...[1, 2, 3, 4].map((seq) => F({ enrollmentId: 1, seq })),
+        ...[1, 2, 3, 4].map((seq) => F({ enrollmentId: 2, seq, status: seq === 4 ? "pending" : "done" })),
+        ...[1, 2, 3, 4].map((seq) => F({ enrollmentId: 3, seq, status: seq > 1 ? "closed" : "done" })),
+        ...[1, 2, 3, 4].map((seq) => F({ enrollmentId: 4, seq, dueDate: seq === 4 ? "2099-01-01" : "2026-01-01" })),
+      ],
+      "2026-10-04",
+    );
+    expect(ind.register).toEqual({ done: 1, due: 2, pct: 50 });
+    expect(ind.followup4).toMatchObject({ complete: 1, eligible: 2, excluded: 1, pct: 50 });
+    expect(ind.excludedReasons).toEqual([{ reason: "ติดตามไม่ได้ – ย้ายเรือนจำ", n: 1 }]);
+    const rt = rt101Indicators([T({ system: "rt101", step: "record", status: "done" }), T({ system: "rt101", step: "record" }), T({ system: "rt101", step: "record", status: "cancelled" })]);
+    expect(rt).toEqual({ completed: 2, done: 1, pending: 1, pct: 50 });
+  });
   it("บันทึกแบบประเมิน: เกณฑ์ตามเวอร์ชัน สิทธิ์ตามหมวด และแจ้งเตือนเฉพาะบทบาทสุขภาพ", async () => {
     const { saveAssessment, getForm } = await import("@/lib/services/assessments");
     const c = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);

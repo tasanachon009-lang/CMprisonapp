@@ -10,9 +10,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { eq, and, lte, inArray } from "drizzle-orm";
+import { eq, and, lte, inArray, or } from "drizzle-orm";
 import { getForm, saveAssessment } from "../src/lib/services/assessments";
-import { completeEnrollments, ensureIntakeTasks } from "../src/lib/services/followup";
+import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from "../src/lib/services/followup";
 import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
@@ -346,10 +346,35 @@ async function main() {
       }
     }
   }
-  // รุ่นเก่าปีงบ 2568: งาน บสต. ลงครบแล้ว
+  // รุ่นที่จบแบบไม่ผ่านบริการ (2568 และ 3 วัน): สร้างงานเมื่อครบหลักสูตร (บสต. จำหน่าย/ติดตาม, รท.101)
+  const otherDone = db.select().from(schema.cohorts).where(or(eq(schema.cohorts.fiscalYear, 2568), eq(schema.cohorts.courseId, pre3.id))).all();
+  for (const c of otherDone) {
+    for (const e of db.select().from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, c.id), eq(schema.enrollments.status, "completed"))).all()) {
+      ensureCompletionTasks(db, e.id, e.leftDate!, headId);
+    }
+    if (c.courseId === pre3.id) {
+      // รท.101 ของหลักสูตร 3 วัน: ลงแล้วส่วนใหญ่ ยกเว้นรุ่นล่าสุดที่ยังค้างบางส่วน
+      const ids = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(eq(schema.enrollments.cohortId, c.id)).all().map((r) => r.id).concat(-1);
+      for (const t of db.select().from(schema.bstTasks).where(inArray(schema.bstTasks.enrollmentId, ids)).all()) {
+        if ((t.dueDate ?? "") < "2026-08-01" || rand() < 0.4) db.update(schema.bstTasks).set({ status: "done", doneDate: t.dueDate, doneBy: pick(rehabStaff) }).where(eq(schema.bstTasks.id, t.id)).run();
+      }
+    }
+  }
+  // รุ่นเก่าปีงบ 2568: งาน บสต./รท.101 ลงครบแล้ว
   for (const c of db.select().from(schema.cohorts).where(eq(schema.cohorts.fiscalYear, 2568)).all()) {
     const ids = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(eq(schema.enrollments.cohortId, c.id)).all().map((r) => r.id);
     if (ids.length) db.update(schema.bstTasks).set({ status: "done", doneDate: c.endDate }).where(inArray(schema.bstTasks.enrollmentId, ids)).run();
+    // ติดตามครบแล้ว (ยกเว้นผู้พ้นโทษไปแล้ว = ปิดการติดตาม)
+    for (const f of ids.length ? db.select().from(schema.followups).where(inArray(schema.followups.enrollmentId, ids)).all() : []) {
+      const e = db.select().from(schema.enrollments).where(eq(schema.enrollments.id, f.enrollmentId)).get()!;
+      const inc = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, e.incarcerationId)).get()!;
+      if (inc.releasedDate && f.dueDate > inc.releasedDate) {
+        db.update(schema.followups).set({ status: "closed", reason: "ปิดการติดตาม – พ้นโทษ" }).where(eq(schema.followups.id, f.id)).run();
+        db.update(schema.bstTasks).set({ status: "closed", reason: "ปิดการติดตาม – พ้นโทษ", doneDate: null }).where(and(eq(schema.bstTasks.enrollmentId, f.enrollmentId), eq(schema.bstTasks.step, `followup${f.seq}`))).run();
+      } else {
+        db.update(schema.followups).set({ status: "done", doneDate: f.dueDate, method: pick(["phone", "visit"]), relapse: rand() < 0.1 ? "yes" : rand() < 0.1 ? "unknown" : "no", occupation: pick(["รับจ้าง", "เกษตรกร", "ค้าขาย"]), bstRecorded: true }).where(eq(schema.followups.id, f.id)).run();
+      }
+    }
   }
   // ชุมชนบำบัด (ยังไม่เปิดหน้าจอ): ลงทะเบียน/คัดกรองแล้ว
   db.update(schema.bstTasks).set({ status: "done", doneDate: "2026-07-10" }).where(inArray(schema.bstTasks.enrollmentId, db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(eq(schema.enrollments.cohortId, cf.id)).all().map((r) => r.id).concat(-1))).run();
@@ -376,7 +401,7 @@ async function main() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const count = (t: any) => (db.select().from(t).all() as unknown[]).length;
   console.log(`✅ เสร็จ: บุคคล ${count(schema.persons)} คน, การต้องโทษ ${count(schema.incarcerations)}, ลงทะเบียน ${count(schema.enrollments)}, รุ่น ${count(schema.cohorts)}, เช็คชื่อ ${count(schema.attendance)} แถว`);
-  console.log(`   แบบประเมิน ${count(schema.assessmentResults)}, งาน บสต. ${count(schema.bstTasks)}, ติดตาม ${count(schema.followups)}`);
+  console.log(`   แบบประเมิน ${count(schema.assessmentResults)}, งาน บสต. ${db.select().from(schema.bstTasks).where(eq(schema.bstTasks.system, "bst")).all().length}, งาน รท.101 ${db.select().from(schema.bstTasks).where(eq(schema.bstTasks.system, "rt101")).all().length}, ติดตาม ${count(schema.followups)}`);
   console.log("   รหัสหน่วยงาน: demo-rehab-2569 / รหัสผ่านทุกคน: rehab-2569 (ข้อมูลปลอม)");
   sqlite.close();
 }

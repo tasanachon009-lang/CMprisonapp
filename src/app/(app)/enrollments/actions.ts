@@ -84,9 +84,39 @@ export async function markTaskAction(taskId: number, done: boolean, date?: strin
   try {
     const auth = await requireAction();
     assertIn(auth, "bst.edit", [cohortOfTask(taskId)]);
+    if (date && (!isValidISODate(date) || date > todayISO())) return { ok: false, error: "วันที่ลงในระบบไม่ถูกต้อง (ต้องไม่เป็นวันในอนาคต)" };
     markTask(getDb(), taskId, done ? date || todayISO() : null, { userId: auth.user.id, ip: await clientIp() });
     revalidatePath("/bst");
+    revalidatePath("/rt101");
     return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+/** ติ๊กทีละหลายคน "ลง บสต./รท.101 แล้ว" — ตรวจสิทธิ์รายงาน (รายรุ่น) ทุกรายการ */
+export async function markTasksAction(taskIds: number[], date: string): Promise<ActionResult<{ done: number; errors: string[] }>> {
+  try {
+    const auth = await requireAction();
+    if (!isValidISODate(date)) return { ok: false, error: "กรุณาใส่วันที่ลงในระบบ" };
+    if (date > todayISO()) return { ok: false, error: "วันที่ลงในระบบต้องไม่เป็นวันในอนาคต" };
+    if (taskIds.length > 500) return { ok: false, error: "บันทึกได้ครั้งละไม่เกิน 500 รายการ" };
+    const db = getDb();
+    const ip = await clientIp();
+    let done = 0;
+    const errors: string[] = [];
+    for (const id of taskIds) {
+      try {
+        assertIn(auth, "bst.edit", [cohortOfTask(id)]);
+        markTask(db, id, date, { userId: auth.user.id, ip });
+        done++;
+      } catch (e) {
+        errors.push(toError(e).error);
+      }
+    }
+    revalidatePath("/bst");
+    revalidatePath("/rt101");
+    return { ok: true, data: { done, errors } };
   } catch (e) {
     return toError(e);
   }

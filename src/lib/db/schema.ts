@@ -768,7 +768,7 @@ export const bstTasks = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
     system: text("system").notNull(),
-    /** register | screen | treat | followup1..4 | discharge */
+    /** bst: register | screen | treat | discharge | followup1..4 · rt101: record (1 งานเมื่อครบหลักสูตร) */
     step: text("step").notNull(),
     dueDate: text("due_date"),
     /** pending | done | unfollowable | closed | cancelled */

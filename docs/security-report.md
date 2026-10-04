@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 4/10/2569 21:45:17
+- วันเวลา: 4/10/2569 21:57:42
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 132/132 ข้อ**
+- ผล: **ผ่าน 140/140 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -108,6 +108,14 @@
 | ✅ ผ่าน | warden → /inbox | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /rt101 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/bst?s=rt101 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/bst?s=rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /print/bst?s=rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | admin → /admin/forms | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | executive → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |

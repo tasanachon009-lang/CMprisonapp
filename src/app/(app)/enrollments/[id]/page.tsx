@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db";
 import { enrollmentContext, bstOf, medicalNotesOf, behaviorNotesOf } from "@/lib/queries/enrollment";
 import { listForms, resultsOf, formAccess } from "@/lib/services/assessments";
 import { ROUND_LABEL } from "@/lib/assessments/compute";
-import { SYSTEM_LABEL, STEP_LABEL, TASK_STATUS_LABEL } from "@/lib/services/followup";
+import { STEP_LABEL, TASK_STATUS_LABEL, BST_STEP_ORDER, DONE_BUTTON_LABEL } from "@/lib/services/followup";
 import { ENROLLMENT_STATUS_LABEL } from "@/lib/services/registry";
 import { userNameMap } from "@/lib/queries/names";
 import { lookupLabel } from "@/lib/bootstrap";
@@ -136,37 +136,33 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
         </section>
       )}
 
-      {(course.requiresBst || course.requiresRt101 || bst.followups.length > 0) && canBstView && (
+      {(course.requiresBst || bst.followups.length > 0) && canBstView && (
         <section className="card">
-          <h2 className="text-xl">บสต. / รท.101 และการติดตามหลังบำบัด</h2>
-          <div className="mt-3 grid gap-4 lg:grid-cols-2">
-            {(["bst", "rt101"] as const).filter((s) => (s === "bst" ? course.requiresBst : course.requiresRt101)).map((system) => (
-              <div key={system} className="rounded-2xl border border-line p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg">{SYSTEM_LABEL[system]}</h3>
-                  <ExternalIdForm enrollmentId={e.id} system={system} current={bst.ids.find((x) => x.system === system)?.externalId ?? ""} canEdit={canBstEdit} />
-                </div>
-                <ul className="mt-2 divide-y divide-line">
-                  {bst.tasks.filter((t) => t.system === system).map((t) => (
-                    <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
-                      <span className="flex-1">{STEP_LABEL[t.step] ?? t.step}<span className="block text-xs text-muted">กำหนด {formatThaiDate(t.dueDate)}{t.reason ? ` · ${t.reason}` : ""}</span></span>
-                      {t.status === "pending" || t.status === "done"
-                        ? <TaskToggle taskId={t.id} done={t.status === "done"} overdue={t.status === "pending" && (t.dueDate ?? "") < today} canEdit={canBstEdit} label={t.status === "done" ? `ลงแล้ว ${formatThaiDate(t.doneDate)} (${names.get(t.doneBy ?? 0) ?? ""})` : undefined} />
-                        : <span className="tag-muted">{TASK_STATUS_LABEL[t.status]}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl">บสต. และการติดตามหลังบำบัด</h2>
+            {course.requiresBst && <ExternalIdForm enrollmentId={e.id} system="bst" current={bst.ids.find((x) => x.system === "bst")?.externalId ?? ""} canEdit={canBstEdit} />}
           </div>
+          {course.requiresBst && (
+            <ul className="mt-2 divide-y divide-line">
+              {bst.tasks.filter((t) => t.system === "bst").sort((a, b) => BST_STEP_ORDER.indexOf(a.step) - BST_STEP_ORDER.indexOf(b.step)).map((t) => (
+                <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
+                  <span className="flex-1">{STEP_LABEL[t.step] ?? t.step}<span className="block text-xs text-muted">ครบกำหนด {formatThaiDate(t.dueDate)}{t.reason ? ` · ${t.reason}` : ""}</span></span>
+                  {t.status === "pending" || t.status === "done"
+                    ? <TaskToggle taskId={t.id} done={t.status === "done"} overdue={t.status === "pending" && (t.dueDate ?? "") < today} canEdit={canBstEdit} doneLabel={DONE_BUTTON_LABEL.bst} label={t.status === "done" ? `ลง บสต. แล้ว ${formatThaiDate(t.doneDate)} (${names.get(t.doneBy ?? 0) ?? ""})` : undefined} />
+                    : <span className="tag-muted">{TASK_STATUS_LABEL[t.status]}</span>}
+                </li>
+              ))}
+              {e.status === "active" && <li className="py-2 text-sm text-muted">งาน &quot;จำหน่าย&quot; และติดตาม 4 ครั้งจะเกิดเมื่อบันทึกครบหลักสูตร — ติดตามนับจากวันจำหน่าย</li>}
+            </ul>
+          )}
           {bst.followups.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg">ติดตามหลังบำบัด</h3>
+              <h3 className="text-lg">ติดตามหลังบำบัด (นับจากวันจำหน่าย)</h3>
               <ul className="mt-2 space-y-2">
                 {bst.followups.map((f) => (
                   <li key={f.id} className="rounded-2xl bg-cream p-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <b>เดือนที่ {f.monthOffset}</b>
+                      <b>ครั้งที่ {f.seq} · เดือนที่ {f.monthOffset}</b>
                       <span className="text-sm text-muted">กำหนด {formatThaiDate(f.dueDate)}</span>
                       {f.status === "done" && <span className="tag-ok">ติดตามแล้ว {formatThaiDate(f.doneDate)} · กลับไปเสพซ้ำ: {f.relapse === "yes" ? "ใช่" : f.relapse === "no" ? "ไม่ใช่" : "ไม่ทราบ"}</span>}
                       {f.status === "pending" && (f.dueDate < today ? <span className="tag-danger">เลยกำหนด</span> : <span className="tag-muted">รอติดตาม</span>)}
@@ -181,6 +177,26 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
         </section>
       )}
 
+      {course.requiresRt101 && canBstView && (
+        <section className="card">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl">รท.101 — บันทึกผ่านการฟื้นฟู</h2>
+            <ExternalIdForm enrollmentId={e.id} system="rt101" current={bst.ids.find((x) => x.system === "rt101")?.externalId ?? ""} canEdit={canBstEdit} />
+          </div>
+          {(() => {
+            const rt = bst.tasks.find((t) => t.system === "rt101" && t.step === "record");
+            if (!rt) return <p className="mt-2 text-muted">{e.status === "completed" ? "ไม่มีงาน รท.101" : "ลงเมื่อครบหลักสูตรเท่านั้น — ยังไม่ต้องลง"}</p>;
+            return (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="flex-1">ครบกำหนด {formatThaiDate(rt.dueDate)}{inc.releasedDate ? <span className="block text-xs text-muted">ออกจากเรือนจำแล้ว — งาน รท.101 ยังคงต้องลง</span> : null}</span>
+                {rt.status === "pending" || rt.status === "done"
+                  ? <TaskToggle taskId={rt.id} done={rt.status === "done"} overdue={rt.status === "pending" && (rt.dueDate ?? "") < today} canEdit={canBstEdit} doneLabel={DONE_BUTTON_LABEL.rt101} label={rt.status === "done" ? `ลง รท.101 แล้ว ${formatThaiDate(rt.doneDate)} (${names.get(rt.doneBy ?? 0) ?? ""})` : undefined} />
+                  : <span className="tag-muted">{TASK_STATUS_LABEL[rt.status]}</span>}
+              </div>
+            );
+          })()}
+        </section>
+      )}
       <section className="card">
         <h2 className="text-xl">บันทึกพฤติกรรม</h2>
         <ul className="mt-3 space-y-2">

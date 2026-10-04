@@ -10,6 +10,7 @@ export const NAV: NavItem[] = [
   { href: "/persons", label: "ค้นหาบุคคล", icon: "search", any: ["registry.view"] },
   { href: "/release", label: "ออกจากเรือนจำ", icon: "door", any: ["release.view"] },
   { href: "/bst", label: "บสต./ติดตาม", icon: "clipboard", any: ["bst.view"] },
+  { href: "/rt101", label: "รท.101", icon: "check", any: ["bst.view"] },
   { href: "/assigned", label: "งานที่ได้รับมอบหมาย", icon: "users", scoped: true },
   { href: "/inbox", label: "จดหมายเวร", icon: "mail", any: ["shift.use"] },
   { href: "/import", label: "นำเข้า Excel", icon: "upload", any: ["registry.import"] },

@@ -56,7 +56,7 @@ export const COURSES = [
     totalHours: 15,
     passAttendancePct: 80,
     requiresBst: false,
-    requiresRt101: false,
+    requiresRt101: true, // สเปก 14.2: รท.101 ลงทั้ง 3 หลักสูตร
     requiresFollowup: false,
     enabled: false, // เปิดในขั้น 4
     color: "#C07A2C",
@@ -192,7 +192,7 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   /** ติดตามหลังบำบัด: เดือนที่ (ตั้งค่าได้) */
   "followup.months": [1, 3, 6, 12],
   /** กำหนดลง บสต./รท.101 (วันนับจากวันลงทะเบียน/วันจบ) */
-  "bst.dueDays": { register: 7, screen: 7, treat: 7, followup: 7, discharge: 7 },
+  "bst.dueDays": { register: 7, screen: 7, treat: 7, discharge: 7, followup: 7, rt101: 7 },
   /**
    * ผู้จบหลักสูตรแล้วออกจากเรือนจำระหว่างติดตาม: "close" ปิดการติดตาม | "continue" ติดตามต่อ (รายเหตุผล)
    * ค่าเริ่มต้น = ปิดการติดตาม (เจ้าของโครงการตัดสินใจ 4 ต.ค. 2569 — docs/decisions.md)

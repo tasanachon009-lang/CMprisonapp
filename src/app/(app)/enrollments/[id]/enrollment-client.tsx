@@ -51,7 +51,7 @@ export function ExternalIdForm({ enrollmentId, system, current, canEdit }: { enr
   );
 }
 
-export function TaskToggle({ taskId, done, overdue, canEdit, label }: { taskId: number; done: boolean; overdue: boolean; canEdit: boolean; label?: string }) {
+export function TaskToggle({ taskId, done, overdue, canEdit, label, doneLabel = "ลงแล้ว" }: { taskId: number; done: boolean; overdue: boolean; canEdit: boolean; label?: string; doneLabel?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   if (done) {
@@ -64,7 +64,7 @@ export function TaskToggle({ taskId, done, overdue, canEdit, label }: { taskId: 
   }
   return canEdit ? (
     <button className={overdue ? "btn-danger btn-sm" : "btn-secondary btn-sm"} disabled={pending} onClick={() => start(async () => { await markTaskAction(taskId, true); router.refresh(); })}>
-      {overdue ? "เลยกำหนด — กด \"ลงแล้ว\"" : "ลงแล้ว"}
+      {overdue ? `เลยกำหนด — ${doneLabel}` : doneLabel}
     </button>
   ) : <span className={overdue ? "tag-danger" : "tag-warn"}>{overdue ? "เลยกำหนด" : "ยังไม่ลง"}</span>;
 }

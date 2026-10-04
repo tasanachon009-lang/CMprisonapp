@@ -139,6 +139,8 @@ async function main() {
     ["/bst", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
     ["/inbox", { rehab: true, assistant: true, finance: false, executive: false, warden: false }],
     ["/assigned", { assistant: false, finance: false }],
+    ["/rt101", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
+    ["/print/bst?s=rt101", { rehab: true, executive: false, assistant: false }],
     ["/admin/forms", { admin: true, rehab: false, executive: false }],
     ["/incomplete", { rehab: true, assistant: false, warden: false }],
     [`/print/person/${person.id}`, { rehab: true, executive: false, assistant: false }],

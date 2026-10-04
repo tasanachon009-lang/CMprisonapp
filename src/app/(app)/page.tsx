@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { and, desc, isNull, or, eq, inArray } from "drizzle-orm";
-import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive, FileCheck2, ClipboardList, Mail, HeartPulse } from "lucide-react";
+import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive, FileCheck2, ClipboardList, Mail, HeartPulse, BadgeCheck } from "lucide-react";
 import { requirePage, getAuth } from "@/lib/auth/session";
 import { dueByCohort, healthQueue } from "@/lib/queries/home2";
-import { taskCounts, dueFollowups } from "@/lib/queries/bst";
+import { taskCounts, dueFollowups, indicatorSummary } from "@/lib/queries/bst";
 import { messagesFor, shiftViewer } from "@/lib/services/shift";
 import { getDb, schema } from "@/lib/db";
 import { todayISO, addDays, formatThaiDate, currentFiscalYear, formatThaiDateTime } from "@/lib/thai-date";
@@ -112,7 +112,8 @@ async function Step2Cards({ today }: { today: string }) {
   const auth = (await getAuth())!;
   const db = getDb();
   const due = dueByCohort(db, auth.can, today);
-  const bst = auth.can("bst.view") ? taskCounts(db, today) : null;
+  const bst = auth.can("bst.view") ? taskCounts(db, "bst", today) : null;
+  const rt101 = auth.can("bst.view") ? taskCounts(db, "rt101", today) : null;
   const followDue = auth.can("bst.view") ? dueFollowups(db, today).filter((f) => f.f.dueDate <= today).length : 0;
   const openShift = auth.can("shift.use") ? messagesFor(db, shiftViewer(db, auth)).filter((m) => m.needsAction && m.status === "open" && !m.mine).length : 0;
   return (
@@ -132,13 +133,19 @@ async function Step2Cards({ today }: { today: string }) {
       </section>
       {bst && (
         <section className="card">
-          <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> งาน บสต./รท.101</h2>
+          <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> งาน บสต.</h2>
           <div className="mt-2 grid grid-cols-3">
             <Stat value={bst.today} label="วันนี้" href="/bst?f=today" />
             <Stat value={bst.week} label="7 วัน" href="/bst?f=week" />
             <Stat value={bst.overdue} label="เลยกำหนด" tone={bst.overdue ? "danger" : "ok"} href="/bst?f=overdue" />
           </div>
           {followDue > 0 && <Link href="/bst" className="tag-warn mt-2">ติดตามหลังบำบัดถึงกำหนด {followDue} ราย</Link>}
+          {rt101 && (
+            <Link href="/rt101" className={`mt-4 flex items-center justify-between gap-2 rounded-2xl px-4 py-3 font-semibold ${rt101.total ? "bg-warn-bg/30 hover:bg-warn-bg/50" : "bg-cream"}`}>
+              <span className="flex items-center gap-2"><BadgeCheck size={20} aria-hidden /> รท.101 ค้างลง</span>
+              <span className="font-display text-2xl">{rt101.total} <span className="text-base font-normal">คน</span></span>
+            </Link>
+          )}
         </section>
       )}
       <section className="card">
@@ -187,6 +194,8 @@ function ExecSummary() {
   const db = getDb();
   const fy = currentFiscalYear();
   const n = overviewNumbers(db, fy);
+  const ind = indicatorSummary(db, fy, todayISO());
+  const p = (x: number | null) => (x == null ? "-" : `${x}%`);
   return (
     <section className="card">
       <h2 className="flex items-center gap-2 text-xl"><Users aria-hidden /> ภาพรวม ปีงบประมาณ {fy}</h2>
@@ -195,6 +204,13 @@ function ExecSummary() {
         <Stat value={n.active} label="ผู้เข้ารับการฟื้นฟูขณะนี้ (คน)" />
         <Stat value={n.fyTotal} label={`ลงทะเบียนปีงบ ${fy} (รายการ)`} />
         <Stat value={n.fyCompleted} label="ครบหลักสูตรแล้ว" tone="ok" />
+      </div>
+      <h3 className="mt-4 font-semibold">ตัวชี้วัด บสต. / รท.101 (สรุป ไม่มีรายชื่อ)</h3>
+      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Stat value={p(ind.bst.register.pct)} label={`ลงทะเบียน บสต. ครบ (${ind.bst.register.done}/${ind.bst.register.due})`} />
+        <Stat value={p(ind.bst.followup4.pct)} label={`ติดตามครบ 4 ครั้ง (${ind.bst.followup4.complete}/${ind.bst.followup4.eligible})`} />
+        <Stat value={p(ind.bst.relapse.pct)} label="ไม่กลับไปเสพซ้ำ (จากผลติดตาม)" />
+        <Stat value={p(ind.rt101.pct)} label={`ลง รท.101 ครบ (${ind.rt101.done}/${ind.rt101.completed})`} />
       </div>
       <p className="mt-2 text-xs text-muted">แดชบอร์ดผู้บริหารแบบเต็มจะเพิ่มในขั้นที่ 6</p>
     </section>

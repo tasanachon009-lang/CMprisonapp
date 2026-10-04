@@ -8,9 +8,10 @@ import { Alert, EmptyState } from "@/components/ui";
 import { UndoToast } from "@/components/undo-toast";
 import { ATTENDANCE_LABEL, CORRECTIONS_TYPES, type AttendanceStatus } from "@/lib/rules/attendance-rules";
 import { saveAttendanceAction } from "../actions";
+import { BehaviorNoteButton } from "@/components/behavior-note";
 
 type Row = {
-  enrollmentId: number; name: string; inmateNo: string; zone: string | null; thumb: string | null;
+  enrollmentId: number; incarcerationId: number; name: string; inmateNo: string; zone: string | null; thumb: string | null;
   duplicateName: boolean; draft: boolean; status: AttendanceStatus; correctionsType: string | null; note: string | null; saved: boolean;
 };
 
@@ -24,7 +25,7 @@ const COLOR: Record<AttendanceStatus, string> = {
 };
 
 /** เช็คชื่อ: ค่าเริ่มต้น "มา" ทั้งรุ่น แก้เฉพาะคนที่ไม่มา */
-export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOnly }: { sessionId: number; rows: Row[]; loadedVersion: number; readOnly: boolean }) {
+export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOnly, canNote }: { sessionId: number; rows: Row[]; loadedVersion: number; readOnly: boolean; canNote?: boolean }) {
   const router = useRouter();
   const [rows, setRows] = useState(initial);
   const [version, setVersion] = useState(loadedVersion);
@@ -100,6 +101,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
               </p>
               <p className="text-sm text-muted">{r.inmateNo}{r.zone ? ` · ${r.zone}` : ""}</p>
             </div>
+            {canNote && <BehaviorNoteButton compact incarcerationId={r.incarcerationId} enrollmentId={r.enrollmentId} name={r.name} />}
             <div role="radiogroup" aria-label={`สถานะของ ${r.name}`} className="flex flex-wrap gap-1">
               {ORDER.map((s) => (
                 <button

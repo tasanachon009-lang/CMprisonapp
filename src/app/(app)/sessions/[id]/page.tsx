@@ -65,8 +65,10 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
             sessionId={session.id}
             loadedVersion={version}
             readOnly={!access.canEdit || (!!session.lockedAt && !auth.isAdmin)}
+            canNote={auth.can("behavior.edit")}
             rows={rows.map((r) => ({
               enrollmentId: r.enrollmentId,
+              incarcerationId: r.incarcerationId,
               name: `${r.prefix ?? ""}${r.firstName} ${r.lastName}`,
               inmateNo: r.inmateNo,
               zone: r.zone,

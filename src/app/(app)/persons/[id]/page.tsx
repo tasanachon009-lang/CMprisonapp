@@ -11,6 +11,11 @@ import { maskNationalId } from "@/lib/thai-id";
 import { Breadcrumb, RecordMeta } from "@/components/ui";
 import { Avatar } from "@/components/avatar";
 import { NationalIdReveal, PhotoUpload, EditPerson, EditIncarceration, ChangeInmateNo } from "./person-client";
+import { ContactsEditor, HandoffButton } from "./contacts-client";
+import { BehaviorNoteButton } from "@/components/behavior-note";
+import { behaviorNotesOf } from "@/lib/queries/enrollment";
+import { and, eq, isNull } from "drizzle-orm";
+import { schema } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +33,8 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
   const current = incarcerations[0];
   const today = todayISO();
   const canEdit = auth.can("registry.edit");
+  const contacts = db.select().from(schema.contacts).where(and(eq(schema.contacts.personId, p.id), isNull(schema.contacts.deletedAt))).all();
+  const behaviors = current ? behaviorNotesOf(db, current.inc.id) : [];
 
   return (
     <div className="space-y-6">
@@ -51,11 +58,31 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
             <Item k="การต้องโทษ">{incarcerations.length} ครั้ง</Item>
           </dl>
           <div className="mt-3 flex flex-wrap items-center gap-3">
+            {auth.can("behavior.edit") && current && <BehaviorNoteButton incarcerationId={current.inc.id} enrollmentId={current.enrollments.find((x) => ["active", "draft"].includes(x.e.status))?.e.id ?? null} name={`${p.firstName} ${p.lastName}`} />}
+            {auth.can("shift.use") && <HandoffButton personId={p.id} name={`${p.firstName} ${p.lastName}`} />}
             {canEdit && <EditPerson person={{ id: p.id, version: p.version, prefix: p.prefix, firstName: p.firstName, lastName: p.lastName, birthDate: p.birthDate, gender: p.gender, maritalStatus: p.maritalStatus, education: p.education, occupation: p.occupation, familySize: p.familySize, hasNationalId: !!p.nationalId }} />}
             <RecordMeta createdBy={names.get(p.createdBy ?? 0)} createdAt={formatThaiDateTime(p.createdAt)} updatedBy={names.get(p.updatedBy ?? 0)} updatedAt={formatThaiDateTime(p.updatedAt)} />
           </div>
         </div>
       </section>
+
+      <ContactsEditor personId={p.id} canEdit={auth.can("contacts.edit")} contacts={contacts.map((c) => ({ id: c.id, kind: c.kind, name: c.name, relation: c.relation, phone: c.phone, address: c.address, note: c.note }))} />
+
+      {behaviors.length > 0 && (
+        <section className="card">
+          <h2 className="text-xl">บันทึกพฤติกรรม (การต้องโทษปัจจุบัน)</h2>
+          <ul className="mt-3 space-y-2">
+            {behaviors.slice(0, 20).map((b) => (
+              <li key={b.id} className="flex flex-wrap items-start gap-2 rounded-2xl bg-cream px-3 py-2">
+                <span className={b.tone === "positive" ? "tag-ok" : b.tone === "negative" ? "tag-danger" : "tag-muted"}>{b.tone === "positive" ? "เชิงบวก" : b.tone === "negative" ? "เชิงลบ" : "สังเกต"}</span>
+                {b.category && <span className="tag-navy">{lookupLabel(db, "behavior_category", b.category)}</span>}
+                <span className="flex-1">{b.text}</span>
+                <span className="text-xs text-muted">{formatThaiDate(b.noteDate)} · {names.get(b.createdBy ?? 0)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {incarcerations.map((x) => {
         const yearBE = x.inc.admittedDate ? Number(x.inc.admittedDate.slice(0, 4)) + 543 : new Date(x.inc.createdAt).getFullYear() + 543;
@@ -83,7 +110,7 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
                 <ul className="space-y-2">
                   {x.enrollments.map((e) => (
                     <li key={e.e.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-cream px-4 py-2">
-                      <Link href={`/cohorts/${e.c.id}`} className="font-medium hover:underline">{e.course.name} {e.label}</Link>
+                      <Link href={`/enrollments/${e.e.id}`} className="font-medium hover:underline">{e.course.name} {e.label}</Link>
                       <span className={STATUS_TAG[e.e.status] ?? "tag-muted"}>{ENROLLMENT_STATUS_LABEL[e.e.status]}</span>
                       {e.e.overrideSeq > 0 && <span className="tag-danger" title={e.e.overrideReason ?? ""}>ปลดล็อกลงซ้ำโดย {names.get(e.e.overrideBy ?? 0)}</span>}
                       <span className="text-sm text-muted">{formatThaiDate(e.c.startDate)} – {formatThaiDate(e.c.endDate)}</span>

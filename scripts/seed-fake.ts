@@ -236,7 +236,7 @@ async function main() {
   const fastPeople = fillCohort(cf.id, 30, { yy: 68, admitted: "2025-08-01", enrolled: "2026-07-06", status: "active" });
 
   // 3 วัน (จบแล้ว) ปีงบ 2569
-  for (const start of ["2025-12-15", "2026-03-16", "2026-08-17"]) {
+  for (const start of ["2025-03-17", "2025-12-15", "2026-03-16", "2026-08-17"]) {
     const c = createCohort(db, { courseId: pre3.id, startDate: start, targetCount: 50 }, headId);
     fillCohort(c.id, 45, { yy: 66, admitted: "2023-11-01", enrolled: start, status: "active" });
     completeCohort(c.id, true);
@@ -280,7 +280,7 @@ async function main() {
 
   // ปีงบ 2570 รุ่นที่ 2 — วางแผนไว้ มีร่างลงทะเบียนล่วงหน้า
   const next = createCohort(db, { courseId: b12.id, startDate: "2027-01-11", targetCount: 45, location: "ห้องอบรม 2" }, headId);
-  fillCohort(next.id, 20, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
+  fillCohort(next.id, 40, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const count = (t: any) => (db.select().from(t).all() as unknown[]).length;

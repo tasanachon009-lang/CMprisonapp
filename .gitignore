@@ -60,3 +60,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/dist/
+/offline/*.msi
+# ฟอนต์เอกสารถูกคัดลอกจาก assets/fonts ตอนติดตั้ง (assets/fonts เข้า Git ได้ — TH Sarabun New เป็นฟอนต์ฟรี)
+/public/fonts/
+/scripts/daemon/

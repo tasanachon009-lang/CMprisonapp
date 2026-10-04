@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx scripts/seed-fake.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-thai": "^5.3.0",

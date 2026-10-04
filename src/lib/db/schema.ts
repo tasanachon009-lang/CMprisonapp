@@ -649,3 +649,223 @@ export const jobRuns = sqliteTable(
   },
   (t) => [uniqueIndex("job_runs_slot").on(t.job, t.slot)],
 );
+
+// ═════════════════════════ ขั้นที่ 2 ═════════════════════════
+
+// ───────── คลังแบบประเมิน (สเปก 10) ─────────
+
+/** แบบประเมิน (หัว) — รายละเอียดข้อ/เกณฑ์อยู่ในเวอร์ชัน (แช่แข็ง ณ วันประเมิน) */
+export const assessmentForms = sqliteTable("assessment_forms", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  shortName: text("short_name").notNull(),
+  /** knowledge | attitude | behavior | motivation | health_mental | health_physical | fitness */
+  category: text("category").notNull(),
+  /** items (รวมคะแนนรายข้อ) | depression (2Q→9Q→8Q) | single (เลือก 1 ค่า) | fitness (5 ฐาน) | condition (สภาวะกาย/จิตแรกรับ) */
+  kind: text("kind").notNull().default("items"),
+  /** ข้อมูลอ่อนไหว → เห็นเฉพาะสถานพยาบาล/ผู้ดูแล */
+  sensitive: integer("sensitive", { mode: "boolean" }).notNull().default(false),
+  /** รอบที่ใช้ เช่น ["pre","post"] หรือ ["monthly"] */
+  rounds: text("rounds", { mode: "json" }).notNull(),
+  /** หลักสูตรที่ใช้ เช่น ["B12","FAST"] */
+  courseCodes: text("course_codes", { mode: "json" }).notNull(),
+  description: text("description"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(100),
+  ...tracking(),
+});
+
+export const assessmentFormVersions = sqliteTable(
+  "assessment_form_versions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    formId: integer("form_id").notNull().references(() => assessmentForms.id),
+    version: integer("version").notNull(),
+    /** ข้อคำถาม [{no, text, help?, reverse?, correct?, group?}] */
+    items: text("items", { mode: "json" }).notNull(),
+    /** ตัวเลือกคะแนน + สูตร + เกณฑ์แปลผล + เกณฑ์แจ้งเตือน */
+    scoring: text("scoring", { mode: "json" }).notNull(),
+    effectiveFrom: text("effective_from").notNull(),
+    note: text("note"),
+    createdBy: integer("created_by"),
+    createdAt: ts("created_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
+  },
+  (t) => [uniqueIndex("afv_unique").on(t.formId, t.version)],
+);
+
+/** ผลประเมิน — เก็บคะแนนรายข้อ + ผลรวม + การแปลผล ณ เวลานั้น (ผูกกับการลงทะเบียน → รอบเก่าไม่ปนรอบใหม่) */
+export const assessmentResults = sqliteTable(
+  "assessment_results",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    formId: integer("form_id").notNull().references(() => assessmentForms.id),
+    versionId: integer("version_id").notNull().references(() => assessmentFormVersions.id),
+    /** pre | post | monthly */
+    round: text("round").notNull(),
+    /** รอบรายเดือน 'YYYY-MM' (อื่นๆ = '') */
+    period: text("period").notNull().default(""),
+    assessedDate: text("assessed_date").notNull(),
+    assessorId: integer("assessor_id"),
+    answers: text("answers", { mode: "json" }).notNull(),
+    total: real("total"),
+    level: text("level"),
+    /** ok | warn | danger */
+    tone: text("tone"),
+    details: text("details", { mode: "json" }),
+    sensitive: integer("sensitive", { mode: "boolean" }).notNull().default(false),
+    source: text("source"),
+    ...tracking(),
+  },
+  (t) => [
+    uniqueIndex("ar_unique").on(t.enrollmentId, t.formId, t.round, t.period).where(sql`deleted_at IS NULL`),
+    index("ar_enrollment_idx").on(t.enrollmentId),
+  ],
+);
+
+/** ความเห็นเจ้าหน้าที่สถานพยาบาล (สเปก 10.2) — ข้อมูลอ่อนไหว */
+export const medicalNotes = sqliteTable(
+  "medical_notes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    noteDate: text("note_date").notNull(),
+    /** medical | mental */
+    kind: text("kind").notNull().default("medical"),
+    screeningResult: text("screening_result"),
+    opinion: text("opinion"),
+    recommendation: text("recommendation"),
+    referral: integer("referral", { mode: "boolean" }).notNull().default(false),
+    referralDetail: text("referral_detail"),
+    referralStatus: text("referral_status"),
+    fields: text("fields", { mode: "json" }),
+    ...tracking(),
+  },
+  (t) => [index("medical_notes_enr_idx").on(t.enrollmentId)],
+);
+
+// ───────── บสต. / รท.101 และการติดตามหลังบำบัด (สเปก 14) ─────────
+
+/** เลขประจำตัวในระบบภายนอก (บสต./รท.101) ต่อการลงทะเบียน */
+export const externalIds = sqliteTable(
+  "external_ids",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    /** bst | rt101 */
+    system: text("system").notNull(),
+    externalId: text("external_id").notNull(),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("external_ids_unique").on(t.enrollmentId, t.system)],
+);
+
+/** งานลงระบบภายนอก — ระบบเตือนและเช็คว่าลงแล้วหรือยัง */
+export const bstTasks = sqliteTable(
+  "bst_tasks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    system: text("system").notNull(),
+    /** register | screen | treat | followup1..4 | discharge */
+    step: text("step").notNull(),
+    dueDate: text("due_date"),
+    /** pending | done | unfollowable | closed | cancelled */
+    status: text("status").notNull().default("pending"),
+    doneDate: text("done_date"),
+    doneBy: integer("done_by"),
+    reason: text("reason"),
+    note: text("note"),
+    ...tracking(),
+  },
+  (t) => [
+    uniqueIndex("bst_tasks_unique").on(t.enrollmentId, t.system, t.step),
+    index("bst_tasks_due_idx").on(t.status, t.dueDate),
+  ],
+);
+
+/** กำหนดการติดตามหลังบำบัด เดือนที่ 1 3 6 12 */
+export const followups = sqliteTable(
+  "followups",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    seq: integer("seq").notNull(),
+    monthOffset: integer("month_offset").notNull(),
+    dueDate: text("due_date").notNull(),
+    /** pending | done | unfollowable | closed */
+    status: text("status").notNull().default("pending"),
+    doneDate: text("done_date"),
+    /** phone | visit | referral */
+    method: text("method"),
+    urineResult: text("urine_result"),
+    /** yes | no | unknown */
+    relapse: text("relapse"),
+    occupation: text("occupation"),
+    note: text("note"),
+    bstRecorded: integer("bst_recorded", { mode: "boolean" }).notNull().default(false),
+    reason: text("reason"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("followups_unique").on(t.enrollmentId, t.seq), index("followups_due_idx").on(t.status, t.dueDate)],
+);
+
+// ───────── กล่องจดหมายเวร (สเปก 20) ─────────
+
+export const shiftMessages = sqliteTable(
+  "shift_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    authorId: integer("author_id").notNull(),
+    /** normal | important | red */
+    level: text("level").notNull().default("normal"),
+    body: text("body").notNull(),
+    personId: integer("person_id"),
+    /** เรื่องสุขภาพ → คนที่ไม่มีสิทธิ์เห็นแค่ "มีเรื่องสุขภาพ — ติดต่อพยาบาล" */
+    healthRelated: integer("health_related", { mode: "boolean" }).notNull().default(false),
+    /** next_shift | all | user */
+    recipientType: text("recipient_type").notNull(),
+    recipientUserId: integer("recipient_user_id"),
+    needsAction: integer("needs_action", { mode: "boolean" }).notNull().default(false),
+    dueDate: text("due_date"),
+    /** open | done */
+    status: text("status").notNull().default("open"),
+    resolvedBy: integer("resolved_by"),
+    resolvedAt: ts("resolved_at"),
+    resolution: text("resolution"),
+    overdueNotifiedAt: ts("overdue_notified_at"),
+    ...tracking(),
+  },
+  (t) => [index("shift_messages_created_idx").on(t.createdAt)],
+);
+
+export const shiftMessageAcks = sqliteTable(
+  "shift_message_acks",
+  {
+    messageId: integer("message_id").notNull().references(() => shiftMessages.id),
+    userId: integer("user_id").notNull(),
+    ackAt: ts("ack_at").notNull(),
+  },
+  (t) => [uniqueIndex("shift_acks_unique").on(t.messageId, t.userId)],
+);
+
+// ───────── บันทึกพฤติกรรมด่วน (สเปก 22B) ─────────
+
+export const behaviorNotes = sqliteTable(
+  "behavior_notes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").references(() => enrollments.id),
+    incarcerationId: integer("incarceration_id").notNull().references(() => incarcerations.id),
+    noteDate: text("note_date").notNull(),
+    /** positive | negative | observe */
+    tone: text("tone").notNull(),
+    category: text("category"),
+    text: text("text").notNull(),
+    /** แปลงเป็นบันทึกวินัย/เครื่องมือบ้านแล้ว (ขั้น 5) */
+    convertedTo: text("converted_to"),
+    ...tracking(),
+  },
+  (t) => [index("behavior_notes_inc_idx").on(t.incarcerationId, t.noteDate)],
+);

@@ -37,7 +37,8 @@
   --color-danger: var(--danger);
   --color-orange: var(--orange);
   --font-sans: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
-  --font-display: "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+  /* หัวเรื่อง: ตัวเลข/อังกฤษใช้ Space Grotesk (เรขาคณิตแบบภาพตัวอย่าง) ภาษาไทยตกไปที่ IBM Plex Sans Thai */
+  --font-display: "Space Grotesk", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
 }
 
 html {
@@ -82,6 +83,11 @@ h1, h2, h3, .font-display {
   }
   .btn-secondary {
     @apply btn bg-lime text-ink hover:brightness-95;
+    box-shadow: 0 0 0 2px var(--cream), 0 0 0 3px #b9c77a;
+  }
+  .btn-navy {
+    @apply btn bg-navy text-white hover:brightness-110;
+    box-shadow: 0 0 0 2px var(--cream), 0 0 0 3px var(--navy);
   }
   .btn-ghost {
     @apply btn border border-line bg-white text-ink hover:bg-lime-soft;
@@ -93,10 +99,24 @@ h1, h2, h3, .font-display {
     @apply min-h-9 px-3 py-1 text-sm;
   }
 
-  /* การ์ดมุมบาก (ใช้พอประมาณ — เฉพาะการ์ดสำคัญ ไม่ใช้ในหน้ากรอกข้อมูล) */
-  .card-notch {
-    @apply card;
-    clip-path: polygon(0 0, calc(100% - 56px) 0, 100% 56px, 100% 100%, 0 100%);
+  /*
+   * มุมบากโค้งแบบภาพตัวอย่าง (ขอบบนก้าวลงเป็นโค้ง S) — ใช้พอประมาณ เฉพาะภาพ/การ์ดเด่น
+   * ไม่ใช้ในหน้ากรอกข้อมูล เช็คชื่อ ตาราง
+   */
+  .notch-tr,
+  .notch-tl {
+    -webkit-mask: linear-gradient(#000 0 0), var(--notch-shape) var(--notch-pos) / 141px 85px no-repeat;
+    mask: linear-gradient(#000 0 0), var(--notch-shape) var(--notch-pos) / 141px 85px no-repeat;
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  .notch-tr {
+    --notch-pos: right -1px top -1px;
+    --notch-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 84'%3E%3Cpath d='M0 0H140V84A28 28 0 0 0 112 56H62C46 56 38 48 34 36L28 20C24 7 15 0 0 0Z'/%3E%3C/svg%3E");
+  }
+  .notch-tl {
+    --notch-pos: left -1px top -1px;
+    --notch-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 84'%3E%3Cpath d='M140 0H0V84A28 28 0 0 1 28 56H78C94 56 102 48 106 36L112 20C116 7 125 0 140 0Z'/%3E%3C/svg%3E");
   }
   .panel {
     @apply rounded-2xl border border-line bg-white;

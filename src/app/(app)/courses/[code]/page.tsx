@@ -29,6 +29,7 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/c
     <div>
       <Breadcrumb items={[{ href: "/courses", label: "หลักสูตร" }, { label: course.name }]} />
       <PageHeader
+        en="Program"
         title={course.name}
         subtitle={`${course.durationDays} วัน · ${course.totalHours} ชั่วโมง · เกณฑ์เข้าร่วม ${course.passAttendancePct}%`}
         actions={

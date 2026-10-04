@@ -8,6 +8,18 @@
   src: url("/fonts/THSarabunNew Bold.ttf") format("truetype");
   font-weight: 700;
 }
+@font-face {
+  font-family: "TH Sarabun New";
+  src: url("/fonts/THSarabunNew Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "TH Sarabun New";
+  src: url("/fonts/THSarabunNew BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
 
 .print-root {
   background: #e9e9e2;

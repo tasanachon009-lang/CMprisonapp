@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
   return (
     <div className="max-w-3xl space-y-4">
       <Breadcrumb items={[{ label: "การแจ้งเตือน" }]} />
-      <PageHeader title="การแจ้งเตือน" actions={unread.length > 0 && <MarkAllRead ids={unread} />} />
+      <PageHeader en="Notifications" title="การแจ้งเตือน" actions={unread.length > 0 && <MarkAllRead ids={unread} />} />
       {rows.length === 0 && <EmptyState title="ไม่มีการแจ้งเตือน" />}
       <ul className="space-y-2">
         {rows.map((n) => (

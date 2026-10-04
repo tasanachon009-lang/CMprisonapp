@@ -25,6 +25,7 @@ export default async function CohortLayout({ children, params }: LayoutProps<"/c
       ]} />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
+          <p lang="en" className="font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">Cohort</p>
           <p className="text-muted">{course.name}</p>
           <h1 className="text-3xl">{label}</h1>
           <p className="text-muted">{formatThaiDate(cohort.startDate)} – {formatThaiDate(cohort.endDate)} · {COHORT_STATUS_LABEL[st]}</p>

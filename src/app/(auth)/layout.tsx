@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { getSetting } from "@/lib/bootstrap";
+import { LogoMark } from "@/components/logo";
 
 /** พื้นหลังหน้าเข้าระบบ: ไล่เฉดมะนาว→ครีม พร้อมรูปทรงตกแต่ง (สเปก 4.4) */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -11,9 +12,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-lime via-lime-soft to-cream">
       <Decor />
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-8">
-        <header className="mb-8 text-center">
-          <p className="tag-muted mx-auto mb-3 bg-white/70">{orgName}</p>
-          <h1 className="text-3xl sm:text-4xl">{unitName}</h1>
+        <header className="mb-6 text-center">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <LogoMark size={44} />
+            <span className="tag-muted bg-white/70">{orgName}</span>
+          </div>
+          <h1 className="mx-auto max-w-3xl text-4xl leading-tight sm:text-5xl">{unitName}</h1>
           {demo && <p className="tag-warn mx-auto mt-3">ข้อมูลตัวอย่าง (ข้อมูลปลอม) — ไม่ใช่ข้อมูลจริง</p>}
         </header>
         <main className="flex flex-1 flex-col items-center">{children}</main>

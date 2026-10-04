@@ -22,23 +22,28 @@ export default async function LoginPage() {
 
   return (
     <div className="w-full">
+      <p lang="en" className="text-center font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">Our Team</p>
       <p className="mb-6 text-center text-lg text-muted">ขั้นที่ 2 จาก 2 — กดที่ชื่อของคุณ</p>
       <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         {users.map((u) => (
           <li key={u.id}>
             <Link href={`/login/${u.id}`} className="group block rounded-[28px] focus-visible:outline-offset-4">
               <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-periwinkle transition group-hover:-translate-y-1 group-hover:shadow-lg">
-                <span aria-hidden className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-lime" />
-                <span aria-hidden className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-lime/70" />
+                {/* ลายครึ่งวงกลมสีมะนาวด้านหลัง แบบการ์ด "Our Team" */}
+                <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-x-0 top-[12%] h-[52%] w-full">
+                  <path d="M0 0a18 18 0 0 1 0 36Z M0 40a18 18 0 0 1 0 36Z M100 0a18 18 0 0 0 0 36Z M100 40a18 18 0 0 0 0 36Z M32 0h36v76h-36Z" fill="var(--lime)" />
+                </svg>
                 {u.photoPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={`/api/files/user/${u.id}`} alt="" className="relative h-full w-full object-cover grayscale" />
                 ) : (
-                  <span className="relative flex h-full items-center justify-center font-display text-6xl font-bold text-white/95">
-                    {initials(u.firstName, u.lastName)}
+                  <span className="relative flex h-[80%] items-center justify-center">
+                    <span className="flex h-28 w-28 items-center justify-center rounded-full bg-navy font-display text-5xl font-bold text-white shadow-md">
+                      {initials(u.firstName, u.lastName)}
+                    </span>
                   </span>
                 )}
-                <div className="absolute inset-x-3 bottom-3 rounded-full bg-white px-3 py-2 text-center shadow">
+                <div className="absolute inset-x-3 bottom-3 rounded-[22px] bg-white px-3 py-2.5 text-center shadow">
                   <p className="truncate font-semibold leading-tight">{u.firstName} {u.lastName}</p>
                   <p className="truncate text-sm leading-tight text-muted">{u.titleLabel ?? PROFESSIONS[u.profession] ?? ""}</p>
                 </div>

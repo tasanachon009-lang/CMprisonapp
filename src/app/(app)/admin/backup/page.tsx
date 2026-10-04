@@ -23,7 +23,7 @@ export default async function BackupPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "สำรอง/กู้คืนข้อมูล" }]} />
-      <PageHeader title="สำรองและกู้คืนข้อมูล" subtitle="อัตโนมัติทุก 4 ชั่วโมงในเวลาราชการ (08.00 12.00 16.00) + ทุกคืน 22.00 น. · เข้ารหัส AES-256 · ทดสอบกู้คืนอัตโนมัติทุกวันอาทิตย์" />
+      <PageHeader en="Backup & Restore" title="สำรองและกู้คืนข้อมูล" subtitle="อัตโนมัติทุก 4 ชั่วโมงในเวลาราชการ (08.00 12.00 16.00) + ทุกคืน 22.00 น. · เข้ารหัส AES-256 · ทดสอบกู้คืนอัตโนมัติทุกวันอาทิตย์" />
       {h.problems.length > 0 ? <Alert tone="danger">{h.problems.map((p) => <p key={p}>• {p}</p>)}</Alert> : <Alert tone="ok">ระบบสำรองข้อมูลปกติ</Alert>}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

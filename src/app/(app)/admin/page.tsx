@@ -25,7 +25,7 @@ export default async function AdminHome() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "ตั้งค่า" }]} />
-      <PageHeader title="ตั้งค่า (ผู้ดูแลระบบ)" />
+      <PageHeader en="Settings" title="ตั้งค่า (ผู้ดูแลระบบ)" />
       {health.problems.length > 0 && <Alert tone="danger">{health.problems.map((p) => <p key={p}>• {p}</p>)}</Alert>}
       {stale.length > 0 && <Alert tone="warn">บัญชีผู้ช่วยที่ไม่ได้ใช้เกิน 60 วัน: {stale.map((s) => `${s.firstName} ${s.lastName}`).join(", ")} — พิจารณาระงับในหน้าผู้ใช้</Alert>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

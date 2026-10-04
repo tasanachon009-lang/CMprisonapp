@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "ตั้งค่าระบบ" }]} />
-      <PageHeader title="ตั้งค่าระบบ" />
+      <PageHeader en="System Settings" title="ตั้งค่าระบบ" />
       <OrgForm initial={{
         "org.name": s("org.name", "") as string, "org.unitName": s("org.unitName", "") as string, "org.type": s("org.type", "") as string,
         "org.address": s("org.address", "") as string, "org.phone": s("org.phone", "") as string, "org.headTitle": s("org.headTitle", "") as string,

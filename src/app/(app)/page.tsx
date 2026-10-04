@@ -31,6 +31,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-6">
       <div>
+        <p lang="en" className="font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">My Day</p>
         <p className="text-muted">{formatThaiDate(today, "full")}</p>
         <h1 className="text-3xl">สวัสดี คุณ{auth.user.firstName}</h1>
         {auth.can("course.view") && <div className="mt-3"><LastCohortLink /></div>}

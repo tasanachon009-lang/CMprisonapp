@@ -14,10 +14,20 @@ export function Breadcrumb({ items }: { items: Array<{ href?: string; label: str
   );
 }
 
-export function PageHeader({ title, subtitle, actions, help }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; help?: string }) {
+/** หัวข้อเล็กภาษาอังกฤษเหนือหัวข้อไทย (ตกแต่งให้ทันสมัย — ข้อความไทยยังเป็นหลัก) */
+export function Eyebrow({ children, light }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <p lang="en" className={`mb-1 font-display text-sm font-medium uppercase tracking-[0.18em] ${light ? "text-lime" : "text-navy"}`}>
+      {children}
+    </p>
+  );
+}
+
+export function PageHeader({ title, subtitle, actions, help, en }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; help?: string; en?: string }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
+        {en && <Eyebrow>{en}</Eyebrow>}
         <h1 className="flex items-center gap-2 text-3xl">
           {title}
           {help && (
@@ -43,9 +53,9 @@ export function Stat({ value, label, href, tone }: { value: React.ReactNode; lab
     </>
   );
   return href ? (
-    <Link href={href} className="block rounded-2xl p-3 transition hover:bg-lime-soft" title="กดเพื่อดูรายชื่อเบื้องหลังตัวเลข">{inner}</Link>
+    <Link href={href} className="block rounded-2xl p-3 text-center transition hover:bg-lime-soft" title="กดเพื่อดูรายชื่อเบื้องหลังตัวเลข">{inner}</Link>
   ) : (
-    <div className="p-3">{inner}</div>
+    <div className="p-3 text-center">{inner}</div>
   );
 }
 

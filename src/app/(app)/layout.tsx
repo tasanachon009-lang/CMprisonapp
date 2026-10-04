@@ -10,6 +10,7 @@ import { NAV } from "@/components/nav";
 import { NavLinks } from "@/components/nav-links";
 import { QuickLock } from "@/components/quick-lock";
 import { Avatar } from "@/components/avatar";
+import { LogoMark } from "@/components/logo";
 import { switchUser } from "../(auth)/actions";
 import { PROFESSIONS } from "@/lib/auth/permissions";
 
@@ -37,13 +38,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       )}
       <header className="no-print sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-2">
-          <Link href="/" className="mr-2 font-display text-lg font-bold leading-tight">
-            สถานฟื้นฟู<span className="hidden text-muted sm:inline"> · เรือนจำกลางเชียงใหม่</span>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 pt-2">
+          <Link href="/" className="flex items-center gap-2 leading-tight">
+            <LogoMark size={38} />
+            <span>
+              <span className="block font-display text-lg font-bold">สถานฟื้นฟูสมรรถภาพ</span>
+              <span className="hidden text-sm text-muted sm:block">เรือนจำกลางเชียงใหม่</span>
+            </span>
           </Link>
-          <div className="order-3 w-full lg:order-none lg:w-auto lg:flex-1">
-            <NavLinks items={items} />
-          </div>
           <div className="ml-auto flex items-center gap-2">
             <Link href="/notifications" className="btn-ghost relative min-h-11 px-3" aria-label={`การแจ้งเตือน ${unread} รายการ`}>
               <Bell size={20} aria-hidden />
@@ -63,6 +65,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </form>
             </div>
           </div>
+        </div>
+        <div className="mx-auto max-w-7xl overflow-x-auto px-4 py-2">
+          <NavLinks items={items} />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>

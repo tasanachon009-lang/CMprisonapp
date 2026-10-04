@@ -20,7 +20,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "ใบรายชื่อนับยอด" }]} />
-      <PageHeader title="ใบรายชื่อนับยอดประจำวัน" subtitle={formatThaiDate(date, "full")} actions={<Link href={`/print/roster?date=${date}`} target="_blank" className="btn-primary"><Printer size={20} aria-hidden /> พิมพ์ให้ผู้คุม</Link>} />
+      <PageHeader en="Daily Roster" title="ใบรายชื่อนับยอดประจำวัน" subtitle={formatThaiDate(date, "full")} actions={<Link href={`/print/roster?date=${date}`} target="_blank" className="btn-primary"><Printer size={20} aria-hidden /> พิมพ์ให้ผู้คุม</Link>} />
       {groups.length === 0 && <EmptyState title="วันนี้ไม่มีกิจกรรม" />}
       {groups.map((g) => (
         <section key={g.cohortId} className="card">

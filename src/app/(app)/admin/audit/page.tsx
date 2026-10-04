@@ -42,7 +42,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "ประวัติการใช้งาน" }]} />
-      <PageHeader title="ประวัติการใช้งาน" subtitle="บันทึกแบบเพิ่มได้อย่างเดียว — ไม่มีใครแก้หรือลบได้ แม้แต่ผู้ดูแล" />
+      <PageHeader en="Audit Log" title="ประวัติการใช้งาน" subtitle="บันทึกแบบเพิ่มได้อย่างเดียว — ไม่มีใครแก้หรือลบได้ แม้แต่ผู้ดูแล" />
       <form className="card grid gap-3 sm:grid-cols-6" method="get">
         <label className="sm:col-span-2"><span className="label">ผู้ใช้</span>
           <select name="user" className="input" defaultValue={userId ?? ""}><option value="">ทั้งหมด</option>{[...names].map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>

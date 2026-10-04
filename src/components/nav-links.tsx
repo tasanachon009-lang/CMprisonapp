@@ -9,7 +9,7 @@ const ICONS = { home: Home, book: BookOpen, search: Search, door: DoorOpen, uplo
 export function NavLinks({ items }: { items: Array<{ href: string; label: string; icon: string }> }) {
   const path = usePathname();
   return (
-    <nav aria-label="เมนูหลัก" className="flex flex-wrap gap-1">
+    <nav aria-label="เมนูหลัก" className="flex gap-1 whitespace-nowrap">
       {items.map((it) => {
         const active = it.href === "/" ? path === "/" : path.startsWith(it.href) || (it.href === "/courses" && path.startsWith("/cohorts"));
         const Icon = ICONS[it.icon as keyof typeof ICONS] ?? Home;

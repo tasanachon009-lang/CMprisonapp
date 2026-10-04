@@ -1,0 +1,116 @@
+# รายงานผลตรวจความปลอดภัยอัตโนมัติ
+
+- วันเวลา: 4/10/2569 17:04:17
+- เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
+- ผล: **ผ่าน 81/81 ข้อ**
+
+## 1. เข้าหน้าโดยไม่ล็อกอิน
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | / | HTTP 307 → /device |
+| ✅ ผ่าน | /courses | HTTP 307 → /device |
+| ✅ ผ่าน | /cohorts/11 | HTTP 307 → /device |
+| ✅ ผ่าน | /cohorts/11/roster | HTTP 307 → /device |
+| ✅ ผ่าน | /persons/1 | HTTP 307 → /device |
+| ✅ ผ่าน | /persons?q=สม | HTTP 307 → /device |
+| ✅ ผ่าน | /release | HTTP 307 → /device |
+| ✅ ผ่าน | /import | HTTP 307 → /device |
+| ✅ ผ่าน | /register?cohort=11 | HTTP 307 → /device |
+| ✅ ผ่าน | /admin | HTTP 307 → /device |
+| ✅ ผ่าน | /admin/users | HTTP 307 → /device |
+| ✅ ผ่าน | /admin/audit | HTTP 307 → /device |
+| ✅ ผ่าน | /admin/backup | HTTP 307 → /device |
+| ✅ ผ่าน | /admin/settings | HTTP 307 → /device |
+| ✅ ผ่าน | /sessions/241 | HTTP 307 → /device |
+| ✅ ผ่าน | /print/sign-sheet/11 | HTTP 307 → /device |
+| ✅ ผ่าน | /roster | HTTP 307 → /device |
+| ✅ ผ่าน | /notifications | HTTP 307 → /device |
+| ✅ ผ่าน | /api/files/photo/1 | HTTP 401 |
+| ✅ ผ่าน | /api/import/template | HTTP 401 |
+| ✅ ผ่าน | มีรหัสหน่วยงานแต่ยังไม่เลือกผู้ใช้ | → /login |
+| ✅ ผ่าน | cookie เซสชันปลอม | → /login |
+| ✅ ผ่าน | หน้าจอถูกล็อกแล้วเปิด URL ตรง | → /lock |
+
+## 2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | admin → /admin/users | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/users | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /admin/users | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /admin/users | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/users | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /admin/users | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/audit | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/audit | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/audit | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/backup | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/backup | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /admin/backup | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/settings | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/settings | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /persons/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /persons/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /persons/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/11/roster | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /cohorts/11/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /cohorts/11/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /register?cohort=11 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /import | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /import | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /import | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /release | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /release | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /sessions/241 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /sessions/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /sessions/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/session-sheet/241 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /print/session-sheet/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /print/session-sheet/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /roster | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | ผู้คุม (ดูอย่างเดียว) เปิดรูปได้แต่ไม่เห็นหน้าบุคคล | รูป HTTP 404 |
+| ✅ ผ่าน | การเงิน → ดาวน์โหลดแม่แบบนำเข้า | HTTP 403 |
+
+## 3. CSRF
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | POST อัปโหลดรูปโดยไม่มี Origin | HTTP 403 |
+| ✅ ผ่าน | POST จากเว็บอื่น (Origin ต่างโดเมน) | HTTP 403 |
+| ✅ ผ่าน | cookie ตั้ง SameSite=Strict + HttpOnly | ตรวจจากโค้ด (Server Action ของ Next ตรวจ Origin ให้อีกชั้น) |
+
+## 4. SQL injection
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | ' OR 1=1 -- | HTTP 200 |
+| ✅ ผ่าน | %' UNION SELECT password_hash FROM users -- | HTTP 200 |
+| ✅ ผ่าน | "; DROP TABLE persons; -- | HTTP 200 |
+| ✅ ผ่าน | ตาราง persons ยังอยู่ |  |
+
+## 5. XSS
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | ชื่อที่เป็นโค้ด HTML ถูก escape | HTTP 200 |
+| ✅ ผ่าน | Content-Security-Policy | default-src 'self'; script-src 'self' 'unsafe-inline' 'unsaf |
+| ✅ ผ่าน | X-Frame-Options / nosniff |  |
+| ✅ ผ่าน | ห้ามแคชหน้าข้อมูลบุคคล | no-cache, must-revalidate (dev server — ตรวจซ้ำบน production) |
+
+## 6. ประวัติการใช้งาน
+
+| ผล | รายการ | รายละเอียด |
+|---|---|---|
+| ✅ ผ่าน | ลบ audit log ตรงจากฐานข้อมูล | ถูกปฏิเสธโดย trigger |

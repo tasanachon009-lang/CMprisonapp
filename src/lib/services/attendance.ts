@@ -49,7 +49,12 @@ export function sessionRoster(db: DB, sessionId: number) {
   };
 }
 
-export type AttendanceEntry = { enrollmentId: number; status: AttendanceStatus; correctionsType?: string | null; note?: string | null };
+/** ค่า "เวอร์ชัน" ของการเช็คชื่อทั้งคาบ = เวลาแก้ไขล่าสุด */
+export function attendanceVersion(records: Array<{ updatedAt: Date } | null>) {
+  return records.reduce((m, r) => (r ? Math.max(m, r.updatedAt.getTime()) : m), 0);
+}
+
+export type AttendanceEntry ={ enrollmentId: number; status: AttendanceStatus; correctionsType?: string | null; note?: string | null };
 
 /**
  * บันทึกเช็คชื่อ: ทุกคนในรายชื่อต้องมีผล (ค่าเริ่มต้น "มา")
@@ -60,10 +65,20 @@ export function saveAttendance(
   sessionId: number,
   entries: AttendanceEntry[],
   actor: { userId: number; isAdmin: boolean; ip?: string | null; source?: string | null },
+  /** เวลาแก้ไขล่าสุดที่หน้าจอโหลดมา — ถ้ามีคนอื่นบันทึกหลังจากนั้น จะไม่ทับ */
+  loadedVersion?: number,
 ) {
   return db.transaction((tx) => {
     const t = tx as unknown as DB;
     const { session, rows } = sessionRoster(t, sessionId);
+    if (loadedVersion !== undefined) {
+      const latest = attendanceVersion(rows.map((r) => r.record));
+      if (latest > loadedVersion) {
+        const by = rows.map((r) => r.record).filter(Boolean).sort((a, b) => b!.updatedAt.getTime() - a!.updatedAt.getTime())[0];
+        const u = by?.updatedBy ? t.select().from(schema.users).where(eq(schema.users.id, by.updatedBy)).get() : null;
+        throw new RuleError(`คุณ${u ? `${u.firstName}` : "ผู้ใช้อื่น"} เพิ่งบันทึกการเช็คชื่อคาบนี้ระหว่างที่คุณเปิดหน้านี้อยู่ — กรุณาโหลดหน้าใหม่เพื่อดูผลล่าสุดก่อนแก้`, undefined, "conflict");
+      }
+    }
     if (session.lockedAt && !actor.isAdmin) throw new RuleError("คาบนี้ถูกล็อกแล้ว (อนุมัติค่าตอบแทนแล้ว) — ติดต่อหัวหน้า/รองเพื่อปลดล็อก");
     if (!session.takesAttendance) throw new RuleError("คาบนี้ไม่ต้องเช็คชื่อ");
     const allowed = new Set(rows.map((r) => r.enrollmentId));

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq, sql } from "drizzle-orm";
-import { HardDrive, History, Settings, ShieldCheck, Users } from "lucide-react";
+import { FileText, HardDrive, History, Settings, ShieldCheck, Users } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { backupHealth } from "@/lib/backup/status";
@@ -20,6 +20,7 @@ export default async function AdminHome() {
     { href: "/admin/approvals", icon: ShieldCheck, title: `ยืนยัน 2 คน${pending ? ` (${pending} รอ)` : ""}`, desc: "กู้คืนข้อมูล เปลี่ยนผู้ดูแลระบบ รหัสฉุกเฉิน", perm: "users.manage" as const },
     { href: "/admin/backup", icon: HardDrive, title: "สำรอง/กู้คืนข้อมูล", desc: "สถานะ สำรองทันที สำรองลงดิสก์ถอดเก็บ ทดสอบกู้คืน", perm: "backup.manage" as const },
     { href: "/admin/audit", icon: History, title: "ประวัติการใช้งาน", desc: "ค้นตามผู้ใช้ ผู้ต้องขัง ช่วงวันที่", perm: "audit.view" as const },
+    { href: "/admin/forms", icon: FileText, title: "คลังแบบประเมิน", desc: "ข้อคำถาม เฉลย เกณฑ์แปลผล (บันทึกเป็นเวอร์ชัน)", perm: "forms.manage" as const },
     { href: "/admin/settings", icon: Settings, title: "ตั้งค่าระบบ", desc: "หน่วยงาน รหัสหน่วยงาน วันหยุด รายการเหตุผล PDPA", perm: "settings.manage" as const },
   ].filter((c) => auth.can(c.perm));
   return (

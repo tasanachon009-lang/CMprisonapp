@@ -360,6 +360,41 @@ export async function saveLookup(category: string, code: string, label: string, 
   }
 }
 
+const BandZ = z.object({ min: z.number(), max: z.number(), label: z.string().min(1).max(200), tone: z.enum(["ok", "warn", "danger"]), alert: z.object({ severity: z.enum(["warning", "danger"]), message: z.string().max(300) }).optional() });
+const ItemZ = z.object({ no: z.number().int(), text: z.string().min(1).max(1000), help: z.string().max(1000).optional(), reverse: z.boolean().optional(), correct: z.boolean().optional(), weight: z.number().optional(), group: z.string().max(100).optional() });
+
+/** คลังแบบประเมิน: บันทึกเป็นเวอร์ชันใหม่ (ผลเก่ายังใช้เกณฑ์เดิมที่แช่แข็งไว้) */
+export async function saveFormVersion(formId: number, items: unknown, bands: unknown, effectiveFrom: string, note: string): Promise<ActionResult<{ version: number }>> {
+  try {
+    const auth = await requireAction("forms.manage");
+    if (!isValidISODate(effectiveFrom)) return { ok: false, error: "กรุณาใส่วันที่เริ่มใช้" };
+    const db = getDb();
+    const form = db.select().from(schema.assessmentForms).where(eq(schema.assessmentForms.id, formId)).get();
+    if (!form) return { ok: false, error: "ไม่พบแบบประเมิน" };
+    const latest = db.select().from(schema.assessmentFormVersions).where(eq(schema.assessmentFormVersions.formId, formId)).all().sort((a, b) => b.version - a.version)[0];
+    const pi = z.array(ItemZ).max(200).safeParse(items);
+    if (!pi.success) return { ok: false, error: "ข้อคำถามไม่ถูกต้อง: ทุกข้อต้องมีข้อความ" };
+    const scoring = { ...(latest.scoring as Record<string, unknown>) };
+    if (bands != null) {
+      const pb = z.array(BandZ).max(20).safeParse(bands);
+      if (!pb.success) return { ok: false, error: "เกณฑ์แปลผลไม่ถูกต้อง" };
+      const sorted = [...pb.data].sort((a, b) => a.min - b.min);
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].min > sorted[i].max) return { ok: false, error: `ช่วง "${sorted[i].label}" ค่าต่ำสุดมากกว่าค่าสูงสุด` };
+        if (i > 0 && sorted[i].min <= sorted[i - 1].max) return { ok: false, error: `ช่วงคะแนน "${sorted[i - 1].label}" กับ "${sorted[i].label}" ซ้อนกัน` };
+      }
+      scoring.bands = sorted;
+    }
+    const version = latest.version + 1;
+    db.insert(schema.assessmentFormVersions).values({ formId, version, items: pi.data, scoring, effectiveFrom, note: note || null, createdBy: auth.user.id }).run();
+    writeAudit(db, { userId: auth.user.id, action: "forms.version", entity: "assessment_form", entityId: formId, after: { version, effectiveFrom }, note, ip: await clientIp() });
+    revalidatePath("/admin/forms");
+    return { ok: true, data: { version } };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
 export async function markNotificationsRead(ids: number[]): Promise<ActionResult> {
   try {
     const auth = await requireAction();

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { and, desc, isNull, or, eq, inArray } from "drizzle-orm";
-import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive } from "lucide-react";
-import { requirePage } from "@/lib/auth/session";
+import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive, FileCheck2, ClipboardList, Mail, HeartPulse } from "lucide-react";
+import { requirePage, getAuth } from "@/lib/auth/session";
+import { dueByCohort, healthQueue } from "@/lib/queries/home2";
+import { taskCounts, dueFollowups } from "@/lib/queries/bst";
+import { messagesFor } from "@/lib/services/shift";
 import { getDb, schema } from "@/lib/db";
 import { todayISO, addDays, formatThaiDate, currentFiscalYear, formatThaiDateTime } from "@/lib/thai-date";
 import { uncheckedSessions, mySessions, overviewNumbers } from "@/lib/queries/home";
@@ -64,12 +67,9 @@ export default async function HomePage() {
 
       {isMain && <MainCards today={today} userId={auth.user.id} mineToday={mineToday} mineTomorrow={mineTomorrow} scopes={auth.cohortScopes} />}
 
-      {auth.can("health.view") && (
-        <section className="card">
-          <h2 className="text-xl">งานสถานพยาบาล</h2>
-          <p className="mt-1 text-muted">ผลคัดกรองเสี่ยง ความเห็นรอบันทึก และรายการส่งต่อสุขภาพ จะแสดงที่นี่เมื่อเปิดใช้แบบประเมิน (ขั้นที่ 2)</p>
-        </section>
-      )}
+      {(isMain || auth.can("health.view")) && <Step2Cards today={today} />}
+
+      {auth.can("health.view") && <HealthCards />}
 
       {(isExec || auth.can("dashboard.view")) && <ExecSummary />}
 
@@ -105,6 +105,81 @@ function MainCards({ today, mineToday, mineTomorrow }: { today: string; userId: 
         </div>
       </section>
     </div>
+  );
+}
+
+async function Step2Cards({ today }: { today: string }) {
+  const auth = (await getAuth())!;
+  const db = getDb();
+  const due = dueByCohort(db, auth.can, today);
+  const bst = auth.can("bst.view") ? taskCounts(db, today) : null;
+  const followDue = auth.can("bst.view") ? dueFollowups(db, today).filter((f) => f.f.dueDate <= today).length : 0;
+  const openShift = auth.can("shift.use") ? messagesFor(db, { userId: auth.user.id, roles: auth.user.roles, canHealth: auth.can("health.view") }).filter((m) => m.needsAction && m.status === "open" && !m.mine).length : 0;
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <section className="card">
+        <h2 className="flex items-center gap-2 text-xl"><FileCheck2 aria-hidden /> แบบประเมินถึงรอบ</h2>
+        {due.length === 0 ? <p className="mt-3 text-muted">ไม่มีแบบประเมินค้าง</p> : (
+          <ul className="mt-3 space-y-2">
+            {due.map((d) => (
+              <li key={d.id}><Link href={`/cohorts/${d.id}/assessments`} className="flex items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
+                <span>{d.label}</span>
+                <span className="flex gap-1">{d.pre > 0 && <span className="tag-warn">ก่อนเรียน {d.pre}</span>}{d.post > 0 && <span className="tag-warn">หลังเรียน {d.post}</span>}</span>
+              </Link></li>
+            ))}
+          </ul>
+        )}
+      </section>
+      {bst && (
+        <section className="card">
+          <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> งาน บสต./รท.101</h2>
+          <div className="mt-2 grid grid-cols-3">
+            <Stat value={bst.today} label="วันนี้" href="/bst?f=today" />
+            <Stat value={bst.week} label="7 วัน" href="/bst?f=week" />
+            <Stat value={bst.overdue} label="เลยกำหนด" tone={bst.overdue ? "danger" : "ok"} href="/bst?f=overdue" />
+          </div>
+          {followDue > 0 && <Link href="/bst" className="tag-warn mt-2">ติดตามหลังบำบัดถึงกำหนด {followDue} ราย</Link>}
+        </section>
+      )}
+      <section className="card">
+        <h2 className="flex items-center gap-2 text-xl"><Mail aria-hidden /> อื่นๆ</h2>
+        <ul className="mt-3 space-y-2">
+          {openShift > 0 && <li><Link href="/inbox" className="tag-warn">เรื่องส่งเวรที่ต้องติดตาม {openShift} เรื่อง</Link></li>}
+          <li><Link href="/incomplete" className="underline">ข้อมูลที่ยังไม่ครบ</Link></li>
+          {auth.can("attendance.edit") && <li><Link href="/print/emergency?days=3" target="_blank" className="underline">พิมพ์ชุดกระดาษสำรองฉุกเฉิน (3 วันข้างหน้า)</Link></li>}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function HealthCards() {
+  const db = getDb();
+  const q = healthQueue(db);
+  return (
+    <section className="card">
+      <h2 className="flex items-center gap-2 text-xl"><HeartPulse aria-hidden /> งานสถานพยาบาล <span className="tag-orange text-sm">ข้อมูลอ่อนไหว</span></h2>
+      <div className="mt-3 grid gap-4 lg:grid-cols-3">
+        <div>
+          <h3 className="font-semibold">ผลคัดกรองเสี่ยง (30 วัน)</h3>
+          {q.risky.length === 0 ? <p className="text-muted">ไม่มี</p> : (
+            <ul className="mt-1 space-y-1">{q.risky.slice(0, 8).map((x) => <li key={x.r.id}><Link href={`/enrollments/${x.r.enrollmentId}/assess/${x.f.code}?round=${x.r.round}`} className="tag-danger hover:underline">{x.p.firstName} {x.p.lastName} · {x.f.shortName}</Link></li>)}</ul>
+          )}
+        </div>
+        <div>
+          <h3 className="font-semibold">ความเห็นรอบันทึก</h3>
+          {q.awaitingNote.length === 0 ? <p className="text-muted">ไม่มี</p> : (
+            <ul className="mt-1 space-y-1">{Array.from(new Map(q.awaitingNote.map((x) => [x.r.enrollmentId, x])).values()).slice(0, 8).map((x) => <li key={x.r.enrollmentId}><Link href={`/enrollments/${x.r.enrollmentId}`} className="tag-warn hover:underline">{x.p.firstName} {x.p.lastName}</Link></li>)}</ul>
+          )}
+        </div>
+        <div>
+          <h3 className="font-semibold">รายการส่งต่อสุขภาพ</h3>
+          {q.referrals.length === 0 ? <p className="text-muted">ไม่มี</p> : (
+            <ul className="mt-1 space-y-1">{q.referrals.slice(0, 8).map((x) => <li key={x.n.id}><Link href={`/enrollments/${x.n.enrollmentId}`} className="hover:underline">{x.p.firstName} {x.p.lastName}</Link> <span className="text-sm text-muted">→ {x.n.referralDetail ?? "-"}</span></li>)}</ul>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

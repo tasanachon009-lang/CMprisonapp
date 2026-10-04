@@ -10,7 +10,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, inArray } from "drizzle-orm";
+import { getForm, saveAssessment } from "../src/lib/services/assessments";
+import { completeEnrollments, ensureIntakeTasks } from "../src/lib/services/followup";
+import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
 import { bootstrapReferenceData, setSetting } from "../src/lib/bootstrap";
@@ -282,9 +285,93 @@ async function main() {
   const next = createCohort(db, { courseId: b12.id, startDate: "2027-01-11", targetCount: 45, location: "ห้องอบรม 2" }, headId);
   fillCohort(next.id, 40, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
 
+  // ── ข้อมูลขั้นที่ 2 (ปลอม) ──
+  console.log("ใส่ข้อมูลขั้นที่ 2: แบบประเมิน ติดตาม บสต. บันทึก ...");
+  const can = () => true;
+  const form = (code: string) => getForm(db, code)!;
+  const itemsAnswers = (code: string, pick: (no: number) => number) => {
+    const f = FORM_DEFS.find((x) => x.code === code)!;
+    return Object.fromEntries(f.items.map((i) => [String(i.no), pick(i.no)]));
+  };
+  const assessAll = (cohortId: number, round: "pre" | "post", date: string, share: number, improve = 0) => {
+    const enr = db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, cohortId)).all().filter((e) => e.status !== "draft");
+    for (const e of enr) {
+      if (rand() > share) continue;
+      const actorA = { userId: pick(rehabStaff), can: can as never };
+      const save = (code: string, answers: unknown) => {
+        try {
+          saveAssessment(db, { enrollmentId: e.id, formId: form(code).id, round, assessedDate: date, answers }, actorA);
+        } catch { /* ข้าม (เช่น ไม่ครบ) */ }
+      };
+      const kf = FORM_DEFS.find((x) => x.code === "KNOW")!;
+      save("KNOW", Object.fromEntries(kf.items.map((i) => [String(i.no), rand() < 0.55 + improve ? (i.correct ? 1 : 0) : i.correct ? 0 : 1])));
+      save("ATT", itemsAnswers("ATT", () => Math.min(5, Math.max(1, int(2, 4) + (improve ? 1 : 0)))));
+      save("MOTIV", { value: Math.min(5, int(1, 3) + (improve ? 2 : 0)) });
+      save("TEMP", { value: Math.min(10, int(3, 7) + (improve ? 2 : 0)) });
+      save("PMHQ", itemsAnswers("PMHQ", () => (rand() < 0.15 ? int(1, 3) : int(0, 1))));
+      const risky = rand() < 0.08;
+      save("DEP", risky
+        ? { q2: [true, true], q9: [2, 2, 2, 1, 1, 1, 1, 0, rand() < 0.5 ? 1 : 0], q8: [true, false, false, false, false, false, false, rand() < 0.3], q8control: null }
+        : rand() < 0.2 ? { q2: [true, false], q9: [1, 1, 1, 1, 0, 0, 0, 0, 0] } : { q2: [false, false] });
+      save("PSY", itemsAnswers("PSY", () => (rand() < 0.01 ? 1 : 0)));
+      if (round === "post") save("PROG", itemsAnswers("PROG", () => int(2, 5)));
+    }
+  };
+  // รุ่นปัจจุบัน: ประเมินก่อนเรียนไปแล้วประมาณ 75%
+  assessAll(cur.id, "pre", "2026-10-01", 0.75);
+  // รุ่นที่จบแล้วของปีงบ 2569: ก่อน-หลังครบ และบันทึกจบหลักสูตร → สร้างการติดตาม
+  const b12Done = db.select().from(schema.cohorts).where(and(eq(schema.cohorts.courseId, b12.id), eq(schema.cohorts.fiscalYear, 2569))).all();
+  for (const c of b12Done) {
+    assessAll(c.id, "pre", c.startDate, 1);
+    assessAll(c.id, "post", c.endDate, 1, 0.3);
+    const enr = db.select().from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, c.id), eq(schema.enrollments.status, "completed"))).all();
+    // ย้อนสถานะเป็นกำลังอบรมก่อน แล้วบันทึกจบผ่านบริการจริง (ได้กำหนดการติดตาม + งาน บสต.)
+    for (const e of enr) {
+      db.update(schema.enrollments).set({ status: "active", leftDate: null }).where(eq(schema.enrollments.id, e.id)).run();
+      ensureIntakeTasks(db, e.id, headId);
+    }
+    completeEnrollments(db, enr.map((e) => e.id), "completed", c.endDate, { userId: headId });
+    // งาน บสต. ที่ถึงกำหนดแล้ว ลงไปแล้วส่วนใหญ่ / ติดตามที่ถึงกำหนด ทำแล้วส่วนใหญ่
+    const tasks = db.select().from(schema.bstTasks).where(inArray(schema.bstTasks.enrollmentId, enr.map((e) => e.id))).all();
+    for (const t of tasks) if (t.dueDate && t.dueDate < today && rand() < 0.85) db.update(schema.bstTasks).set({ status: "done", doneDate: t.dueDate, doneBy: pick(rehabStaff) }).where(eq(schema.bstTasks.id, t.id)).run();
+    const fus = db.select().from(schema.followups).where(inArray(schema.followups.enrollmentId, enr.map((e) => e.id))).all();
+    for (const f of fus) {
+      if (f.dueDate < today && rand() < 0.8) {
+        db.update(schema.followups).set({ status: "done", doneDate: f.dueDate, method: pick(["phone", "visit"]), relapse: rand() < 0.08 ? "yes" : rand() < 0.1 ? "unknown" : "no", occupation: pick(["รับจ้าง", "เกษตรกร", "ค้าขาย"]), bstRecorded: true }).where(eq(schema.followups.id, f.id)).run();
+      }
+    }
+  }
+  // รุ่นเก่าปีงบ 2568: งาน บสต. ลงครบแล้ว
+  for (const c of db.select().from(schema.cohorts).where(eq(schema.cohorts.fiscalYear, 2568)).all()) {
+    const ids = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(eq(schema.enrollments.cohortId, c.id)).all().map((r) => r.id);
+    if (ids.length) db.update(schema.bstTasks).set({ status: "done", doneDate: c.endDate }).where(inArray(schema.bstTasks.enrollmentId, ids)).run();
+  }
+  // ชุมชนบำบัด (ยังไม่เปิดหน้าจอ): ลงทะเบียน/คัดกรองแล้ว
+  db.update(schema.bstTasks).set({ status: "done", doneDate: "2026-07-10" }).where(inArray(schema.bstTasks.enrollmentId, db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(eq(schema.enrollments.cohortId, cf.id)).all().map((r) => r.id).concat(-1))).run();
+  // รุ่นปัจจุบัน: งาน บสต. ลงทะเบียน/คัดกรอง ลงแล้วบางส่วน
+  const curTasks = db.select().from(schema.bstTasks).innerJoin(schema.enrollments, eq(schema.enrollments.id, schema.bstTasks.enrollmentId)).where(eq(schema.enrollments.cohortId, cur.id)).all();
+  for (const { bst_tasks: t } of curTasks) if (t.step === "register" && rand() < 0.6) db.update(schema.bstTasks).set({ status: "done", doneDate: "2026-10-02", doneBy: pick(rehabStaff) }).where(eq(schema.bstTasks.id, t.id)).run();
+
+  // บันทึกพฤติกรรม ความเห็นสถานพยาบาล จดหมายเวร
+  const curEnr = db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, cur.id)).all();
+  for (const e of curEnr.slice(0, 12)) {
+    const tone = pick(["positive", "positive", "observe", "negative"]);
+    db.insert(schema.behaviorNotes).values({ enrollmentId: e.id, incarcerationId: e.incarcerationId, noteDate: "2026-10-02", tone, category: tone === "positive" ? "helping" : tone === "negative" ? "emotion" : "participation", text: tone === "positive" ? "ช่วยจัดสถานที่ก่อนเริ่มกิจกรรม" : tone === "negative" ? "หงุดหงิดง่ายระหว่างกิจกรรมกลุ่ม" : "ตั้งใจฟัง มีส่วนร่วมดี", createdBy: pick(rehabStaff) }).run();
+  }
+  for (const e of curEnr.slice(0, 4)) {
+    db.insert(schema.medicalNotes).values({ enrollmentId: e.id, noteDate: "2026-10-02", kind: "medical", screeningResult: "สัญญาณชีพปกติ", opinion: "เข้าร่วมกิจกรรมได้", recommendation: "ติดตามความดันโลหิต", referral: e.id % 2 === 0, referralDetail: e.id % 2 === 0 ? "รพ.นครพิงค์" : null, referralStatus: e.id % 2 === 0 ? "pending" : null, createdBy: userIds[4] }).run();
+  }
+  const someone = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, curEnr[0].incarcerationId)).get()!;
+  db.insert(schema.shiftMessages).values([
+    { authorId: userIds[4], level: "important", body: "ฝากเช็คชื่อคาบเขียนบันทึกประจำวันให้ครบ เมื่อวานยังขาด 2 คน", recipientType: "next_shift", needsAction: true, dueDate: today },
+    { authorId: userIds[5], level: "red", body: "ฝากติดตามอาการซึมเศร้า มีความคิดทำร้ายตนเอง — ประสานพยาบาลก่อนเริ่มกิจกรรม", personId: someone.personId, healthRelated: true, recipientType: "all", needsAction: true, dueDate: today },
+    { authorId: userIds[2], level: "normal", body: "พรุ่งนี้มีประชุมเจ้าหน้าที่ 13.00 น. ห้องอบรม 2", recipientType: "all" },
+  ]).run();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const count = (t: any) => (db.select().from(t).all() as unknown[]).length;
   console.log(`✅ เสร็จ: บุคคล ${count(schema.persons)} คน, การต้องโทษ ${count(schema.incarcerations)}, ลงทะเบียน ${count(schema.enrollments)}, รุ่น ${count(schema.cohorts)}, เช็คชื่อ ${count(schema.attendance)} แถว`);
+  console.log(`   แบบประเมิน ${count(schema.assessmentResults)}, งาน บสต. ${count(schema.bstTasks)}, ติดตาม ${count(schema.followups)}`);
   console.log("   รหัสหน่วยงาน: demo-rehab-2569 / รหัสผ่านทุกคน: rehab-2569 (ข้อมูลปลอม)");
   sqlite.close();
 }

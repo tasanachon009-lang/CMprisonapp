@@ -1,0 +1,127 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, GraduationCap } from "lucide-react";
+import { Alert } from "@/components/ui";
+import { Modal } from "@/components/modal";
+import { ThaiDateInput } from "@/components/thai-date-input";
+import { addMedicalNoteAction, setExternalIdAction, markTaskAction, recordFollowupAction, completeEnrollmentsAction } from "../actions";
+
+export function MedicalNoteForm({ enrollmentId, today, canMedical }: { enrollmentId: number; today: string; canMedical: boolean }) {
+  const router = useRouter();
+  const blank = { noteDate: today, kind: (canMedical ? "medical" : "mental") as "medical" | "mental", screeningResult: "", opinion: "", recommendation: "", referral: false, referralDetail: "" };
+  const [f, setF] = useState(blank);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <details className="mt-4 rounded-2xl border border-line p-3">
+      <summary className="cursor-pointer font-semibold">+ เพิ่มความเห็น</summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div><span className="label">วันที่</span><ThaiDateInput value={f.noteDate} onChange={(v) => setF({ ...f, noteDate: v })} max={today} /></div>
+        <label><span className="label">ด้าน</span>
+          <select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as "medical" | "mental" })}>
+            {canMedical && <option value="medical">ด้านการแพทย์/สุขภาพกาย</option>}
+            <option value="mental">ด้านจิตวิทยา/สุขภาพจิต</option>
+          </select>
+        </label>
+        <label className="sm:col-span-2"><span className="label">ผลคัดกรอง/ประเมินสุขภาพ</span><textarea className="input" rows={2} value={f.screeningResult} onChange={(e) => setF({ ...f, screeningResult: e.target.value })} /></label>
+        <label className="sm:col-span-2"><span className="label">ความเห็น</span><textarea className="input" rows={3} value={f.opinion} onChange={(e) => setF({ ...f, opinion: e.target.value })} /></label>
+        <label className="sm:col-span-2"><span className="label">ข้อแนะนำ</span><textarea className="input" rows={2} value={f.recommendation} onChange={(e) => setF({ ...f, recommendation: e.target.value })} /></label>
+        <label className="flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.referral} onChange={(e) => setF({ ...f, referral: e.target.checked })} /> ส่งต่อ</label>
+        {f.referral && <label><span className="label">ส่งต่อไปที่/รายละเอียด</span><input className="input" value={f.referralDetail} onChange={(e) => setF({ ...f, referralDetail: e.target.value })} /></label>}
+      </div>
+      {error && <div className="mt-2"><Alert tone="danger">{error}</Alert></div>}
+      <button className="btn-primary mt-3" disabled={pending} onClick={() => start(async () => { const r = await addMedicalNoteAction(enrollmentId, f); if (!r.ok) return setError(r.error); setError(null); setF(blank); router.refresh(); })}>บันทึกความเห็น</button>
+    </details>
+  );
+}
+
+export function ExternalIdForm({ enrollmentId, system, current, canEdit }: { enrollmentId: number; system: "bst" | "rt101"; current: string; canEdit: boolean }) {
+  const router = useRouter();
+  const [v, setV] = useState(current);
+  const [pending, start] = useTransition();
+  if (!canEdit) return <span className="text-sm text-muted">เลขในระบบ: {current || "-"}</span>;
+  return (
+    <span className="ml-auto flex items-center gap-1">
+      <input className="input min-h-9 w-40 py-1 text-sm" placeholder="เลขประจำตัวในระบบ" value={v} onChange={(e) => setV(e.target.value)} aria-label="เลขประจำตัวในระบบภายนอก" />
+      {v !== current && <button className="btn-secondary btn-sm" disabled={pending} onClick={() => start(async () => { await setExternalIdAction(enrollmentId, system, v); router.refresh(); })}>บันทึก</button>}
+    </span>
+  );
+}
+
+export function TaskToggle({ taskId, done, overdue, canEdit, label }: { taskId: number; done: boolean; overdue: boolean; canEdit: boolean; label?: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  if (done) {
+    return (
+      <span className="flex items-center gap-1">
+        <span className="tag-ok"><CheckCircle2 size={14} aria-hidden /> {label ?? "ลงแล้ว"}</span>
+        {canEdit && <button className="text-xs text-muted underline" disabled={pending} onClick={() => start(async () => { await markTaskAction(taskId, false); router.refresh(); })}>ยกเลิก</button>}
+      </span>
+    );
+  }
+  return canEdit ? (
+    <button className={overdue ? "btn-danger btn-sm" : "btn-secondary btn-sm"} disabled={pending} onClick={() => start(async () => { await markTaskAction(taskId, true); router.refresh(); })}>
+      {overdue ? "เลยกำหนด — กด \"ลงแล้ว\"" : "ลงแล้ว"}
+    </button>
+  ) : <span className={overdue ? "tag-danger" : "tag-warn"}>{overdue ? "เลยกำหนด" : "ยังไม่ลง"}</span>;
+}
+
+export function FollowupForm({ followupId, today }: { followupId: number; today: string }) {
+  const router = useRouter();
+  const [f, setF] = useState({ doneDate: today, method: "phone", urineResult: "", relapse: "", occupation: "", note: "", bstRecorded: true });
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-sm font-semibold text-navy">บันทึกผลติดตาม</summary>
+      <div className="mt-2 grid gap-3 sm:grid-cols-3">
+        <div><span className="label">วันที่</span><ThaiDateInput value={f.doneDate} onChange={(v) => setF({ ...f, doneDate: v })} max={today} /></div>
+        <label><span className="label">วิธี</span><select className="input" value={f.method} onChange={(e) => setF({ ...f, method: e.target.value })}><option value="phone">โทร</option><option value="visit">เยี่ยม</option><option value="referral">ส่งต่อ</option></select></label>
+        <label><span className="label">ผลตรวจปัสสาวะ (ถ้ามี)</span><input className="input" value={f.urineResult} onChange={(e) => setF({ ...f, urineResult: e.target.value })} /></label>
+        <div className="sm:col-span-3"><span className="label">กลับไปเสพซ้ำ</span>
+          <div className="flex gap-2">{[["no", "ไม่ใช่"], ["yes", "ใช่"], ["unknown", "ไม่ทราบ"]].map(([v, l]) => <button key={v} type="button" onClick={() => setF({ ...f, relapse: v })} className={`min-h-11 rounded-full border px-4 font-semibold ${f.relapse === v ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>{l}</button>)}</div>
+        </div>
+        <label><span className="label">อาชีพ</span><input className="input" value={f.occupation} onChange={(e) => setF({ ...f, occupation: e.target.value })} /></label>
+        <label className="sm:col-span-2"><span className="label">หมายเหตุ</span><input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
+        <label className="flex items-center gap-2 sm:col-span-3"><input type="checkbox" className="h-5 w-5" checked={f.bstRecorded} onChange={(e) => setF({ ...f, bstRecorded: e.target.checked })} /> ลง บสต. แล้ว (ติ๊กแล้วงาน บสต. ครั้งนี้จะเป็น &quot;ลงแล้ว&quot;)</label>
+      </div>
+      {error && <div className="mt-2"><Alert tone="danger">{error}</Alert></div>}
+      <button className="btn-primary btn-sm mt-2" disabled={pending} onClick={() => start(async () => {
+        const r = await recordFollowupAction(followupId, { ...f, method: f.method as "phone", relapse: f.relapse as "no" });
+        if (!r.ok) return setError(r.error);
+        router.refresh();
+      })}>บันทึกผลติดตาม</button>
+    </details>
+  );
+}
+
+export function CompleteButton({ cohortId, enrollmentId, defaultDate }: { cohortId: number; enrollmentId: number; defaultDate: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(defaultDate);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const run = (status: "completed" | "failed") => start(async () => {
+    const r = await completeEnrollmentsAction(cohortId, [enrollmentId], status, date);
+    if (!r.ok) return setError(r.error);
+    if (r.data!.skipped.length) return setError(r.data!.skipped[0].reason);
+    setOpen(false);
+    router.refresh();
+  });
+  return (
+    <>
+      <button className="btn-secondary" onClick={() => setOpen(true)}><GraduationCap size={20} aria-hidden /> บันทึกจบหลักสูตร</button>
+      <Modal open={open} onClose={() => setOpen(false)} title="บันทึกจบหลักสูตร">
+        <div><span className="label">วันที่จบ</span><ThaiDateInput value={date} onChange={setDate} /></div>
+        <p className="hint mt-2">&quot;ครบหลักสูตร&quot; จะสร้างกำหนดการติดตามเดือนที่ 1 3 6 12 และงาน บสต. ให้อัตโนมัติ</p>
+        {error && <div className="mt-2"><Alert tone="danger">{error}</Alert></div>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button className="btn-ghost" disabled={pending} onClick={() => run("failed")}>ไม่ผ่าน</button>
+          <button className="btn-primary" disabled={pending} onClick={() => run("completed")}>ครบหลักสูตร</button>
+        </div>
+      </Modal>
+    </>
+  );
+}

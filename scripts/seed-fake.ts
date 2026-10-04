@@ -280,6 +280,11 @@ async function main() {
   // ผู้รับผิดชอบคาบในอนาคต (ใช้กับหน้าแรก "คาบของฉัน")
   const future = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, cur.id)).all().filter((s) => s.date >= today);
   for (const s of future) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).run();
+  // กลุ่ม B: นักฝึกอบรมสอนบางคาบของรุ่นนี้ · นักสังคมสงเคราะห์ได้รับมอบหมายญาติ/ติดตามเฉพาะรุ่นนี้ (สเปก 2.2-0)
+  for (const s of future.slice(0, 4)) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: userIds[8] }).run();
+  for (const permission of ["contacts.edit", "bst.view", "bst.edit"]) {
+    db.insert(schema.permissionGrants).values({ userId: userIds[9], permission, allow: true, scope: `cohort:${cur.id}`, reason: "มอบหมายงานญาติ/ติดตามรุ่นนี้ (ตัวอย่าง)", createdBy: headId }).run();
+  }
 
   // ปีงบ 2570 รุ่นที่ 2 — วางแผนไว้ มีร่างลงทะเบียนล่วงหน้า
   const next = createCohort(db, { courseId: b12.id, startDate: "2027-01-11", targetCount: 45, location: "ห้องอบรม 2" }, headId);

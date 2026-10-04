@@ -2,7 +2,8 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
-import { messagesFor, LEVEL_LABEL } from "@/lib/services/shift";
+import { messagesFor, shiftViewer, LEVEL_LABEL } from "@/lib/services/shift";
+import { openCohortOptions } from "@/lib/queries/home";
 import { userNameMap } from "@/lib/queries/names";
 import { formatThaiDate, formatThaiDateTime, todayISO } from "@/lib/thai-date";
 import { Breadcrumb, PageHeader, Alert, EmptyState } from "@/components/ui";
@@ -18,7 +19,10 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
   const auth = await requirePage("shift.use");
   const sp = await searchParams;
   const db = getDb();
-  const v = { userId: auth.user.id, roles: auth.user.roles, canHealth: auth.can("health.view") };
+  const v = shiftViewer(db, auth);
+  // กลุ่ม B ส่งถึงทีมของรุ่นได้เฉพาะรุ่นที่ตนสอน/ได้รับมอบหมาย
+  const cohorts = openCohortOptions(db, v.full ? undefined : v.cohortIds);
+  const cohortName = new Map(openCohortOptions(db).map((c) => [c.id, c.label]));
   const msgs = messagesFor(db, v);
   const names = userNameMap(db);
   const persons = new Map(
@@ -34,8 +38,9 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ label: "จดหมายเวร" }]} />
       <PageHeader en="Shift Handoff" title="กล่องจดหมายเวร" subtitle="ส่งต่องานระหว่างเวร — ผู้รับต้องกด &quot;รับทราบภารกิจ&quot; ทีละข้อ ระบบบันทึกว่าใครรับทราบเมื่อไร" />
+      {!v.full && <Alert tone="info">คุณเห็นเฉพาะข้อความที่ส่งถึงคุณ หรือถึงทีมของรุ่นที่คุณสอน — ส่งข้อความถึงเจ้าหน้าที่หลักได้ตามปกติ</Alert>}
       {sp.must && pendingAck.some((m) => m.level === "red") && <Alert tone="danger">มีข้อความระดับสีแดงที่ยังไม่รับทราบ — ต้องกด &quot;รับทราบภารกิจ&quot; ก่อนจึงจะเข้าเมนูอื่นได้</Alert>}
-      <Compose staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))} canHealth={auth.can("health.view")} today={today} />
+      <Compose staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))} cohorts={cohorts} canHealth={auth.can("health.view")} today={today} />
       <section className="space-y-3">
         {msgs.length === 0 && <EmptyState title="ยังไม่มีข้อความ" />}
         {msgs.map((m) => (
@@ -44,10 +49,10 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
               <span className={LEVEL_TAG[m.level]}>{LEVEL_LABEL[m.level]}</span>
               {m.healthRelated && <span className="tag-orange">เรื่องสุขภาพ</span>}
               {m.needsAction && (m.status === "done" ? <span className="tag-ok">ดำเนินการแล้ว</span> : <span className={m.dueDate && m.dueDate < today ? "tag-danger" : "tag-warn"}>ต้องติดตาม{m.dueDate ? ` · กำหนด ${formatThaiDate(m.dueDate)}` : ""}</span>)}
-              <span className="ml-auto text-sm text-muted">{names.get(m.authorId)} · {formatThaiDateTime(m.createdAt)} · ถึง {m.recipientType === "all" ? "ทุกคน" : m.recipientType === "next_shift" ? "ผลัดถัดไป" : names.get(m.recipientUserId ?? 0)}</span>
+              <span className="ml-auto text-sm text-muted">{names.get(m.authorId)} · {formatThaiDateTime(m.createdAt)} · ถึง {m.recipientType === "all" ? "ทุกคน" : m.recipientType === "next_shift" ? "ผลัดถัดไป" : m.recipientType === "cohort" ? `ทีม ${cohortName.get(m.recipientCohortId ?? 0) ?? "รุ่น"}` : names.get(m.recipientUserId ?? 0)}</span>
             </div>
             <p className={`mt-2 whitespace-pre-line ${m.masked ? "italic text-muted" : "text-lg"}`}>{m.body}</p>
-            {m.personId && !m.masked && <p className="mt-1 text-sm">เกี่ยวกับ: <Link href={`/persons/${m.personId}`} className="underline">{persons.get(m.personId)}</Link></p>}
+            {m.personId && !m.masked && auth.can("registry.view") && <p className="mt-1 text-sm">เกี่ยวกับ: <Link href={`/persons/${m.personId}`} className="underline">{persons.get(m.personId)}</Link></p>}
             {m.status === "done" && m.resolution && <p className="mt-2 rounded-xl bg-ok/10 px-3 py-2 text-sm"><b>ผล:</b> {m.resolution} — {names.get(m.resolvedBy ?? 0)} {formatThaiDateTime(m.resolvedAt)}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {!m.mine && !m.ackedByMe && <AckButton id={m.id} />}

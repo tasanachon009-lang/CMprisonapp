@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { cohortOfEnrollment } from "@/lib/auth/access";
+import type { Permission } from "@/lib/auth/permissions";
 import { requirePage } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { enrollmentContext, bstOf, medicalNotesOf, behaviorNotesOf } from "@/lib/queries/enrollment";
@@ -21,12 +23,19 @@ const TONE: Record<string, string> = { ok: "tag-ok", warn: "tag-warn", danger: "
 
 /** แฟ้มการอบรม 1 รอบ: แบบประเมิน · สถานพยาบาล · บสต./ติดตาม · พฤติกรรม */
 export default async function EnrollmentPage({ params }: PageProps<"/enrollments/[id]">) {
-  const auth = await requirePage("course.view");
+  const auth = await requirePage();
   const { id } = await params;
   const db = getDb();
+  // กลุ่ม B ที่ได้รับมอบหมายรายรุ่น: เปิดได้เฉพาะคนในรุ่นนั้น และเห็นเฉพาะส่วนที่ได้รับมอบหมาย
+  const full = auth.can("course.view");
+  const cohortId = cohortOfEnrollment(Number(id));
+  const scopedOk = cohortId != null && (["bst.view", "bst.edit", "behavior.edit", "contacts.edit"] as Permission[]).some((x) => auth.canIn(x, [cohortId]));
+  if (!full && !scopedOk) redirect("/forbidden");
   const ctx = enrollmentContext(db, Number(id));
   if (!ctx) notFound();
   const { e, inc, p, c, course } = ctx;
+  const canBstView = auth.canIn("bst.view", [c.id]) || auth.canIn("bst.edit", [c.id]);
+  const canBstEdit = auth.canIn("bst.edit", [c.id]);
   const today = todayISO();
   const names = userNameMap(db);
   const forms = listForms(db).filter((f) => (f.courseCodes as string[]).includes(course.code)).map((f) => ({ f, access: formAccess(auth.can, f) })).filter((x) => x.access.view);
@@ -38,27 +47,28 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[
+      <Breadcrumb items={!full ? [{ href: "/assigned", label: "งานที่ได้รับมอบหมาย" }, { label: ctx.name }] : [
         { href: "/courses", label: "หลักสูตร" },
         { href: `/cohorts/${c.id}`, label: `${course.shortName} ${ctx.label}` },
         { href: `/cohorts/${c.id}/roster`, label: "รายชื่อ" },
         { label: ctx.name },
       ]} />
       <section className="card flex flex-wrap items-center gap-4">
-        <Avatar first={p.firstName} last={p.lastName} src={inc.photoPath ? `/api/files/photo/${inc.id}` : null} size={72} color="var(--lime)" />
+        <Avatar first={p.firstName} last={p.lastName} src={full && inc.photoPath ? `/api/files/photo/${inc.id}` : null} size={72} color="var(--lime)" />
         <div className="flex-1">
           <Eyebrow>Member File</Eyebrow>
           <h1 className="text-2xl">{ctx.name}</h1>
           <p className="text-muted">เลขประจำตัว {inc.inmateNo} · {course.name} {ctx.label} · <span className="font-semibold">{ENROLLMENT_STATUS_LABEL[e.status]}</span>{e.leftDate ? ` (${formatThaiDate(e.leftDate)})` : ""}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {auth.can("behavior.edit") && <BehaviorNoteButton incarcerationId={inc.id} enrollmentId={e.id} name={ctx.name} />}
+          {auth.canIn("behavior.edit", [c.id]) && <BehaviorNoteButton incarcerationId={inc.id} enrollmentId={e.id} name={ctx.name} />}
           {auth.can("registry.edit") && e.status === "active" && <CompleteButton cohortId={c.id} enrollmentId={e.id} defaultDate={c.endDate <= today ? c.endDate : today} />}
           <Link href={`/persons/${p.id}`} className="btn-ghost">หน้าบุคคล</Link>
           {auth.can("reports.view") && <Link href={`/print/person/${p.id}`} target="_blank" className="btn-ghost">พิมพ์รายงานรายบุคคล</Link>}
         </div>
       </section>
 
+      {full && <>
       <section className="card">
         <IntakePanel
           enrollmentId={e.id}
@@ -105,6 +115,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           </table>
         </div>
       </section>
+      </>}
 
       {canHealth && (
         <section className="card">
@@ -125,7 +136,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
         </section>
       )}
 
-      {(course.requiresBst || course.requiresRt101 || bst.followups.length > 0) && auth.can("bst.view") && (
+      {(course.requiresBst || course.requiresRt101 || bst.followups.length > 0) && canBstView && (
         <section className="card">
           <h2 className="text-xl">บสต. / รท.101 และการติดตามหลังบำบัด</h2>
           <div className="mt-3 grid gap-4 lg:grid-cols-2">
@@ -133,14 +144,14 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
               <div key={system} className="rounded-2xl border border-line p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg">{SYSTEM_LABEL[system]}</h3>
-                  <ExternalIdForm enrollmentId={e.id} system={system} current={bst.ids.find((x) => x.system === system)?.externalId ?? ""} canEdit={auth.can("bst.edit")} />
+                  <ExternalIdForm enrollmentId={e.id} system={system} current={bst.ids.find((x) => x.system === system)?.externalId ?? ""} canEdit={canBstEdit} />
                 </div>
                 <ul className="mt-2 divide-y divide-line">
                   {bst.tasks.filter((t) => t.system === system).map((t) => (
                     <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
                       <span className="flex-1">{STEP_LABEL[t.step] ?? t.step}<span className="block text-xs text-muted">กำหนด {formatThaiDate(t.dueDate)}{t.reason ? ` · ${t.reason}` : ""}</span></span>
                       {t.status === "pending" || t.status === "done"
-                        ? <TaskToggle taskId={t.id} done={t.status === "done"} overdue={t.status === "pending" && (t.dueDate ?? "") < today} canEdit={auth.can("bst.edit")} label={t.status === "done" ? `ลงแล้ว ${formatThaiDate(t.doneDate)} (${names.get(t.doneBy ?? 0) ?? ""})` : undefined} />
+                        ? <TaskToggle taskId={t.id} done={t.status === "done"} overdue={t.status === "pending" && (t.dueDate ?? "") < today} canEdit={canBstEdit} label={t.status === "done" ? `ลงแล้ว ${formatThaiDate(t.doneDate)} (${names.get(t.doneBy ?? 0) ?? ""})` : undefined} />
                         : <span className="tag-muted">{TASK_STATUS_LABEL[t.status]}</span>}
                     </li>
                   ))}
@@ -161,7 +172,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
                       {f.status === "pending" && (f.dueDate < today ? <span className="tag-danger">เลยกำหนด</span> : <span className="tag-muted">รอติดตาม</span>)}
                       {(f.status === "closed" || f.status === "unfollowable") && <span className="tag-muted">{f.reason}</span>}
                     </div>
-                    {f.status === "pending" && auth.can("bst.edit") && <FollowupForm followupId={f.id} today={today} />}
+                    {f.status === "pending" && canBstEdit && <FollowupForm followupId={f.id} today={today} />}
                   </li>
                 ))}
               </ul>

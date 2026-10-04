@@ -81,6 +81,19 @@ export function assistantCohortIds(db: DB, userId: number, scoped: number[]) {
   return Array.from(new Set([...rows.map((r) => r.id), ...scoped]));
 }
 
+/** ตัวเลือกรุ่น (ยังไม่ปิดรุ่น) — ids = จำกัดเฉพาะรุ่นที่ระบุ */
+export function openCohortOptions(db: DB, ids?: number[]) {
+  if (ids && !ids.length) return [];
+  return db
+    .select({ c: schema.cohorts, course: schema.courses })
+    .from(schema.cohorts)
+    .innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId))
+    .where(and(isNull(schema.cohorts.deletedAt), sql`${schema.cohorts.status} <> 'closed'`, ids ? inArray(schema.cohorts.id, ids) : undefined))
+    .orderBy(asc(schema.cohorts.startDate))
+    .all()
+    .map((x) => ({ id: x.c.id, label: `${x.course.shortName} ${cohortLabel(x.c)}` }));
+}
+
 export function overviewNumbers(db: DB, fiscalYear: number) {
   const active = db
     .select({ n: sql<number>`count(*)` })

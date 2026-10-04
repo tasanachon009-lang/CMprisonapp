@@ -13,11 +13,11 @@ import { Avatar } from "@/components/avatar";
 import { LogoMark } from "@/components/logo";
 import { InboxGate } from "@/components/inbox-gate";
 import { headers } from "next/headers";
-import { unacked } from "@/lib/services/shift";
+import { unacked, shiftViewer } from "@/lib/services/shift";
 import { userNameMap } from "@/lib/queries/names";
 import { formatThaiDateTime } from "@/lib/thai-date";
 import { switchUser } from "../(auth)/actions";
-import { PROFESSIONS } from "@/lib/auth/permissions";
+import { PROFESSIONS, assignedCohortIds } from "@/lib/auth/permissions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = await getAuth();
@@ -31,12 +31,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .from(schema.notifications)
     .where(and(isNull(schema.notifications.readAt), or(eq(schema.notifications.userId, auth.user.id), inArray(schema.notifications.role, auth.user.roles.length ? auth.user.roles : ["-"]))))
     .get()?.n ?? 0;
-  const items = NAV.filter((n) => !n.any || n.any.some((p) => auth.can(p))).map(({ href, label, icon }) => ({ href, label, icon }));
+  const assignedCohorts = assignedCohortIds(auth);
+  const items = NAV.filter((n) => (n.scoped ? assignedCohorts.length > 0 : !n.any || n.any.some((p) => auth.can(p)))).map(({ href, label, icon }) => ({ href, label, icon }));
   const u = auth.user;
   const path = (await headers()).get("x-pathname") ?? "";
   const names = userNameMap(db);
   const pendingMsgs = auth.can("shift.use") && !path.startsWith("/inbox") && (!auth.isAdmin || auth.mfaOk)
-    ? unacked(db, { userId: u.id, roles: u.roles, canHealth: auth.can("health.view") }).map((m) => ({ id: m.id, level: m.level, body: m.body, author: names.get(m.authorId) ?? "", when: formatThaiDateTime(m.createdAt), healthRelated: m.healthRelated }))
+    ? unacked(db, shiftViewer(db, auth)).map((m) => ({ id: m.id, level: m.level, body: m.body, author: names.get(m.authorId) ?? "", when: formatThaiDateTime(m.createdAt), healthRelated: m.healthRelated }))
     : [];
 
   return (

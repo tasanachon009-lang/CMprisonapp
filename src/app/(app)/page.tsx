@@ -4,7 +4,7 @@ import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive, FileCheck2
 import { requirePage, getAuth } from "@/lib/auth/session";
 import { dueByCohort, healthQueue } from "@/lib/queries/home2";
 import { taskCounts, dueFollowups } from "@/lib/queries/bst";
-import { messagesFor } from "@/lib/services/shift";
+import { messagesFor, shiftViewer } from "@/lib/services/shift";
 import { getDb, schema } from "@/lib/db";
 import { todayISO, addDays, formatThaiDate, currentFiscalYear, formatThaiDateTime } from "@/lib/thai-date";
 import { uncheckedSessions, mySessions, overviewNumbers } from "@/lib/queries/home";
@@ -114,7 +114,7 @@ async function Step2Cards({ today }: { today: string }) {
   const due = dueByCohort(db, auth.can, today);
   const bst = auth.can("bst.view") ? taskCounts(db, today) : null;
   const followDue = auth.can("bst.view") ? dueFollowups(db, today).filter((f) => f.f.dueDate <= today).length : 0;
-  const openShift = auth.can("shift.use") ? messagesFor(db, { userId: auth.user.id, roles: auth.user.roles, canHealth: auth.can("health.view") }).filter((m) => m.needsAction && m.status === "open" && !m.mine).length : 0;
+  const openShift = auth.can("shift.use") ? messagesFor(db, shiftViewer(db, auth)).filter((m) => m.needsAction && m.status === "open" && !m.mine).length : 0;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="card">

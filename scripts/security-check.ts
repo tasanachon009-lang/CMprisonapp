@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { openDatabase, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
 
@@ -51,6 +51,23 @@ const U = {
   warden: userWithRole("warden"),
 };
 const C = Object.fromEntries(Object.entries(U).map(([k, v]) => [k, sessionFor(v)])) as Record<keyof typeof U, string>;
+// กลุ่ม B ที่ได้รับมอบหมายรายรุ่น (ญาติ/ติดตาม) — ผู้ใช้ชั่วคราว ลบทิ้งตอนจบ
+const scopedCohort = db.select().from(schema.cohorts).where(eq(schema.cohorts.status, "active")).get()!;
+const scopedUser = (() => {
+  const old = db.select().from(schema.users).where(and(eq(schema.users.firstName, "ทดสอบสิทธิ์"), eq(schema.users.lastName, "รายรุ่น"))).get();
+  if (old) {
+    db.update(schema.users).set({ status: "active", deletedAt: null, mustChangePassword: false }).where(eq(schema.users.id, old.id)).run();
+    return old.id;
+  }
+  return db.insert(schema.users).values({ firstName: "ทดสอบสิทธิ์", lastName: "รายรุ่น", passwordHash: "x", profession: "social_worker", mustChangePassword: false }).returning().get().id;
+})();
+db.insert(schema.userRoles).values({ userId: scopedUser, role: "assistant" }).onConflictDoNothing().run();
+db.delete(schema.permissionGrants).where(eq(schema.permissionGrants.userId, scopedUser)).run();
+db.insert(schema.permissionGrants).values([
+  { userId: scopedUser, permission: "contacts.edit", allow: true, scope: `cohort:${scopedCohort.id}` },
+  { userId: scopedUser, permission: "bst.edit", allow: true, scope: `cohort:${scopedCohort.id}` },
+]).run();
+const scopedCookie = sessionFor(scopedUser);
 const lockedCookie = sessionFor(U.rehab, true);
 const adminNoMfa = sessionFor(U.admin, false, false);
 // ไม่ให้ป๊อปอัปจดหมายเวรรบกวนการตรวจ: รับทราบข้อความทั้งหมดแทนผู้ใช้ทดสอบ (ข้อมูลปลอม)
@@ -119,8 +136,9 @@ async function main() {
     [`/enrollments/${enrollment.id}/assess/DEP?round=pre`, { rehab: true, admin: true, executive: false, finance: false, assistant: false }],
     [`/enrollments/${enrollment.id}/assess/KNOW?round=pre`, { rehab: true, executive: false, assistant: false }],
     [`/cohorts/${cohort.id}/health`, { rehab: true, executive: true, finance: false, assistant: false }],
-    ["/bst", { rehab: true, executive: true, finance: false, assistant: false, warden: false }],
-    ["/inbox", { rehab: true, assistant: true, finance: true, warden: false }],
+    ["/bst", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
+    ["/inbox", { rehab: true, assistant: true, finance: false, executive: false, warden: false }],
+    ["/assigned", { assistant: false, finance: false }],
     ["/admin/forms", { admin: true, rehab: false, executive: false }],
     ["/incomplete", { rehab: true, assistant: false, warden: false }],
     [`/print/person/${person.id}`, { rehab: true, executive: false, assistant: false }],
@@ -138,6 +156,40 @@ async function main() {
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้คุม (ดูอย่างเดียว) เปิดรูปได้แต่ไม่เห็นหน้าบุคคล", photoWarden.status === 200 || photoWarden.status === 404, `รูป HTTP ${photoWarden.status}`);
   const tmpl = await get("/api/import/template", C.finance);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → ดาวน์โหลดแม่แบบนำเข้า", tmpl.status === 403, `HTTP ${tmpl.status}`);
+
+  // กลุ่ม B มอบหมายรายรุ่น: เข้าได้เฉพาะคนในรุ่นนั้น และเห็นแบบจำกัด
+  {
+    const G = "2b. มอบหมายรายรุ่น (กลุ่ม B)";
+    const inE = db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, scopedCohort.id)).get()!;
+    const inPerson = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, inE.incarcerationId)).get()!.personId;
+    const outE = db.select().from(schema.enrollments).where(sql`${schema.enrollments.cohortId} <> ${scopedCohort.id}`).all()
+      .find((e) => !db.select().from(schema.enrollments).innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId))
+        .where(and(eq(schema.enrollments.cohortId, scopedCohort.id), eq(schema.incarcerations.personId, db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, e.incarcerationId)).get()!.personId))).get())!;
+    const outPerson = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, outE.incarcerationId)).get()!.personId;
+    const a1 = await get("/assigned", scopedCookie);
+    check(G, "เปิดหน้างานที่ได้รับมอบหมาย", allowed(a1), `HTTP ${a1.status}`);
+    const p1 = await get(`/persons/${inPerson}`, scopedCookie);
+    check(G, "หน้าบุคคลในรุ่นที่มอบหมาย → เข้าได้แบบจำกัด (ไม่มีเลขบัตร/ฐานความผิด)", allowed(p1) && !p1.text.includes("เลขบัตรประชาชน") && !p1.text.includes("ฐานความผิด"), `HTTP ${p1.status}`);
+    const p2 = await get(`/persons/${outPerson}`, scopedCookie);
+    check(G, "หน้าบุคคลนอกรุ่นที่มอบหมาย → ถูกปฏิเสธ", denied(p2), `HTTP ${p2.status}${p2.location ? ` → ${p2.location}` : ""}`);
+    const e1 = await get(`/enrollments/${inE.id}`, scopedCookie);
+    check(G, "แฟ้มการอบรมในรุ่นที่มอบหมาย → เข้าได้ ไม่เห็นแบบประเมิน", allowed(e1) && !e1.text.includes("ผูกกับการลงทะเบียนครั้งนี้เท่านั้น"), `HTTP ${e1.status}`);
+    const e2 = await get(`/enrollments/${outE.id}`, scopedCookie);
+    check(G, "แฟ้มการอบรมนอกรุ่น → ถูกปฏิเสธ", denied(e2), `HTTP ${e2.status}`);
+    const p3 = await get(`/persons/${inPerson}`, C.assistant);
+    check(G, "ผู้ช่วยที่ไม่ได้รับมอบหมาย → หน้าบุคคลถูกปฏิเสธ", denied(p3), `HTTP ${p3.status}`);
+
+    // กล่องจดหมายเวร: กลุ่ม B ไม่เห็นข้อความทั่วไป เห็นเฉพาะถึงรุ่นของตน
+    const tag = randomBytes(4).toString("hex");
+    const general = db.insert(schema.shiftMessages).values({ authorId: U.rehab, level: "normal", body: `ทั่วไป-${tag}`, recipientType: "next_shift" }).returning().get().id;
+    const toCohort = db.insert(schema.shiftMessages).values({ authorId: U.rehab, level: "normal", body: `ถึงรุ่น-${tag}`, recipientType: "cohort", recipientCohortId: scopedCohort.id }).returning().get().id;
+    const ib = await get("/inbox", scopedCookie);
+    check(G, "กลุ่ม B → จดหมายเวร: ไม่เห็นข้อความทั่วไปของเวร แต่เห็นข้อความถึงรุ่นที่ตนสอน", allowed(ib) && !ib.text.includes(`ทั่วไป-${tag}`) && ib.text.includes(`ถึงรุ่น-${tag}`), `HTTP ${ib.status}`);
+    const ib2 = await get("/inbox", C.rehab);
+    check(G, "เจ้าหน้าที่หลัก → เห็นทั้งข้อความทั่วไปและข้อความถึงรุ่น", ib2.text.includes(`ทั่วไป-${tag}`) && ib2.text.includes(`ถึงรุ่น-${tag}`), `HTTP ${ib2.status}`);
+    db.delete(schema.shiftMessageAcks).where(inArray(schema.shiftMessageAcks.messageId, [general, toCohort])).run();
+    db.delete(schema.shiftMessages).where(inArray(schema.shiftMessages.id, [general, toCohort])).run();
+  }
 
   // ผู้ดูแลที่ยังไม่ยืนยัน OTP → เข้าไม่ได้
   const noMfa = await get("/admin/users", adminNoMfa);
@@ -181,6 +233,9 @@ async function main() {
   db.delete(schema.persons).where(eq(schema.persons.id, xssPerson.id)).run();
   db.delete(schema.sessions).where(inArray(schema.sessions.id, tokens)).run();
   db.delete(schema.trustedDevices).where(eq(schema.trustedDevices.id, sha(deviceToken))).run();
+  db.delete(schema.permissionGrants).where(eq(schema.permissionGrants.userId, scopedUser)).run();
+  db.delete(schema.userRoles).where(eq(schema.userRoles.userId, scopedUser)).run();
+  db.update(schema.users).set({ status: "suspended", deletedAt: new Date() }).where(eq(schema.users.id, scopedUser)).run();
   db.update(schema.users).set({ status: "suspended" }).where(eq(schema.users.id, U.warden)).run();
 
   // ── รายงาน ──

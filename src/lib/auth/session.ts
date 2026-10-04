@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "../db";
 import { getSetting } from "../bootstrap";
-import { resolvePermissions, scopedCohorts, type Permission, type Grant } from "./permissions";
+import { resolvePermissions, scopedCohorts, scopedPermissions, canInCohorts, type Permission, type Grant } from "./permissions";
 import { todayISO } from "../thai-date";
 
 export const DEVICE_COOKIE = "rh_dev";
@@ -101,6 +101,10 @@ export type Auth = {
   perms: Set<Permission>;
   /** รุ่นที่ได้รับมอบหมาย (กลุ่ม B) */
   cohortScopes: number[];
+  /** สิทธิ์รายรุ่น (permission → รุ่น) */
+  scoped: Partial<Record<Permission, number[]>>;
+  /** มีสิทธิ์ทั้งระบบ หรือได้รับมอบหมายในรุ่นที่ระบุ — ใช้กับงานที่มอบหมายรายรุ่นได้ */
+  canIn: (p: Permission, cohortIds: number[]) => boolean;
   locked: boolean;
   idleMinutes: number;
   can: (p: Permission) => boolean;
@@ -137,6 +141,7 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
     .all();
   const today = todayISO();
   const perms = resolvePermissions(roles, grants, today);
+  const scoped = scopedPermissions(grants, today);
   return {
     sessionId: id,
     user: {
@@ -146,6 +151,8 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
     },
     perms,
     cohortScopes: scopedCohorts(grants, today),
+    scoped,
+    canIn: (p, cohortIds) => canInCohorts(perms, scoped, p, cohortIds),
     locked,
     idleMinutes,
     can: (p) => perms.has(p),
@@ -177,8 +184,8 @@ export async function requirePage(...need: Permission[]): Promise<Auth> {
   if (auth.can("shift.use")) {
     const path = (await headers()).get("x-pathname") ?? "";
     if (!path.startsWith("/inbox")) {
-      const { unacked } = await import("../services/shift");
-      const red = unacked(getDb(), { userId: auth.user.id, roles: auth.user.roles, canHealth: auth.can("health.view") }).some((m) => m.level === "red");
+      const { unacked, shiftViewer } = await import("../services/shift");
+      const red = unacked(getDb(), shiftViewer(getDb(), auth)).some((m) => m.level === "red");
       if (red) redirect("/inbox?must=1");
     }
   }

@@ -6,7 +6,7 @@ import { KeyRound, UserPlus } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
 import { ThaiDateInput } from "@/components/thai-date-input";
-import { PROFESSIONS, ROLES, PERMISSIONS } from "@/lib/auth/permissions";
+import { PROFESSIONS, ROLES, PERMISSIONS, SCOPABLE, type Permission } from "@/lib/auth/permissions";
 import { createUser, updateUser, setUserRoles, resetPassword, setUserStatus, addGrant, revokeGrant, requestDualAction, resetOtp } from "../actions";
 
 type UserForm = { prefix: string | null; firstName: string; lastName: string; nickname: string | null; position: string | null; profession: string; level: "executive" | "lead" | "staff"; titleLabel: string | null; sortOrder: number };
@@ -139,11 +139,11 @@ export function GrantsPanel({ userId, grants, cohorts }: { userId: number; grant
       )}
       <div className="grid gap-3 sm:grid-cols-6">
         <label className="sm:col-span-3"><span className="label">สิทธิ์</span>
-          <select className="input" value={g.permission} onChange={(e) => setG({ ...g, permission: e.target.value })}>{Object.entries(PERMISSIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+          <select className="input" value={g.permission} onChange={(e) => setG({ ...g, permission: e.target.value, scope: SCOPABLE.includes(e.target.value as Permission) ? g.scope : "" })}>{Object.entries(PERMISSIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
         </label>
         <label className="sm:col-span-1"><span className="label">การปรับ</span><select className="input" value={g.allow ? "1" : "0"} onChange={(e) => setG({ ...g, allow: e.target.value === "1" })}><option value="1">เพิ่ม</option><option value="0">ตัด</option></select></label>
         <label className="sm:col-span-2"><span className="label">เฉพาะรุ่น (กลุ่ม B)</span>
-          <select className="input" value={g.scope} onChange={(e) => setG({ ...g, scope: e.target.value })}><option value="">ทั้งระบบ</option>{cohorts.map((c) => <option key={c.id} value={`cohort:${c.id}`}>{c.label}</option>)}</select>
+          <select className="input" value={g.scope} disabled={!SCOPABLE.includes(g.permission as Permission)} onChange={(e) => setG({ ...g, scope: e.target.value })}><option value="">ทั้งระบบ</option>{cohorts.map((c) => <option key={c.id} value={`cohort:${c.id}`}>{c.label}</option>)}</select>
         </label>
         <div className="sm:col-span-2"><span className="label">ตั้งแต่ (ว่าง=ทันที)</span><ThaiDateInput value={g.validFrom} onChange={(v) => setG({ ...g, validFrom: v })} /></div>
         <div className="sm:col-span-2"><span className="label">ถึง (ว่าง=ไม่มีกำหนด)</span><ThaiDateInput value={g.validTo} onChange={(v) => setG({ ...g, validTo: v })} /></div>
@@ -156,7 +156,7 @@ export function GrantsPanel({ userId, grants, cohorts }: { userId: number; grant
         setError(null);
         router.refresh();
       })}>เพิ่มการปรับสิทธิ์</button>
-      <p className="hint">สิทธิ์ที่มีช่วงวันที่จะกลับเป็นค่าเดิมอัตโนมัติเมื่อหมดเวลา</p>
+      <p className="hint">สิทธิ์ที่มีช่วงวันที่จะกลับเป็นค่าเดิมอัตโนมัติเมื่อหมดเวลา · มอบหมายรายรุ่นได้เฉพาะ: {SCOPABLE.map((p) => PERMISSIONS[p]).join(", ")}</p>
     </section>
   );
 }

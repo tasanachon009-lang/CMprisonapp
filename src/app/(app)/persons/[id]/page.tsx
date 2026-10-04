@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requirePage } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { personTimeline } from "@/lib/queries/persons";
@@ -16,6 +16,11 @@ import { BehaviorNoteButton } from "@/components/behavior-note";
 import { behaviorNotesOf } from "@/lib/queries/enrollment";
 import { and, eq, isNull } from "drizzle-orm";
 import { schema } from "@/lib/db";
+import { cohortsOfPerson } from "@/lib/auth/access";
+import type { Permission } from "@/lib/auth/permissions";
+
+/** สิทธิ์ที่มอบหมายรายรุ่นแล้วเปิดหน้าบุคคลแบบจำกัดได้ (กลุ่ม B — ญาติ/ผู้ติดต่อ/ติดตาม) */
+const SCOPED_VIEW: Permission[] = ["contacts.edit", "bst.view", "bst.edit", "behavior.edit"];
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +28,13 @@ const STATUS_TAG: Record<string, string> = { draft: "tag-warn", active: "tag-ok"
 
 /** หน้าบุคคล: ไทม์ไลน์แยกตามการต้องโทษ — รอบปัจจุบันเป็นหลัก รอบเก่าพับเก็บพร้อมป้ายแดง (สเปก 7.4, 22B) */
 export default async function PersonPage({ params }: PageProps<"/persons/[id]">) {
-  const auth = await requirePage("registry.view");
+  const auth = await requirePage();
   const { id } = await params;
   const db = getDb();
+  const full = auth.can("registry.view");
+  const myCohorts = cohortsOfPerson(Number(id));
+  // ผู้ไม่มีสิทธิ์ทะเบียน: เข้าได้เฉพาะคนในรุ่นที่ได้รับมอบหมาย (ตรวจก่อนบอกว่ามี/ไม่มีบุคคลนี้)
+  if (!full && !SCOPED_VIEW.some((x) => auth.canIn(x, myCohorts))) redirect("/forbidden");
   const t = personTimeline(db, Number(id));
   if (!t) notFound();
   const { person: p, incarcerations } = t;
@@ -35,6 +44,40 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
   const canEdit = auth.can("registry.edit");
   const contacts = db.select().from(schema.contacts).where(and(eq(schema.contacts.personId, p.id), isNull(schema.contacts.deletedAt))).all();
   const behaviors = current ? behaviorNotesOf(db, current.inc.id) : [];
+  const canContacts = auth.canIn("contacts.edit", myCohorts);
+  const canBehavior = auth.canIn("behavior.edit", myCohorts);
+  const contactsBox = <ContactsEditor personId={p.id} canEdit={canContacts} contacts={contacts.map((c) => ({ id: c.id, kind: c.kind, name: c.name, relation: c.relation, phone: c.phone, address: c.address, note: c.note }))} />;
+
+  if (!full) {
+    // มุมมองจำกัด: ชื่อ เลขประจำตัว ญาติ/ผู้ติดต่อ และหลักสูตรในรุ่นที่ได้รับมอบหมายเท่านั้น
+    const mine = current ? current.enrollments.filter((x) => SCOPED_VIEW.some((perm) => auth.canIn(perm, [x.c.id]))) : [];
+    return (
+      <div className="space-y-6">
+        <Breadcrumb items={[{ href: "/assigned", label: "งานที่ได้รับมอบหมาย" }, { label: `${p.firstName} ${p.lastName}` }]} />
+        <section className="card flex flex-wrap items-center gap-4">
+          <Avatar first={p.firstName} last={p.lastName} size={72} color="var(--lime)" />
+          <div className="flex-1">
+            <h1 className="text-2xl">{p.prefix}{p.firstName} {p.lastName}</h1>
+            <p className="text-muted">เลขประจำตัว {current?.inc.inmateNo ?? "-"}</p>
+          </div>
+          {canBehavior && current && <BehaviorNoteButton incarcerationId={current.inc.id} enrollmentId={current.enrollments.find((x) => ["active", "draft"].includes(x.e.status))?.e.id ?? null} name={`${p.firstName} ${p.lastName}`} />}
+        </section>
+        {contactsBox}
+        <section className="card">
+          <h2 className="text-xl">หลักสูตรในรุ่นที่ได้รับมอบหมาย</h2>
+          <ul className="mt-3 space-y-2">
+            {mine.map((e) => (
+              <li key={e.e.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-cream px-4 py-2">
+                <Link href={`/enrollments/${e.e.id}`} className="font-medium hover:underline">{e.course.name} {e.label}</Link>
+                <span className={STATUS_TAG[e.e.status] ?? "tag-muted"}>{ENROLLMENT_STATUS_LABEL[e.e.status]}</span>
+              </li>
+            ))}
+            {!mine.length && <li className="text-muted">ไม่มีหลักสูตรในรุ่นที่ได้รับมอบหมาย</li>}
+          </ul>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -58,7 +101,7 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
             <Item k="การต้องโทษ">{incarcerations.length} ครั้ง</Item>
           </dl>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            {auth.can("behavior.edit") && current && <BehaviorNoteButton incarcerationId={current.inc.id} enrollmentId={current.enrollments.find((x) => ["active", "draft"].includes(x.e.status))?.e.id ?? null} name={`${p.firstName} ${p.lastName}`} />}
+            {canBehavior && current && <BehaviorNoteButton incarcerationId={current.inc.id} enrollmentId={current.enrollments.find((x) => ["active", "draft"].includes(x.e.status))?.e.id ?? null} name={`${p.firstName} ${p.lastName}`} />}
             {auth.can("shift.use") && <HandoffButton personId={p.id} name={`${p.firstName} ${p.lastName}`} />}
             {canEdit && <EditPerson person={{ id: p.id, version: p.version, prefix: p.prefix, firstName: p.firstName, lastName: p.lastName, birthDate: p.birthDate, gender: p.gender, maritalStatus: p.maritalStatus, education: p.education, occupation: p.occupation, familySize: p.familySize, hasNationalId: !!p.nationalId }} />}
             <RecordMeta createdBy={names.get(p.createdBy ?? 0)} createdAt={formatThaiDateTime(p.createdAt)} updatedBy={names.get(p.updatedBy ?? 0)} updatedAt={formatThaiDateTime(p.updatedAt)} />
@@ -66,7 +109,7 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
         </div>
       </section>
 
-      <ContactsEditor personId={p.id} canEdit={auth.can("contacts.edit")} contacts={contacts.map((c) => ({ id: c.id, kind: c.kind, name: c.name, relation: c.relation, phone: c.phone, address: c.address, note: c.note }))} />
+      {contactsBox}
 
       {behaviors.length > 0 && (
         <section className="card">

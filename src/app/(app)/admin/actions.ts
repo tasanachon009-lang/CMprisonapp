@@ -9,7 +9,7 @@ import { toError, type ActionResult } from "@/lib/action-result";
 import { writeAudit, diff } from "@/lib/audit";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { checkPassword } from "@/lib/password-policy";
-import { DEFAULT_ROLES_BY_PROFESSION, PERMISSIONS } from "@/lib/auth/permissions";
+import { DEFAULT_ROLES_BY_PROFESSION, PERMISSIONS, SCOPABLE, type Permission } from "@/lib/auth/permissions";
 import { setRoles, requestDual, approveDual, rejectDual, executeAdminChange, activeAdminIds, MAX_ADMINS, type DualAction } from "@/lib/services/admin";
 import { getSetting, setSetting } from "@/lib/bootstrap";
 import { runBackup, restoreFromBackup, runRestoreTest } from "@/lib/backup/runner";
@@ -146,6 +146,10 @@ export async function addGrant(userId: number, input: z.input<typeof GrantSchema
     if (["users.manage", "settings.manage", "backup.manage", "audit.view"].includes(parsed.data.permission) && parsed.data.allow) {
       return { ok: false, error: "สิทธิ์ระดับผู้ดูแลระบบให้รายคนไม่ได้ — ใช้การให้สิทธิ์ผู้ดูแล (ยืนยัน 2 คน)" };
     }
+    if (parsed.data.scope && !SCOPABLE.includes(parsed.data.permission as Permission)) {
+      return { ok: false, error: `สิทธิ์นี้มอบหมายรายรุ่นไม่ได้ — เลือก "ทั้งระบบ" หรือเลือกสิทธิ์: ${SCOPABLE.map((p) => PERMISSIONS[p]).join(", ")}` };
+    }
+    if (parsed.data.scope && !parsed.data.allow) return { ok: false, error: "การมอบหมายรายรุ่นใช้ได้เฉพาะการ \"ให้สิทธิ์\" — ถ้าจะลดสิทธิ์ให้เลือก \"ทั้งระบบ\"" };
     const db = getDb();
     db.insert(schema.permissionGrants).values({ userId, ...parsed.data, createdBy: auth.user.id, updatedBy: auth.user.id }).run();
     writeAudit(db, { userId: auth.user.id, action: "permission.change", entity: "user", entityId: userId, after: parsed.data, ip: await clientIp() });

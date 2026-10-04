@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
 import { requireAction, clientIp } from "@/lib/auth/session";
+import { assertIn, cohortsOfPerson, cohortsOfIncarceration, cohortOfEnrollment, cohortOfTask, cohortOfFollowup } from "@/lib/auth/access";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { saveAssessment } from "@/lib/services/assessments";
 import { markTask, recordFollowup, completeEnrollments } from "@/lib/services/followup";
@@ -81,7 +82,8 @@ export async function updateIntakeAction(enrollmentId: number, screeningScore: n
 
 export async function markTaskAction(taskId: number, done: boolean, date?: string): Promise<ActionResult> {
   try {
-    const auth = await requireAction("bst.edit");
+    const auth = await requireAction();
+    assertIn(auth, "bst.edit", [cohortOfTask(taskId)]);
     markTask(getDb(), taskId, done ? date || todayISO() : null, { userId: auth.user.id, ip: await clientIp() });
     revalidatePath("/bst");
     return { ok: true };
@@ -102,7 +104,8 @@ const FollowSchema = z.object({
 
 export async function recordFollowupAction(followupId: number, input: z.input<typeof FollowSchema>): Promise<ActionResult> {
   try {
-    const auth = await requireAction("bst.edit");
+    const auth = await requireAction();
+    assertIn(auth, "bst.edit", [cohortOfFollowup(followupId)]);
     const parsed = FollowSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
     recordFollowup(getDb(), followupId, parsed.data, { userId: auth.user.id, ip: await clientIp() });
@@ -115,7 +118,8 @@ export async function recordFollowupAction(followupId: number, input: z.input<ty
 
 export async function setExternalIdAction(enrollmentId: number, system: "bst" | "rt101", externalId: string): Promise<ActionResult> {
   try {
-    const auth = await requireAction("bst.edit");
+    const auth = await requireAction();
+    assertIn(auth, "bst.edit", [cohortOfEnrollment(enrollmentId)]);
     const v = externalId.trim();
     if (!v) return { ok: false, error: "กรุณาใส่เลขประจำตัวในระบบ" };
     getDb()
@@ -171,9 +175,10 @@ const BehaviorSchema = z.object({
 /** บันทึกพฤติกรรมด่วน (สเปก 22B) */
 export async function addBehaviorNoteAction(input: z.input<typeof BehaviorSchema>): Promise<ActionResult> {
   try {
-    const auth = await requireAction("behavior.edit");
+    const auth = await requireAction();
     const parsed = BehaviorSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+    assertIn(auth, "behavior.edit", cohortsOfIncarceration(parsed.data.incarcerationId));
     const db = getDb();
     const inc = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, parsed.data.incarcerationId)).get();
     if (!inc) return { ok: false, error: "ไม่พบผู้ต้องขัง" };
@@ -199,13 +204,16 @@ const ContactSchema = z.object({
 /** ญาติ/ผู้ติดต่อ ที่อยู่หลังปล่อย หน่วยบริการใกล้บ้าน (สเปก 7.5) */
 export async function saveContactAction(id: number | null, input: z.input<typeof ContactSchema>): Promise<ActionResult> {
   try {
-    const auth = await requireAction("contacts.edit");
+    const auth = await requireAction();
     const parsed = ContactSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+    assertIn(auth, "contacts.edit", cohortsOfPerson(parsed.data.personId));
     if (!parsed.data.name && !parsed.data.address && !parsed.data.phone) return { ok: false, error: "กรุณาใส่ชื่อ เบอร์ หรือที่อยู่อย่างน้อย 1 ช่อง" };
     const db = getDb();
     if (id) {
       const before = db.select().from(schema.contacts).where(eq(schema.contacts.id, id)).get();
+      // กันแก้รายการของคนอื่นโดยเปลี่ยน personId
+      if (!before || before.personId !== parsed.data.personId) return { ok: false, error: "ไม่พบรายการ" };
       db.update(schema.contacts).set({ ...parsed.data, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.contacts.id, id)).run();
       writeAudit(db, { userId: auth.user.id, action: "update", entity: "contact", entityId: id, personId: parsed.data.personId, before, after: parsed.data, ip: await clientIp() });
     } else {
@@ -221,10 +229,11 @@ export async function saveContactAction(id: number | null, input: z.input<typeof
 
 export async function deleteContactAction(id: number): Promise<ActionResult> {
   try {
-    const auth = await requireAction("contacts.edit");
+    const auth = await requireAction();
     const db = getDb();
     const c = db.select().from(schema.contacts).where(eq(schema.contacts.id, id)).get();
     if (!c) return { ok: false, error: "ไม่พบรายการ" };
+    assertIn(auth, "contacts.edit", cohortsOfPerson(c.personId));
     db.update(schema.contacts).set({ deletedAt: new Date(), deletedBy: auth.user.id }).where(eq(schema.contacts.id, id)).run();
     writeAudit(db, { userId: auth.user.id, action: "delete", entity: "contact", entityId: id, personId: c.personId, ip: await clientIp() });
     revalidatePath(`/persons/${c.personId}`);
@@ -236,10 +245,11 @@ export async function deleteContactAction(id: number): Promise<ActionResult> {
 
 export async function restoreContactAction(id: number): Promise<ActionResult> {
   try {
-    const auth = await requireAction("contacts.edit");
+    const auth = await requireAction();
     const db = getDb();
     const c = db.select().from(schema.contacts).where(eq(schema.contacts.id, id)).get();
     if (!c) return { ok: false, error: "ไม่พบรายการ" };
+    assertIn(auth, "contacts.edit", cohortsOfPerson(c.personId));
     db.update(schema.contacts).set({ deletedAt: null, deletedBy: null, updatedBy: auth.user.id }).where(eq(schema.contacts.id, id)).run();
     writeAudit(db, { userId: auth.user.id, action: "restore", entity: "contact", entityId: id, personId: c.personId, ip: await clientIp() });
     revalidatePath(`/persons/${c.personId}`);

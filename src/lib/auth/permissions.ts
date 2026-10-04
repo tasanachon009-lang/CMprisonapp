@@ -68,9 +68,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
   mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
+  // กลุ่ม B: กล่องจดหมายเวรแบบจำกัด (ส่งได้ · รับเฉพาะที่ระบุถึงตน/รุ่นที่ตนสอน — services/shift.ts)
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
-  finance: ["course.view", "schedule.view", "shift.use"],
-  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "bst.view"],
+  // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
+  finance: ["course.view", "schedule.view"],
+  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary"],
   warden: ["roster.view"],
 };
 
@@ -114,11 +116,36 @@ export function resolvePermissions(roles: string[], grants: Grant[], today: stri
   return set;
 }
 
-/** ขอบเขตรายรุ่นที่ได้รับมอบหมาย (กลุ่ม B) เช่น scope "cohort:12" */
-export function scopedCohorts(grants: Grant[], today: string): number[] {
+/** สิทธิ์ที่มอบหมายเป็นรายรุ่นได้ (กลุ่ม B — สเปก 2.2-0, 2.2A) */
+export const SCOPABLE: Permission[] = ["attendance.edit_own", "contacts.edit", "bst.view", "bst.edit", "behavior.edit"];
+
+function activeScoped(grants: Grant[], today: string) {
   return grants
-    .filter((g) => g.allow && g.scope?.startsWith("cohort:"))
+    .filter((g) => g.allow && g.scope?.startsWith("cohort:") && SCOPABLE.includes(g.permission as Permission))
     .filter((g) => (!g.validFrom || today >= g.validFrom) && (!g.validTo || today <= g.validTo))
-    .map((g) => Number(g.scope!.slice(7)))
-    .filter((n) => Number.isFinite(n));
+    .map((g) => ({ permission: g.permission as Permission, cohortId: Number(g.scope!.slice(7)) }))
+    .filter((x) => Number.isFinite(x.cohortId));
+}
+
+/** ขอบเขตรายรุ่นที่ได้รับมอบหมาย (ทุกสิทธิ์รวมกัน) เช่น scope "cohort:12" */
+export function scopedCohorts(grants: Grant[], today: string): number[] {
+  return Array.from(new Set(activeScoped(grants, today).map((x) => x.cohortId)));
+}
+
+/** สิทธิ์รายรุ่น: permission → รุ่นที่ได้รับมอบหมาย */
+export function scopedPermissions(grants: Grant[], today: string): Partial<Record<Permission, number[]>> {
+  const out: Partial<Record<Permission, number[]>> = {};
+  for (const x of activeScoped(grants, today)) (out[x.permission] ??= []).push(x.cohortId);
+  return out;
+}
+
+/** รุ่นที่ได้รับมอบหมายงานญาติ/ติดตาม/บสต./พฤติกรรม (ไม่นับเช็คชื่อ) — ใช้แสดงหน้า "งานที่ได้รับมอบหมาย" */
+export function assignedCohortIds(a: { scoped: Partial<Record<Permission, number[]>> }) {
+  const ids = (["contacts.edit", "bst.view", "bst.edit", "behavior.edit"] as Permission[]).flatMap((p) => a.scoped[p] ?? []);
+  return Array.from(new Set(ids));
+}
+
+/** มีสิทธิ์ทั้งระบบ หรือได้รับมอบหมายในรุ่นใดรุ่นหนึ่งที่ระบุ */
+export function canInCohorts(perms: Set<Permission>, scoped: Partial<Record<Permission, number[]>>, p: Permission, cohortIds: number[]) {
+  return perms.has(p) || cohortIds.some((id) => scoped[p]?.includes(id));
 }

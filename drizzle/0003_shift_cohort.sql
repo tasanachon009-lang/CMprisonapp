@@ -1,0 +1,1 @@
+ALTER TABLE `shift_messages` ADD `recipient_cohort_id` integer;

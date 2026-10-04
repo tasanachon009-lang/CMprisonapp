@@ -7,9 +7,9 @@ import { Alert } from "@/components/ui";
 import { ThaiDateInput } from "@/components/thai-date-input";
 import { sendShiftMessage, ackShiftMessage, resolveShiftMessage } from "./actions";
 
-export function Compose({ staff, canHealth, today }: { staff: Array<{ id: number; name: string }>; canHealth: boolean; today: string }) {
+export function Compose({ staff, cohorts, canHealth, today }: { staff: Array<{ id: number; name: string }>; cohorts: Array<{ id: number; label: string }>; canHealth: boolean; today: string }) {
   const router = useRouter();
-  const blank = { level: "normal" as "normal" | "important" | "red", body: "", healthRelated: false, recipientType: "next_shift" as "next_shift" | "all" | "user", recipientUserId: "", needsAction: false, dueDate: "" };
+  const blank = { level: "normal" as "normal" | "important" | "red", body: "", healthRelated: false, recipientType: "next_shift" as "next_shift" | "all" | "user" | "cohort", recipientUserId: "", recipientCohortId: "", needsAction: false, dueDate: "" };
   const [f, setF] = useState(blank);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -26,11 +26,14 @@ export function Compose({ staff, canHealth, today }: { staff: Array<{ id: number
         <div className="grid gap-3 sm:grid-cols-2">
           <label><span className="label">ผู้รับ</span>
             <select className="input" value={f.recipientType} onChange={(e) => setF({ ...f, recipientType: e.target.value as "all" })}>
-              <option value="next_shift">ผลัดถัดไป (เจ้าหน้าที่หลัก/สถานพยาบาล)</option><option value="all">ทุกคน</option><option value="user">รายบุคคล</option>
+              <option value="next_shift">ผลัดถัดไป (เจ้าหน้าที่หลัก/สถานพยาบาล)</option><option value="all">ทุกคน (เจ้าหน้าที่หลัก/สถานพยาบาล)</option><option value="user">รายบุคคล</option>{cohorts.length > 0 && <option value="cohort">ทีมของรุ่น (รวมผู้สอนของรุ่นนั้น)</option>}
             </select>
           </label>
           {f.recipientType === "user" && (
             <label><span className="label">ส่งถึง</span><select className="input" value={f.recipientUserId} onChange={(e) => setF({ ...f, recipientUserId: e.target.value })}><option value="">— เลือก —</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          )}
+          {f.recipientType === "cohort" && (
+            <label><span className="label">รุ่น</span><select className="input" value={f.recipientCohortId} onChange={(e) => setF({ ...f, recipientCohortId: e.target.value })}><option value="">— เลือก —</option>{cohorts.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
           )}
         </div>
         <label className="flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.healthRelated} onChange={(e) => setF({ ...f, healthRelated: e.target.checked })} /> เป็นเรื่องสุขภาพ (คนที่ไม่มีสิทธิ์จะเห็นแค่ &quot;มีเรื่องสุขภาพ — ติดต่อพยาบาล&quot;)</label>
@@ -40,7 +43,7 @@ export function Compose({ staff, canHealth, today }: { staff: Array<{ id: number
         <p className="hint">ผูกกับผู้ต้องขังได้จากหน้าบุคคล (ปุ่ม &quot;ส่งเวร&quot;)</p>
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <button className="btn-primary" disabled={pending || !f.body.trim()} onClick={() => start(async () => {
-          const r = await sendShiftMessage({ ...f, personId: null, recipientUserId: f.recipientUserId ? Number(f.recipientUserId) : null, dueDate: f.dueDate || null });
+          const r = await sendShiftMessage({ ...f, personId: null, recipientUserId: f.recipientUserId ? Number(f.recipientUserId) : null, recipientCohortId: f.recipientCohortId ? Number(f.recipientCohortId) : null, dueDate: f.dueDate || null });
           if (!r.ok) return setMsg({ tone: "danger", text: r.error });
           setMsg({ tone: "ok", text: "ส่งแล้ว" });
           setF(blank);

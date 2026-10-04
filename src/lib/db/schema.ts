@@ -824,9 +824,10 @@ export const shiftMessages = sqliteTable(
     personId: integer("person_id"),
     /** เรื่องสุขภาพ → คนที่ไม่มีสิทธิ์เห็นแค่ "มีเรื่องสุขภาพ — ติดต่อพยาบาล" */
     healthRelated: integer("health_related", { mode: "boolean" }).notNull().default(false),
-    /** next_shift | all | user */
+    /** next_shift | all | user | cohort (ทีมของรุ่น รวมผู้สอนกลุ่ม B ของรุ่นนั้น) */
     recipientType: text("recipient_type").notNull(),
     recipientUserId: integer("recipient_user_id"),
+    recipientCohortId: integer("recipient_cohort_id"),
     needsAction: integer("needs_action", { mode: "boolean" }).notNull().default(false),
     dueDate: text("due_date"),
     /** open | done */

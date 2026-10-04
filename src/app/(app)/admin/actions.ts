@@ -12,6 +12,7 @@ import { checkPassword } from "@/lib/password-policy";
 import { DEFAULT_ROLES_BY_PROFESSION, PERMISSIONS, SCOPABLE, type Permission } from "@/lib/auth/permissions";
 import { setRoles, requestDual, approveDual, rejectDual, executeAdminChange, activeAdminIds, MAX_ADMINS, type DualAction } from "@/lib/services/admin";
 import { getSetting, setSetting } from "@/lib/bootstrap";
+import { notify } from "@/lib/notify";
 import { runBackup, restoreFromBackup, runRestoreTest } from "@/lib/backup/runner";
 import { isValidISODate } from "@/lib/thai-date";
 import { RuleError } from "@/lib/services/registry";
@@ -83,7 +84,7 @@ export async function resetPassword(id: number, tempPassword: string): Promise<A
     const u = db.select().from(schema.users).where(eq(schema.users.id, id)).get();
     if (!u) return { ok: false, error: "ไม่พบผู้ใช้" };
     if (activeAdminIds(db).includes(id) && id !== auth.user.id) return { ok: false, error: "รหัสของผู้ดูแลอีกคน ให้เจ้าตัวเปลี่ยนเอง (หรือใช้ขั้นตอนรหัสฉุกเฉินใน README)" };
-    const problem = checkPassword(tempPassword, u);
+    const problem = checkPassword(tempPassword, { ...u, isAdmin: activeAdminIds(db).includes(id) });
     if (problem) return { ok: false, error: problem };
     db.update(schema.users).set({ passwordHash: await hashPassword(tempPassword), mustChangePassword: true, failedAttempts: 0, lockedUntil: null, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.users.id, id)).run();
     // ออกจากระบบทุกเครื่องของผู้ใช้นั้น
@@ -288,12 +289,22 @@ export async function saveBackupDirs(externalDir: string, removableDir: string):
 export async function saveSettings(values: Record<string, unknown>): Promise<ActionResult> {
   try {
     const auth = await requireAction("settings.manage");
-    const allowed = ["org.name", "org.unitName", "org.type", "org.address", "org.phone", "org.headTitle", "pdpa.consentRequired", "security.idleLockMinutes", "security.officeHours"];
+    const allowed = ["org.name", "org.unitName", "org.type", "org.address", "org.phone", "org.headTitle", "pdpa.consentRequired", "security.idleLockMinutes", "security.officeHours", "security.adminOtp"];
     const db = getDb();
     const before: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(values)) {
       if (!allowed.includes(k)) continue;
       if (k === "security.idleLockMinutes" && (typeof v !== "number" || v < 5 || v > 15)) throw new RuleError("เวลาล็อกอัตโนมัติต้องอยู่ระหว่าง 5–15 นาที");
+      if (k === "security.adminOtp" && typeof v !== "boolean") throw new RuleError("ค่าการใช้ OTP ไม่ถูกต้อง");
+      if (k === "security.officeHours") {
+        const o = v as { start?: unknown; end?: unknown };
+        const ok = (x: unknown) => typeof x === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(x);
+        if (!o || !ok(o.start) || !ok(o.end) || (o.start as string) >= (o.end as string)) throw new RuleError("เวลาราชการไม่ถูกต้อง — ใส่แบบ 08:30 และเวลาเริ่มต้องก่อนเวลาสิ้นสุด");
+      }
+      // เปิด/ปิด OTP ผู้ดูแล → แจ้งผู้ดูแลอีกคน
+      if (k === "security.adminOtp" && v !== getSetting(db, k, false)) {
+        for (const id of activeAdminIds(db).filter((x) => x !== auth.user.id)) notify(db, { userId: id, severity: "warning", kind: "admin_otp_changed", message: `${auth.user.firstName} ${auth.user.lastName} ${v ? "เปิด" : "ปิด"}การใช้ OTP ของผู้ดูแลระบบ`, link: "/admin/audit" });
+      }
       before[k] = getSetting(db, k, null);
       setSetting(db, k, v, auth.user.id);
     }

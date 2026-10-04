@@ -3,7 +3,7 @@ import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { getSetting } from "@/lib/bootstrap";
 import { Breadcrumb, PageHeader } from "@/components/ui";
-import { OrgForm, OrgCodeForm, HolidaysEditor, LookupEditor } from "./settings-client";
+import { OrgForm, OrgCodeForm, AdminSecurityForm, HolidaysEditor, LookupEditor } from "./settings-client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ export default async function SettingsPage() {
         "org.address": s("org.address", "") as string, "org.phone": s("org.phone", "") as string, "org.headTitle": s("org.headTitle", "") as string,
         "pdpa.consentRequired": s("pdpa.consentRequired", true) as boolean, "security.idleLockMinutes": s("security.idleLockMinutes", 15) as number,
       }} />
+      <AdminSecurityForm adminOtp={s("security.adminOtp", false) === true} officeHours={s("security.officeHours", { start: "07:00", end: "18:00" }) as { start: string; end: string }} />
       <OrgCodeForm />
       <HolidaysEditor holidays={holidays.map((h) => ({ date: h.date, name: h.name }))} />
       {Object.entries(LOOKUP_CATS).map(([c, title]) => <LookupEditor key={c} category={c} title={title} items={lookups[c]} />)}

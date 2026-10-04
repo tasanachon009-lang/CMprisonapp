@@ -1,4 +1,7 @@
-/** นโยบายรหัสผ่าน (สเปก 2.1) — ≥ 8 ตัว และห้ามง่ายเกินไป */
+/** นโยบายรหัสผ่าน (สเปก 2.1) — ≥ 8 ตัว (ผู้ดูแลระบบ ≥ 12 ตัว) และห้ามง่ายเกินไป */
+
+export const MIN_LENGTH = 8;
+export const ADMIN_MIN_LENGTH = 12;
 
 const COMMON = new Set([
   "12345678", "123456789", "1234567890", "password", "password1", "qwertyui", "qwerty123", "11111111",
@@ -6,8 +9,9 @@ const COMMON = new Set([
   "password123", "123123123", "987654321", "abc12345",
 ]);
 
-export function checkPassword(pw: string, ctx: { firstName?: string; lastName?: string } = {}): string | null {
-  if (pw.length < 8) return "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร";
+export function checkPassword(pw: string, ctx: { firstName?: string; lastName?: string; isAdmin?: boolean } = {}): string | null {
+  if (ctx.isAdmin && pw.length < ADMIN_MIN_LENGTH) return `รหัสผ่านของผู้ดูแลระบบต้องยาวอย่างน้อย ${ADMIN_MIN_LENGTH} ตัวอักษร`;
+  if (pw.length < MIN_LENGTH) return `รหัสผ่านต้องยาวอย่างน้อย ${MIN_LENGTH} ตัวอักษร`;
   if (pw.length > 128) return "รหัสผ่านยาวเกินไป";
   if (COMMON.has(pw.toLowerCase())) return "รหัสผ่านนี้ง่ายเกินไป กรุณาตั้งใหม่ให้เดายากขึ้น";
   if (/^(.)\1+$/.test(pw)) return "ห้ามใช้ตัวอักษรเดียวซ้ำกันทั้งหมด";

@@ -34,7 +34,7 @@ async function main() {
   const first = process.env.SETUP_ADMIN_FIRST;
   if (!hasAdmin && first) {
     const pw = process.env.SETUP_ADMIN_PASSWORD ?? "";
-    const problem = checkPassword(pw, { firstName: first, lastName: process.env.SETUP_ADMIN_LAST });
+    const problem = checkPassword(pw, { firstName: first, lastName: process.env.SETUP_ADMIN_LAST, isAdmin: true });
     if (problem) throw new Error(`รหัสผ่านหัวหน้า: ${problem}`);
     const u = db
       .insert(schema.users)

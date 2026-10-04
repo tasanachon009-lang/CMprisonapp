@@ -47,6 +47,34 @@ export function OrgForm({ initial }: { initial: Record<string, string | number |
   );
 }
 
+/** ความปลอดภัยผู้ดูแลระบบ (สเปก 2.1): OTP เป็นตัวเลือก ค่าเริ่มต้นปิด + เวลาราชการสำหรับแจ้งเตือนการเข้าระบบ */
+export function AdminSecurityForm({ adminOtp, officeHours }: { adminOtp: boolean; officeHours: { start: string; end: string } }) {
+  const [otp, setOtp] = useState(adminOtp);
+  const [hours, setHours] = useState(officeHours);
+  const { msg, pending, run } = useAct();
+  return (
+    <section className="card space-y-3">
+      <h2 className="text-xl">ความปลอดภัยผู้ดูแลระบบ</h2>
+      <ul className="list-disc space-y-1 pl-6 text-sm text-muted">
+        <li>รหัสผ่านผู้ดูแลต้องยาวอย่างน้อย 12 ตัว (รหัสเดิมที่สั้นกว่าจะถูกบังคับเปลี่ยนเมื่อเข้าระบบ)</li>
+        <li>การกระทำสำคัญ (กู้คืนข้อมูล ให้/ถอนสิทธิ์ผู้ดูแล ลบถาวร) ต้องยืนยัน 2 คน</li>
+        <li>ผู้ดูแลเข้าระบบนอกเวลาราชการ (รวมเสาร์-อาทิตย์และวันหยุด) → แจ้งเตือนผู้ดูแลอีกคน</li>
+      </ul>
+      <div className="grid gap-3 sm:grid-cols-6">
+        <label className="sm:col-span-2"><span className="label">เวลาราชการ เริ่ม</span><input className="input" placeholder="08:30" value={hours.start} onChange={(e) => setHours({ ...hours, start: e.target.value })} /></label>
+        <label className="sm:col-span-2"><span className="label">ถึง</span><input className="input" placeholder="16:30" value={hours.end} onChange={(e) => setHours({ ...hours, end: e.target.value })} /></label>
+        <label className="sm:col-span-6 flex items-start gap-2">
+          <input type="checkbox" className="mt-1 h-5 w-5" checked={otp} onChange={(e) => setOtp(e.target.checked)} />
+          <span>ผู้ดูแลต้องยืนยัน OTP จากแอปมือถือทุกครั้งที่เข้าระบบ <span className="block text-sm text-muted">ค่าเริ่มต้น: ปิด (ห้าม/ไม่สะดวกนำมือถือเข้าเรือนจำ) — ถ้าเปิด ผู้ดูแลทุกคนต้องมีแอป Google/Microsoft Authenticator และจะถูกพาไปตั้งค่าทันที</span></span>
+        </label>
+      </div>
+      {otp && !adminOtp && <Alert tone="warn">เมื่อบันทึก คุณจะต้องสแกน QR ด้วยแอปในโทรศัพท์ก่อนใช้งานต่อ — ตรวจว่ามีโทรศัพท์อยู่กับตัวแล้ว</Alert>}
+      {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      <button className="btn-primary" disabled={pending} onClick={() => run(() => saveSettings({ "security.adminOtp": otp, "security.officeHours": hours }))}>บันทึก</button>
+    </section>
+  );
+}
+
 export function OrgCodeForm() {
   const [code, setCode] = useState("");
   const [code2, setCode2] = useState("");

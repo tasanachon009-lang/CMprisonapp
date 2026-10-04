@@ -54,7 +54,7 @@ export function NewUserButton() {
   );
 }
 
-export function EditUserPanel({ id, user, roles, isSelf, isAdmin, adminCount }: { id: number; user: UserForm & { status: string }; roles: string[]; isSelf: boolean; isAdmin: boolean; adminCount: number }) {
+export function EditUserPanel({ id, user, roles, isSelf, isAdmin, adminCount, otpEnabled = false }: { id: number; user: UserForm & { status: string }; roles: string[]; isSelf: boolean; isAdmin: boolean; adminCount: number; otpEnabled?: boolean }) {
   const router = useRouter();
   const [f, setF] = useState<UserForm>(user);
   const [r, setR] = useState<Set<string>>(new Set(roles.filter((x) => x !== "admin")));
@@ -89,7 +89,7 @@ export function EditUserPanel({ id, user, roles, isSelf, isAdmin, adminCount }: 
           <p className="font-semibold">ผู้ดูแลระบบ (มีได้ไม่เกิน 2 คน — ปัจจุบัน {adminCount} คน)</p>
           <p className="text-sm text-muted">การให้/ถอนสิทธิ์ผู้ดูแล ต้องให้ผู้ดูแลอีกคนกดยืนยัน</p>
           <input className="input mt-2" placeholder="เหตุผล" value={reason} onChange={(e) => setReason(e.target.value)} />
-          {isAdmin && !isSelf && <button className="btn-ghost mt-2 mr-2" disabled={pending || !reason.trim()} onClick={() => start(async () => done(await resetOtp(id, reason)))}>รีเซ็ต OTP (โทรศัพท์หาย)</button>}
+          {isAdmin && !isSelf && otpEnabled && <button className="btn-ghost mt-2 mr-2" disabled={pending || !reason.trim()} onClick={() => start(async () => done(await resetOtp(id, reason)))}>รีเซ็ต OTP (โทรศัพท์หาย)</button>}
           {isAdmin
             ? <button className="btn-danger mt-2" disabled={pending || !reason.trim() || isSelf} onClick={() => start(async () => done(await requestDualAction("revoke_admin", { userId: id }, reason)))}>ขอถอนสิทธิ์ผู้ดูแล</button>
             : <button className="btn-secondary mt-2" disabled={pending || !reason.trim() || adminCount >= 2} onClick={() => start(async () => done(await requestDualAction("grant_admin", { userId: id }, reason)))}>ขอให้สิทธิ์ผู้ดูแล</button>}

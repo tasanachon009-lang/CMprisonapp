@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { activeAdminIds } from "@/lib/services/admin";
+import { getSetting } from "@/lib/bootstrap";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { todayISO } from "@/lib/thai-date";
 import { Breadcrumb, PageHeader } from "@/components/ui";
@@ -31,6 +32,7 @@ export default async function UserPage({ params }: PageProps<"/admin/users/[id]"
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { href: "/admin/users", label: "ผู้ใช้และสิทธิ์" }, { label: `${u.firstName} ${u.lastName}` }]} />
       <PageHeader title={`${u.prefix ?? ""}${u.firstName} ${u.lastName}`} subtitle={u.status === "suspended" ? `บัญชีถูกระงับ: ${u.suspendedReason ?? ""}` : undefined} />
       <EditUserPanel
+          otpEnabled={getSetting<boolean>(db, "security.adminOtp", false) === true}
         id={u.id}
         user={{ prefix: u.prefix, firstName: u.firstName, lastName: u.lastName, nickname: u.nickname, position: u.position, profession: u.profession, level: u.level as "staff", titleLabel: u.titleLabel, sortOrder: u.sortOrder, status: u.status }}
         roles={roles}

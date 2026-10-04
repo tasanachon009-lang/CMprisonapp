@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 export default async function OtpSetupPage() {
   const auth = await getAuth();
   if (!auth) redirect("/login");
-  if (!auth.isAdmin) redirect("/");
+  // ไม่ได้เปิดใช้ OTP (ค่าเริ่มต้น) → ไม่ต้องตั้ง
+  if (!auth.otpRequired) redirect("/");
   if (auth.totpEnabled && !auth.mfaOk) redirect("/otp");
   return (
     <div className="card w-full max-w-lg">

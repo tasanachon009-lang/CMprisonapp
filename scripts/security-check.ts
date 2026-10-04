@@ -193,9 +193,18 @@ async function main() {
     db.delete(schema.shiftMessages).where(inArray(schema.shiftMessages.id, [general, toCohort])).run();
   }
 
-  // ผู้ดูแลที่ยังไม่ยืนยัน OTP → เข้าไม่ได้
+  // สเปก 2.1: OTP ผู้ดูแลปิดเป็นค่าเริ่มต้น → เข้าได้โดยไม่ผ่าน OTP / เปิดในตั้งค่าแล้ว → ต้องผ่าน OTP
+  const otpBefore = sqlite.prepare("select value from settings where key = 'security.adminOtp'").get() as { value: string } | undefined;
+  const setOtp = (v: string) => sqlite.prepare("insert into settings(key, value) values('security.adminOtp', ?) on conflict(key) do update set value = excluded.value").run(v);
+  setOtp("false");
+  const noOtp = await get("/admin/users", adminNoMfa);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ดูแล (OTP ปิด — ค่าเริ่มต้น) → เข้าได้ไม่ต้องใช้ OTP", allowed(noOtp), `HTTP ${noOtp.status}${noOtp.location ? ` → ${noOtp.location}` : ""}`);
+  const otpPage = await get("/otp/setup", adminNoMfa);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "OTP ปิด → หน้าตั้งค่า OTP พากลับหน้าแรก", isRedirectTo(otpPage, "/") && !otpPage.location.includes("/otp"), `→ ${otpPage.location}`);
+  setOtp("true");
   const noMfa = await get("/admin/users", adminNoMfa);
-  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ดูแลที่ยังไม่ยืนยัน OTP → ถูกพาไปหน้า OTP", isRedirectTo(noMfa, "/otp"), `→ ${noMfa.location}`);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "เปิด OTP ในตั้งค่า → ผู้ดูแลที่ยังไม่ยืนยันถูกพาไปหน้า OTP", isRedirectTo(noMfa, "/otp"), `→ ${noMfa.location}`);
+  setOtp(otpBefore?.value ?? "false");
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

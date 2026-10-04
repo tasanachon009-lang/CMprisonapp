@@ -5,7 +5,8 @@
  *
  * บัญชีทดสอบ (ข้อมูลปลอม ใช้เฉพาะเครื่องพัฒนา):
  *   รหัสหน่วยงาน : demo-rehab-2569
- *   รหัสผ่านทุกคน : rehab-2569   (บัญชี "ทดลอง เข้าครั้งแรก" จะถูกบังคับเปลี่ยนรหัส)
+ *   รหัสผ่าน      : rehab-2569 (ทุกคน) · หัวหน้า/รอง (ผู้ดูแล) = rehab-admin-2569 (ผู้ดูแลต้อง ≥ 12 ตัว)
+ *   (บัญชี "ทดลอง เข้าครั้งแรก" จะถูกบังคับเปลี่ยนรหัส) — รายละเอียด: docs/TEST-ACCOUNTS.md
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -107,6 +108,7 @@ async function main() {
 
   // ── บุคลากร (ชื่อปลอม) ตามโครงสร้างหัวข้อ 2.2-0 ──
   const pw = await hashPassword("rehab-2569");
+  const adminPw = await hashPassword("rehab-admin-2569");
   const staff: Array<{ prefix: string; first: string; last: string; position: string; profession: string; level: string; title?: string; roles: string[]; color: string; mustChange?: boolean; status?: string }> = [
     { prefix: "นาย", first: "อำนวย", last: "รักษ์ธรรม", position: "ผู้บัญชาการเรือนจำกลางเชียงใหม่", profession: "executive", level: "executive", title: "ผู้บัญชาการเรือนจำ", roles: ["executive"], color: "#3D5590" },
     { prefix: "นาง", first: "พรรณี", last: "สุขภาพดี", position: "ผู้อำนวยการสถานพยาบาล", profession: "executive", level: "executive", title: "ผอ.สถานพยาบาล", roles: ["executive"], color: "#3D5590" },
@@ -128,7 +130,7 @@ async function main() {
       .insert(schema.users)
       .values({
         prefix: s.prefix, firstName: s.first, lastName: s.last, position: s.position, profession: s.profession, level: s.level,
-        titleLabel: s.title ?? null, passwordHash: pw, mustChangePassword: !!s.mustChange, color: s.color, sortOrder: i + 1,
+        titleLabel: s.title ?? null, passwordHash: s.roles.includes("admin") ? adminPw : pw, mustChangePassword: !!s.mustChange, color: s.color, sortOrder: i + 1,
         status: s.status ?? "active", suspendedReason: s.status ? "ค่าเริ่มต้น: ผู้ควบคุมไม่มีบัญชี (ตัวอย่างบัญชีที่ระงับไว้)" : null,
       })
       .returning()
@@ -402,7 +404,7 @@ async function main() {
   const count = (t: any) => (db.select().from(t).all() as unknown[]).length;
   console.log(`✅ เสร็จ: บุคคล ${count(schema.persons)} คน, การต้องโทษ ${count(schema.incarcerations)}, ลงทะเบียน ${count(schema.enrollments)}, รุ่น ${count(schema.cohorts)}, เช็คชื่อ ${count(schema.attendance)} แถว`);
   console.log(`   แบบประเมิน ${count(schema.assessmentResults)}, งาน บสต. ${db.select().from(schema.bstTasks).where(eq(schema.bstTasks.system, "bst")).all().length}, งาน รท.101 ${db.select().from(schema.bstTasks).where(eq(schema.bstTasks.system, "rt101")).all().length}, ติดตาม ${count(schema.followups)}`);
-  console.log("   รหัสหน่วยงาน: demo-rehab-2569 / รหัสผ่านทุกคน: rehab-2569 (ข้อมูลปลอม)");
+  console.log("   รหัสหน่วยงาน: demo-rehab-2569 / รหัสผ่าน: rehab-2569 · หัวหน้า/รอง: rehab-admin-2569 (ข้อมูลปลอม — ดู docs/TEST-ACCOUNTS.md)");
   sqlite.close();
 }
 

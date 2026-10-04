@@ -5,7 +5,8 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getSetting } from "@/lib/bootstrap";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { checkPassword } from "@/lib/password-policy";
+import { checkPassword, ADMIN_MIN_LENGTH } from "@/lib/password-policy";
+import { notifyOffHoursLogin } from "@/lib/auth/off-hours";
 import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { rateLimit, failureLockMinutes, recordFailure, clearFailures } from "@/lib/rate-limit";
@@ -72,20 +73,16 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
     return { error: `รหัสผ่านไม่ถูกต้อง (เหลืออีก ${maxFail - fails} ครั้งก่อนล็อก) — ลืมรหัส ให้ติดต่อหัวหน้า/รองหัวหน้าเพื่อรีเซ็ต` };
   }
 
-  db.update(schema.users).set({ failedAttempts: 0, lockedUntil: null, lastLoginAt: new Date() }).where(eq(schema.users.id, u.id)).run();
+  const isAdmin = !!db.select().from(schema.userRoles).where(and(eq(schema.userRoles.userId, u.id), eq(schema.userRoles.role, "admin"))).get();
+  // สเปก 2.1: รหัสผ่านผู้ดูแลต้อง ≥ 12 ตัว — รหัสเดิมที่สั้นกว่า (ก่อนเป็นผู้ดูแล/ก่อนปรับนโยบาย) ต้องเปลี่ยนทันที
+  const mustChange = u.mustChangePassword || (isAdmin && password.length < ADMIN_MIN_LENGTH);
+  db.update(schema.users).set({ failedAttempts: 0, lockedUntil: null, lastLoginAt: new Date(), mustChangePassword: mustChange }).where(eq(schema.users.id, u.id)).run();
   await createSession(u.id, deviceId);
-  writeAudit(db, { userId: u.id, action: "login.success", ip });
+  writeAudit(db, { userId: u.id, action: "login.success", ip, note: mustChange && !u.mustChangePassword ? `รหัสผ่านผู้ดูแลสั้นกว่า ${ADMIN_MIN_LENGTH} ตัว — บังคับเปลี่ยน` : null });
+  notifyOffHoursLogin(db, { id: u.id, firstName: u.firstName, lastName: u.lastName }, isAdmin);
 
-  // เข้านอกเวลาราชการ → แจ้งผู้ดูแล
-  const t = nowInTZ();
-  const office = getSetting(db, "security.officeHours", { start: "07:00", end: "18:00" });
-  const hm = `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
-  if (t.weekday === 0 || t.weekday === 6 || hm < office.start || hm > office.end) {
-    notify(db, { role: "admin", severity: "info", kind: "off_hours_login", message: `${u.firstName} ${u.lastName} เข้าระบบนอกเวลาราชการ (${hm} น.)`, link: "/admin/audit" });
-  }
-
-  const isAdmin = db.select().from(schema.userRoles).where(and(eq(schema.userRoles.userId, u.id), eq(schema.userRoles.role, "admin"))).get();
-  redirect(u.mustChangePassword ? "/change-password" : isAdmin ? (u.totpEnabled ? "/otp" : "/otp/setup") : "/");
+  const otpRequired = !!isAdmin && getSetting<boolean>(db, "security.adminOtp", false) === true;
+  redirect(mustChange ? "/change-password" : otpRequired ? (u.totpEnabled ? "/otp" : "/otp/setup") : "/");
 }
 
 /** สลับผู้ใช้ / ออกจากระบบ — กลับหน้าเลือกชื่อ ไม่ต้องใส่รหัสหน่วยงานใหม่ */
@@ -107,7 +104,7 @@ export async function changePassword(_: FormState, formData: FormData): Promise<
   if (!(await verifyPassword(u.passwordHash, current))) return { error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" };
   if (next !== confirm) return { error: "รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน กรุณาพิมพ์ให้เหมือนกัน" };
   if (next === current) return { error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม" };
-  const problem = checkPassword(next, { firstName: u.firstName, lastName: u.lastName });
+  const problem = checkPassword(next, { firstName: u.firstName, lastName: u.lastName, isAdmin: auth.isAdmin });
   if (problem) return { error: problem };
   db.update(schema.users)
     .set({ passwordHash: await hashPassword(next), mustChangePassword: false, passwordChangedAt: new Date(), updatedAt: new Date(), updatedBy: u.id })
@@ -157,6 +154,7 @@ function otpCounterKey(userId: number) {
 export async function startOtpSetup(): Promise<{ ok: boolean; secret?: string; qrSvg?: string; error?: string }> {
   const auth = await getAuth();
   if (!auth || !auth.isAdmin) return { ok: false, error: "เฉพาะผู้ดูแลระบบ" };
+  if (!auth.otpRequired) return { ok: false, error: "ระบบไม่ได้เปิดใช้ OTP (เปิดได้ที่ ตั้งค่า → ตั้งค่าระบบ)" };
   if (auth.totpEnabled && !auth.mfaOk) return { ok: false, error: "บัญชีนี้ตั้ง OTP แล้ว — ถ้าโทรศัพท์หาย ให้ผู้ดูแลอีกคนขอรีเซ็ต OTP (ยืนยัน 2 คน)" };
   const { generateSecret, otpauthUrl } = await import("@/lib/auth/totp");
   const QR = await import("qrcode");
@@ -171,6 +169,7 @@ export async function verifyOtp(_: FormState, formData: FormData): Promise<FormS
   const auth = await getAuth();
   if (!auth) redirect("/login");
   if (auth.locked) redirect("/lock");
+  if (!auth.otpRequired) redirect("/");
   const code = String(formData.get("code") ?? "");
   const ip = await clientIp();
   if (!rateLimit(`otp:${auth.user.id}`, 6, 5 * 60000)) return { error: "ลองผิดหลายครั้ง กรุณารอ 5 นาที" };

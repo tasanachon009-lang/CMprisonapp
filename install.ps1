@@ -123,7 +123,7 @@ if (-not $dbExists) {
   $env:SETUP_ADMIN_PREFIX = Ask "คำนำหน้า" "นาง"
   $env:SETUP_ADMIN_FIRST = Ask "ชื่อ" ""
   $env:SETUP_ADMIN_LAST = Ask "นามสกุล" ""
-  do { $pw = AskSecret "ตั้งรหัสผ่าน (อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข)"; $pw2 = AskSecret "พิมพ์รหัสผ่านอีกครั้ง" } while ($pw -ne $pw2)
+  do { $pw = AskSecret "ตั้งรหัสผ่านผู้ดูแล (อย่างน้อย 12 ตัว มีตัวอักษรและตัวเลข)"; $pw2 = AskSecret "พิมพ์รหัสผ่านอีกครั้ง" } while ($pw -ne $pw2 -or $pw.Length -lt 12)
   $env:SETUP_ADMIN_PASSWORD = $pw
 }
 $env:SETUP_SECRETS_FILE = $SecretsFile

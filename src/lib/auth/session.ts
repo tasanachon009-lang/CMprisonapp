@@ -109,7 +109,9 @@ export type Auth = {
   idleMinutes: number;
   can: (p: Permission) => boolean;
   isAdmin: boolean;
-  /** ผู้ดูแล: ยืนยัน OTP แล้วในเซสชันนี้ */
+  /** ผู้ดูแลต้องใช้ OTP หรือไม่ (ตั้งค่า security.adminOtp — ค่าเริ่มต้นปิด) */
+  otpRequired: boolean;
+  /** ผ่านเงื่อนไข OTP แล้ว (ไม่ต้องใช้ OTP = ผ่านเสมอ) */
   mfaOk: boolean;
   totpEnabled: boolean;
 };
@@ -142,6 +144,7 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
   const today = todayISO();
   const perms = resolvePermissions(roles, grants, today);
   const scoped = scopedPermissions(grants, today);
+  const otpRequired = roles.includes("admin") && getSetting<boolean>(db, "security.adminOtp", false) === true;
   return {
     sessionId: id,
     user: {
@@ -157,7 +160,8 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
     idleMinutes,
     can: (p) => perms.has(p),
     isAdmin: roles.includes("admin"),
-    mfaOk: !!s.mfaVerifiedAt,
+    otpRequired,
+    mfaOk: !otpRequired || !!s.mfaVerifiedAt,
     totpEnabled: u.totpEnabled,
   };
 });
@@ -179,7 +183,7 @@ export async function requirePage(...need: Permission[]): Promise<Auth> {
   }
   if (auth.user.mustChangePassword) redirect("/change-password");
   if (auth.locked) redirect("/lock");
-  if (auth.isAdmin && !auth.mfaOk) redirect(auth.totpEnabled ? "/otp" : "/otp/setup");
+  if (!auth.mfaOk) redirect(auth.totpEnabled ? "/otp" : "/otp/setup");
   // จดหมายเวรสีแดงที่ยังไม่กดรับทราบ → เข้าเมนูอื่นไม่ได้ (สเปก 20)
   if (auth.can("shift.use")) {
     const path = (await headers()).get("x-pathname") ?? "";
@@ -202,7 +206,7 @@ export async function requireAction(...need: Permission[]): Promise<Auth> {
   if (!auth) throw new AuthError("หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่");
   if (auth.locked) throw new AuthError("หน้าจอถูกล็อก กรุณาใส่รหัสผ่านเพื่อปลดล็อกก่อน");
   if (auth.user.mustChangePassword) throw new AuthError("กรุณาเปลี่ยนรหัสผ่านก่อนใช้งาน");
-  if (auth.isAdmin && !auth.mfaOk) throw new AuthError("ผู้ดูแลระบบต้องยืนยันรหัส OTP จากแอปมือถือก่อน");
+  if (!auth.mfaOk) throw new AuthError("ผู้ดูแลระบบต้องยืนยันรหัส OTP จากแอปมือถือก่อน");
   if (need.length && !need.some((p) => auth.can(p))) throw new AuthError("คุณไม่มีสิทธิ์ทำรายการนี้");
   touchSession(auth.sessionId);
   return auth;

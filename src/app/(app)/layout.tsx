@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const u = auth.user;
   const path = (await headers()).get("x-pathname") ?? "";
   const names = userNameMap(db);
-  const pendingMsgs = auth.can("shift.use") && !path.startsWith("/inbox") && (!auth.isAdmin || auth.mfaOk)
+  const pendingMsgs = auth.can("shift.use") && !path.startsWith("/inbox") && auth.mfaOk
     ? unacked(db, shiftViewer(db, auth)).map((m) => ({ id: m.id, level: m.level, body: m.body, author: names.get(m.authorId) ?? "", when: formatThaiDateTime(m.createdAt), healthRelated: m.healthRelated }))
     : [];
 

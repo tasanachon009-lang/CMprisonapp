@@ -189,6 +189,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "security.maxFailedAttempts": 5,
   "security.lockoutMinutes": 15,
   "security.officeHours": { start: "07:00", end: "18:00" },
+  // สเปก 2.1: ผู้ดูแลไม่ใช้ OTP เป็นค่าเริ่มต้น (ห้ามนำมือถือเข้าเรือนจำ) — เปิดได้ที่ตั้งค่า
+  "security.adminOtp": false,
   /** ติดตามหลังบำบัด: เดือนที่ (ตั้งค่าได้) */
   "followup.months": [1, 3, 6, 12],
   /** กำหนดลง บสต./รท.101 (วันนับจากวันลงทะเบียน/วันจบ) */

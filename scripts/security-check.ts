@@ -34,10 +34,10 @@ function userWithRole(role: string, excludeRoles: string[] = []) {
   return id;
 }
 const tokens: string[] = [];
-function sessionFor(userId: number, locked = false) {
+function sessionFor(userId: number, locked = false, mfa = true) {
   const t = randomBytes(24).toString("base64url");
   const now = new Date();
-  db.insert(schema.sessions).values({ id: sha(t), userId, createdAt: now, lastActiveAt: now, expiresAt: new Date(Date.now() + 3600000), lockedAt: locked ? now : null }).run();
+  db.insert(schema.sessions).values({ id: sha(t), userId, createdAt: now, lastActiveAt: now, expiresAt: new Date(Date.now() + 3600000), lockedAt: locked ? now : null, mfaVerifiedAt: mfa ? now : null }).run();
   tokens.push(sha(t));
   return `rh_dev=${deviceToken}; rh_sess=${t}`;
 }
@@ -52,6 +52,10 @@ const U = {
 };
 const C = Object.fromEntries(Object.entries(U).map(([k, v]) => [k, sessionFor(v)])) as Record<keyof typeof U, string>;
 const lockedCookie = sessionFor(U.rehab, true);
+const adminNoMfa = sessionFor(U.admin, false, false);
+// ไม่ให้ป๊อปอัปจดหมายเวรรบกวนการตรวจ: รับทราบข้อความทั้งหมดแทนผู้ใช้ทดสอบ (ข้อมูลปลอม)
+for (const m of db.select().from(schema.shiftMessages).all()) for (const uid of Object.values(U)) db.insert(schema.shiftMessageAcks).values({ messageId: m.id, userId: uid, ackAt: new Date() }).onConflictDoNothing().run();
+const enrollment = db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, db.select().from(schema.cohorts).where(eq(schema.cohorts.status, "active")).get()!.id)).get()!;
 
 // ข้อมูลอ้างอิงในฐานปลอม
 const cohort = db.select().from(schema.cohorts).where(eq(schema.cohorts.status, "active")).get()!;
@@ -110,6 +114,17 @@ async function main() {
     [`/sessions/${notMine.id}`, { rehab: true, assistant: false, warden: false }],
     [`/print/session-sheet/${notMine.id}`, { rehab: true, assistant: false, warden: false }],
     ["/roster", { warden: true, rehab: true, finance: false, assistant: false }],
+    // ขั้นที่ 2
+    [`/enrollments/${enrollment.id}`, { rehab: true, executive: true, assistant: false, warden: false }],
+    [`/enrollments/${enrollment.id}/assess/DEP?round=pre`, { rehab: true, admin: true, executive: false, finance: false, assistant: false }],
+    [`/enrollments/${enrollment.id}/assess/KNOW?round=pre`, { rehab: true, executive: false, assistant: false }],
+    [`/cohorts/${cohort.id}/health`, { rehab: true, executive: true, finance: false, assistant: false }],
+    ["/bst", { rehab: true, executive: true, finance: false, assistant: false, warden: false }],
+    ["/inbox", { rehab: true, assistant: true, finance: true, warden: false }],
+    ["/admin/forms", { admin: true, rehab: false, executive: false }],
+    ["/incomplete", { rehab: true, assistant: false, warden: false }],
+    [`/print/person/${person.id}`, { rehab: true, executive: false, assistant: false }],
+    ["/print/emergency", { rehab: true, executive: false, assistant: false }],
   ];
   for (const [p, exp] of matrix) {
     for (const [role, should] of Object.entries(exp)) {
@@ -123,6 +138,15 @@ async function main() {
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้คุม (ดูอย่างเดียว) เปิดรูปได้แต่ไม่เห็นหน้าบุคคล", photoWarden.status === 200 || photoWarden.status === 404, `รูป HTTP ${photoWarden.status}`);
   const tmpl = await get("/api/import/template", C.finance);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → ดาวน์โหลดแม่แบบนำเข้า", tmpl.status === 403, `HTTP ${tmpl.status}`);
+
+  // ผู้ดูแลที่ยังไม่ยืนยัน OTP → เข้าไม่ได้
+  const noMfa = await get("/admin/users", adminNoMfa);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ดูแลที่ยังไม่ยืนยัน OTP → ถูกพาไปหน้า OTP", isRedirectTo(noMfa, "/otp"), `→ ${noMfa.location}`);
+  // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
+  const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);
+  const exp = await get(`/api/export/cohort/${cohort.id}`, C.executive);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → ส่งออก Excel ที่มีชื่อ", exp.status === 403, `HTTP ${exp.status}`);
 
   // 3) CSRF
   const csrf = await fetch(`${BASE}/api/photos/${inc.id}`, { method: "POST", headers: { cookie: C.admin }, body: new FormData() });

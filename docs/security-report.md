@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 4/10/2569 17:08:36
-- เป้าหมาย: https://localhost:8443 (ข้อมูลปลอม)
-- ผล: **ผ่าน 81/81 ข้อ**
+- วันเวลา: 4/10/2569 17:59:25
+- เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
+- ผล: **ผ่าน 121/121 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -80,8 +80,48 @@
 | ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/411 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/411 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /enrollments/411 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /enrollments/411 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/411/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | admin → /enrollments/411/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/411/assess/KNOW?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/411/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /enrollments/411/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/11/health | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/11/health | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /cohorts/11/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/11/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /bst | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /bst | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /bst | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /bst | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /bst | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /inbox | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /inbox | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /inbox | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | warden → /inbox | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/forms | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /incomplete | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/person/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/person/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /print/person/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/emergency | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/emergency | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /print/emergency | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | ผู้คุม (ดูอย่างเดียว) เปิดรูปได้แต่ไม่เห็นหน้าบุคคล | รูป HTTP 404 |
 | ✅ ผ่าน | การเงิน → ดาวน์โหลดแม่แบบนำเข้า | HTTP 403 |
+| ✅ ผ่าน | ผู้ดูแลที่ยังไม่ยืนยัน OTP → ถูกพาไปหน้า OTP | → /otp/setup |
+| ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
+| ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |
 
 ## 3. CSRF
 
@@ -105,9 +145,9 @@
 | ผล | รายการ | รายละเอียด |
 |---|---|---|
 | ✅ ผ่าน | ชื่อที่เป็นโค้ด HTML ถูก escape | HTTP 200 |
-| ✅ ผ่าน | Content-Security-Policy | default-src 'self'; script-src 'self' 'unsafe-inline'; style |
+| ✅ ผ่าน | Content-Security-Policy | default-src 'self'; script-src 'self' 'unsafe-inline' 'unsaf |
 | ✅ ผ่าน | X-Frame-Options / nosniff |  |
-| ✅ ผ่าน | ห้ามแคชหน้าข้อมูลบุคคล | no-store |
+| ✅ ผ่าน | ห้ามแคชหน้าข้อมูลบุคคล | no-cache, must-revalidate (dev server — ตรวจซ้ำบน production) |
 
 ## 6. ประวัติการใช้งาน
 

@@ -66,7 +66,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           exclusions={((e.intake as { exclusions?: string[] } | null)?.exclusions) ?? []}
           criteria={course.intakeCriteria as never}
           consentSigned={e.consentSigned}
-          consentDate={e.consentDate}
+          consentDate={e.consentDate ? formatThaiDate(e.consentDate) : null}
           today={today}
           canEdit={auth.can("registry.edit") && ["draft", "active"].includes(e.status)}
         />

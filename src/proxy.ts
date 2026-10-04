@@ -12,7 +12,7 @@ export function proxy(req: NextRequest) {
   const hasDevice = req.cookies.has("rh_dev");
   const hasSession = req.cookies.has("rh_sess");
   if (path.startsWith("/api/")) {
-    if (path.startsWith("/api/files/user/")) return NextResponse.next(); // ตรวจเครื่องในตัว route
+    if (path.startsWith("/api/files/user/") || path === "/api/health") return NextResponse.next(); // ตรวจในตัว route / ไม่มีข้อมูล
     if (!hasSession) return NextResponse.json({ error: "ต้องเข้าสู่ระบบ" }, { status: 401 });
     return NextResponse.next();
   }

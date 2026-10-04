@@ -1,7 +1,7 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 4/10/2569 17:04:17
-- เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
+- วันเวลา: 4/10/2569 17:08:36
+- เป้าหมาย: https://localhost:8443 (ข้อมูลปลอม)
 - ผล: **ผ่าน 81/81 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
@@ -105,9 +105,9 @@
 | ผล | รายการ | รายละเอียด |
 |---|---|---|
 | ✅ ผ่าน | ชื่อที่เป็นโค้ด HTML ถูก escape | HTTP 200 |
-| ✅ ผ่าน | Content-Security-Policy | default-src 'self'; script-src 'self' 'unsafe-inline' 'unsaf |
+| ✅ ผ่าน | Content-Security-Policy | default-src 'self'; script-src 'self' 'unsafe-inline'; style |
 | ✅ ผ่าน | X-Frame-Options / nosniff |  |
-| ✅ ผ่าน | ห้ามแคชหน้าข้อมูลบุคคล | no-cache, must-revalidate (dev server — ตรวจซ้ำบน production) |
+| ✅ ผ่าน | ห้ามแคชหน้าข้อมูลบุคคล | no-store |
 
 ## 6. ประวัติการใช้งาน
 

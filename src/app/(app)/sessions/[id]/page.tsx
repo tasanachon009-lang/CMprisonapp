@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { getCohort } from "@/lib/queries/cohorts";
 import { sessionRoster, attendanceVersion } from "@/lib/services/attendance";
 import { cohortLabel } from "@/lib/services/cohorts";
+import { activeStaff, STAFF_ROLE_LABEL } from "@/lib/services/schedule";
 import { userNameMap } from "@/lib/queries/names";
 import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-date";
 import { Breadcrumb, Alert } from "@/components/ui";
@@ -31,6 +32,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
   const { cohort, course } = getCohort(db, session.cohortId)!;
   const names = userNameMap(db);
   const version = attendanceVersion(rows.map((r) => r.record));
+  const staff = activeStaff(db, [session.id]).sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0));
   const canNavigateCohort = auth.can("course.view");
 
   return (
@@ -46,6 +48,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
           <p className="text-muted">{course.shortName} {cohortLabel(cohort)} · วันที่ {session.dayNo ?? "-"} ของหลักสูตร</p>
           <h1 className="text-3xl">{session.title}</h1>
           <p className="text-muted">{formatThaiDate(session.date, "full")} · {session.startTime}–{session.endTime} น. ({session.hours} ชม.){session.location ? ` · ${session.location}` : ""}</p>
+          <p className="mt-1">วิทยากร: {staff.length ? staff.map((x) => `${x.userId ? names.get(x.userId) : `${x.externalName} (ภายนอก)`}${x.role ? ` – ${STAFF_ROLE_LABEL[x.role]}` : ""}`).join(", ") : <span className="text-muted">ยังไม่ระบุ</span>}</p>
         </div>
         <Link href={`/print/session-sheet/${session.id}`} target="_blank" className="btn-ghost no-print"><Printer size={20} aria-hidden /> พิมพ์ใบเช็คชื่อ</Link>
       </div>

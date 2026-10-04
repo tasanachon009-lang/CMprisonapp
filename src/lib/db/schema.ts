@@ -477,12 +477,14 @@ export const cohortSessions = sqliteTable(
     attendanceCheckedBy: integer("attendance_checked_by"),
     /** ล็อกหลังอนุมัติค่าตอบแทน (ขั้น 3) */
     lockedAt: ts("locked_at"),
+    /** จำนวนวิทยากรสูงสุดของคาบ (สเปก 11.4): null = ค่าเริ่มต้นจากตั้งค่า, 0 = ทั้งทีม (ไม่จำกัด) — ขั้น 3 กำหนดจากคลังหัวข้อ */
+    maxStaff: integer("max_staff"),
     ...tracking(),
   },
   (t) => [index("cohort_sessions_idx").on(t.cohortId, t.date), index("cohort_sessions_date_idx").on(t.date)],
 );
 
-/** ผู้รับผิดชอบคาบ (ใช้กับหน้าแรก "คาบของฉัน" — ค่าตอบแทนเพิ่มในขั้น 3) */
+/** วิทยากร/ผู้รับผิดชอบคาบ — 1 คาบมีได้หลายคน (สเปก 11.4) · ค่าตอบแทน/ส่วนแบ่งเพิ่มในขั้น 3 */
 export const sessionStaff = sqliteTable(
   "session_staff",
   {
@@ -491,9 +493,17 @@ export const sessionStaff = sqliteTable(
     userId: integer("user_id").references(() => users.id),
     /** ชื่อวิทยากรภายนอก (ขั้น 3 จะผูกทะเบียนวิทยากร) */
     externalName: text("external_name"),
+    /** lead = วิทยากรหลัก | co = วิทยากรร่วม | null = ไม่ระบุ */
+    role: text("role"),
     ...tracking(),
   },
-  (t) => [index("session_staff_session_idx").on(t.sessionId), index("session_staff_user_idx").on(t.userId)],
+  (t) => [
+    index("session_staff_session_idx").on(t.sessionId),
+    index("session_staff_user_idx").on(t.userId),
+    // คนเดียวกันอยู่ในคาบเดียวกันซ้ำไม่ได้
+    uniqueIndex("session_staff_user_unique").on(t.sessionId, t.userId).where(sql`deleted_at IS NULL AND user_id IS NOT NULL`),
+    uniqueIndex("session_staff_external_unique").on(t.sessionId, t.externalName).where(sql`deleted_at IS NULL AND external_name IS NOT NULL`),
+  ],
 );
 
 // ───────────────────────── การลงทะเบียน การเช็คชื่อ ─────────────────────────

@@ -10,6 +10,7 @@ import { Stat, Alert, EmptyState } from "@/components/ui";
 import { SessionCardView } from "@/components/session-card";
 import { cohortLabel } from "@/lib/services/cohorts";
 
+import { staffNamesBySession } from "@/lib/queries/home";
 export const dynamic = "force-dynamic";
 
 export default async function CohortOverview({ params }: PageProps<"/cohorts/[id]">) {
@@ -24,6 +25,7 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
   const trainingDates = Array.from(new Set(sessions.map((s) => s.date)));
   const dayIndex = trainingDates.indexOf(today);
   const todays = sessions.filter((s) => s.date === today);
+  const todayStaff = staffNamesBySession(db, todays.map((s) => s.id));
   const unchecked = sessions.filter((s) => s.takesAttendance && s.date <= today && !s.attendanceCheckedAt);
   const counts = enrollmentCounts(db, cohort.id);
   const summary = cohortAttendanceSummary(db, cohort.id, course.passAttendancePct, course.totalHours);
@@ -65,7 +67,7 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
           <h2 className="text-xl">กิจกรรมวันนี้</h2>
           <div className="mt-3 space-y-2">
             {todays.length ? todays.map((s) => (
-              <SessionCardView key={s.id} today={today} s={{ id: s.id, cohortId: cohort.id, cohortLabel: cohortLabel(cohort), courseName: course.shortName, date: s.date, startTime: s.startTime, endTime: s.endTime, title: s.title, location: s.location, checked: !!s.attendanceCheckedAt, takesAttendance: s.takesAttendance }} />
+              <SessionCardView key={s.id} today={today} s={{ id: s.id, cohortId: cohort.id, cohortLabel: cohortLabel(cohort), courseName: course.shortName, date: s.date, startTime: s.startTime, endTime: s.endTime, title: s.title, location: s.location, checked: !!s.attendanceCheckedAt, takesAttendance: s.takesAttendance, staff: todayStaff.get(s.id) ?? [] }} />
             )) : <EmptyState title="วันนี้ไม่มีกิจกรรมของรุ่นนี้" />}
           </div>
         </section>

@@ -205,6 +205,10 @@ async function main() {
   const noMfa = await get("/admin/users", adminNoMfa);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "เปิด OTP ในตั้งค่า → ผู้ดูแลที่ยังไม่ยืนยันถูกพาไปหน้า OTP", isRedirectTo(noMfa, "/otp"), `→ ${noMfa.location}`);
   setOtp(otpBefore?.value ?? "false");
+  // สเปก 11.4: จัดวิทยากรได้เฉพาะผู้มีสิทธิ์ schedule.edit (ผู้บริหาร/การเงิน ดูได้อย่างเดียว)
+  const schedRehab = await get(`/cohorts/${cohort.id}/schedule`, C.rehab);
+  const schedExec = await get(`/cohorts/${cohort.id}/schedule`, C.executive);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ตารางกิจกรรม: เจ้าหน้าที่หลักมีปุ่มเพิ่มวิทยากร / ผู้บริหารดูอย่างเดียว", schedRehab.text.includes("เพิ่ม/เอาออก") && allowed(schedExec) && schedExec.text.includes("ดูอย่างเดียว") && !schedExec.text.includes("เพิ่ม/เอาออก"), `rehab HTTP ${schedRehab.status} · exec HTTP ${schedExec.status}`);
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

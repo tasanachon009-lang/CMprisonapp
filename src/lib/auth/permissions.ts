@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   "attendance.edit": "เช็คชื่อทุกคาบ",
   "attendance.edit_own": "เช็คชื่อคาบที่ตนรับผิดชอบ",
   "schedule.view": "ดูตารางกิจกรรม",
+  "schedule.edit": "จัดวิทยากร/ผู้รับผิดชอบคาบ",
   "health.view": "ดูข้อมูลสุขภาพ",
   "health.edit": "บันทึกข้อมูลสุขภาพกาย/จิต",
   "health.mental_edit": "บันทึกข้อมูลสุขภาพจิต",
@@ -63,7 +64,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   admin: ALL.filter((p) => p !== "roster.view" && p !== "attendance.edit_own"),
   rehab: [
     "course.view", "registry.view", "registry.edit", "registry.import", "national_id.view_full",
-    "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "export.names",
+    "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "schedule.edit", "export.names",
     "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use",
   ],
   medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],

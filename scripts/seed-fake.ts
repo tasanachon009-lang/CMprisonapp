@@ -284,6 +284,18 @@ async function main() {
   for (const s of future) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).run();
   // กลุ่ม B: นักฝึกอบรมสอนบางคาบของรุ่นนี้ · นักสังคมสงเคราะห์ได้รับมอบหมายญาติ/ติดตามเฉพาะรุ่นนี้ (สเปก 2.2-0)
   for (const s of future.slice(0, 4)) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: userIds[8] }).run();
+  // วิทยากรหลายคนต่อคาบ (สเปก 11.4): บางคาบมีวิทยากรร่วม 2 คน และมีวิทยากรภายนอก
+  const twoStaff = future.slice(4).filter((s) => s.hours >= 2).slice(0, 6); // ไม่ซ้อนกับคาบที่นักฝึกอบรมสอนอยู่แล้ว
+  for (const s of twoStaff) {
+    const first = db.select().from(schema.sessionStaff).where(eq(schema.sessionStaff.sessionId, s.id)).get();
+    if (first?.userId) db.update(schema.sessionStaff).set({ role: "lead" }).where(eq(schema.sessionStaff.id, first.id)).run();
+    const second = rehabStaff.find((u) => u !== first?.userId)!;
+    db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: second, role: "co" }).onConflictDoNothing().run();
+  }
+  if (twoStaff[0]) {
+    db.update(schema.cohortSessions).set({ maxStaff: 3 }).where(eq(schema.cohortSessions.id, twoStaff[0].id)).run();
+    db.insert(schema.sessionStaff).values({ sessionId: twoStaff[0].id, externalName: "อ.สมศรี ใจดี", role: "co" }).run();
+  }
   for (const permission of ["contacts.edit", "bst.view", "bst.edit"]) {
     db.insert(schema.permissionGrants).values({ userId: userIds[9], permission, allow: true, scope: `cohort:${cur.id}`, reason: "มอบหมายงานญาติ/ติดตามรุ่นนี้ (ตัวอย่าง)", createdBy: headId }).run();
   }

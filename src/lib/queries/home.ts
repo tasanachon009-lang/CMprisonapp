@@ -15,6 +15,8 @@ export type SessionCard = {
   location: string | null;
   checked: boolean;
   takesAttendance: boolean;
+  /** วิทยากร/ผู้รับผิดชอบทุกคนในคาบ (สเปก 11.4) */
+  staff: string[];
 };
 
 function sessionsQuery(db: DB) {
@@ -40,9 +42,30 @@ function sessionsQuery(db: DB) {
 
 const toCard = (r: Awaited<ReturnType<ReturnType<typeof sessionsQuery>["all"]>>[number]): SessionCard => ({
   id: r.id, cohortId: r.cohortId, cohortLabel: cohortLabel(r), courseName: r.courseName, date: r.date,
-  startTime: r.startTime, endTime: r.endTime, title: r.title, location: r.location, checked: !!r.checkedAt, takesAttendance: r.takesAttendance,
+  startTime: r.startTime, endTime: r.endTime, title: r.title, location: r.location, checked: !!r.checkedAt, takesAttendance: r.takesAttendance, staff: [],
 });
 
+/** รายชื่อวิทยากรทุกคนต่อคาบ (วิทยากรหลักขึ้นก่อน) */
+export function staffNamesBySession(db: DB, sessionIds: number[]): Map<number, string[]> {
+  const out = new Map<number, string[]>();
+  if (!sessionIds.length) return out;
+  const rows = db
+    .select({ sessionId: schema.sessionStaff.sessionId, role: schema.sessionStaff.role, ext: schema.sessionStaff.externalName, f: schema.users.firstName, l: schema.users.lastName })
+    .from(schema.sessionStaff)
+    .leftJoin(schema.users, eq(schema.users.id, schema.sessionStaff.userId))
+    .where(and(inArray(schema.sessionStaff.sessionId, sessionIds), isNull(schema.sessionStaff.deletedAt)))
+    .orderBy(asc(schema.sessionStaff.id))
+    .all()
+    .sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0));
+  for (const r of rows) out.set(r.sessionId, [...(out.get(r.sessionId) ?? []), r.f ? `${r.f} ${r.l}` : `${r.ext} (ภายนอก)`]);
+  return out;
+}
+
+/** เติมรายชื่อวิทยากรทุกคนให้การ์ดคาบ */
+function withStaff(db: DB, cards: SessionCard[]): SessionCard[] {
+  const m = staffNamesBySession(db, cards.map((c) => c.id));
+  return cards.map((c) => ({ ...c, staff: m.get(c.id) ?? [] }));
+}
 /** คาบที่ยังไม่เช็คชื่อ (วันนี้และย้อนหลัง 14 วัน) ของรุ่นที่ยังไม่ปิด */
 export function uncheckedSessions(db: DB, today: string, cohortIds?: number[]) {
   const from = new Date(today + "T00:00:00Z");
@@ -56,18 +79,18 @@ export function uncheckedSessions(db: DB, today: string, cohortIds?: number[]) {
     sql`${schema.cohorts.status} != 'closed'`,
   ];
   if (cohortIds) conds.push(inArray(schema.cohortSessions.cohortId, cohortIds.length ? cohortIds : [-1]));
-  return sessionsQuery(db).where(and(...conds)).orderBy(asc(schema.cohortSessions.date), asc(schema.cohortSessions.startTime)).all().map(toCard);
+  return withStaff(db, sessionsQuery(db).where(and(...conds)).orderBy(asc(schema.cohortSessions.date), asc(schema.cohortSessions.startTime)).all().map(toCard));
 }
 
 /** คาบที่ฉันรับผิดชอบ ในช่วงวันที่ */
 export function mySessions(db: DB, userId: number, from: string, to: string) {
   const ids = db.select({ id: schema.sessionStaff.sessionId }).from(schema.sessionStaff).where(and(eq(schema.sessionStaff.userId, userId), isNull(schema.sessionStaff.deletedAt))).all().map((r) => r.id);
   if (!ids.length) return [];
-  return sessionsQuery(db)
+  return withStaff(db, sessionsQuery(db)
     .where(and(inArray(schema.cohortSessions.id, ids), gte(schema.cohortSessions.date, from), lte(schema.cohortSessions.date, to), isNull(schema.cohortSessions.deletedAt)))
     .orderBy(asc(schema.cohortSessions.date), asc(schema.cohortSessions.startTime))
     .all()
-    .map(toCard);
+    .map(toCard));
 }
 
 /** รุ่นที่ผู้ใช้กลุ่ม B มองเห็น: รุ่นที่ตนสอน + รุ่นที่ได้รับมอบหมาย */

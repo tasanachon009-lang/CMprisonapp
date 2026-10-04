@@ -11,6 +11,7 @@ import { getSetting } from "@/lib/bootstrap";
 import { isValidISODate, formatThaiDate } from "@/lib/thai-date";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { writeAudit } from "@/lib/audit";
+import { closeCohort } from "@/lib/services/close-cohort";
 
 /** ดูตัวอย่างวันอบรม (คำนวณวันสิ้นสุดข้ามวันหยุด) ก่อนสร้างรุ่น */
 export async function previewCohortDates(courseId: number, startDate: string): Promise<ActionResult<{ days: string[]; endLabel: string }>> {
@@ -56,6 +57,17 @@ export async function confirmAdmissionsAction(cohortId: number, enrollmentIds: n
     const r = confirmAdmissions(db, enrollmentIds, { userId: auth.user.id, canOverride: auth.can("registry.override_duplicate"), consentRequired: getSetting(db, "pdpa.consentRequired", true), ip: await clientIp() });
     revalidatePath(`/cohorts/${cohortId}`);
     return { ok: true, data: { done: r.done.length, skipped: r.skipped } };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+export async function closeCohortAction(cohortId: number, forceReason?: string): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("course.manage");
+    closeCohort(getDb(), cohortId, { userId: auth.user.id, isAdmin: auth.isAdmin, ip: await clientIp() }, forceReason ? { reason: forceReason } : undefined);
+    revalidatePath(`/cohorts/${cohortId}`);
+    return { ok: true };
   } catch (e) {
     return toError(e);
   }

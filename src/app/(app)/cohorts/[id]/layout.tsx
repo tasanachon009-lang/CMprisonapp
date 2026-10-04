@@ -9,7 +9,7 @@ import { CohortTabs } from "./tabs";
 import { RememberCohort } from "@/components/remember-cohort";
 
 export default async function CohortLayout({ children, params }: LayoutProps<"/cohorts/[id]">) {
-  await requirePage("course.view");
+  const auth = await requirePage("course.view");
   const { id } = await params;
   const row = getCohort(getDb(), Number(id));
   if (!row) notFound();
@@ -31,7 +31,15 @@ export default async function CohortLayout({ children, params }: LayoutProps<"/c
           <p className="text-muted">{formatThaiDate(cohort.startDate)} – {formatThaiDate(cohort.endDate)} · {COHORT_STATUS_LABEL[st]}</p>
         </div>
       </div>
-      <CohortTabs id={cohort.id} isFast={course.code === "FAST"} />
+      <CohortTabs
+        id={cohort.id}
+        isFast={course.code === "FAST"}
+        show={{
+          assessments: auth.can("assessment.view") || auth.can("health.view") || auth.can("assessment.summary"),
+          health: auth.can("health.view") || auth.can("health.summary"),
+          reports: auth.can("reports.view") || auth.can("dashboard.view"),
+        }}
+      />
       <RememberCohort id={cohort.id} label={`${course.shortName} ${label}`} />
       <div className="mt-6">{children}</div>
     </div>

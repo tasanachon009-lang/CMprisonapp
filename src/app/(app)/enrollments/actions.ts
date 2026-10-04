@@ -24,6 +24,31 @@ export async function saveAssessmentAction(input: { enrollmentId: number; formId
   }
 }
 
+/** โหมดกรอกเร็ว: บันทึกหลายคนพร้อมกัน — แถวที่ผิดจะแจ้งรายแถว แถวที่ถูกบันทึกไปแล้ว */
+export async function saveAssessmentBatchAction(formId: number, round: string, assessedDate: string, rows: Array<{ enrollmentId: number; answers: Record<string, number> }>, fromKit: boolean): Promise<ActionResult<{ saved: number; errors: Array<{ enrollmentId: number; error: string }> }>> {
+  try {
+    const auth = await requireAction();
+    if (!isValidISODate(assessedDate)) return { ok: false, error: "กรุณาใส่วันที่ประเมิน" };
+    if (rows.length > 300) return { ok: false, error: "บันทึกได้ครั้งละไม่เกิน 300 คน" };
+    const db = getDb();
+    const ip = await clientIp();
+    let saved = 0;
+    const errors: Array<{ enrollmentId: number; error: string }> = [];
+    for (const r of rows) {
+      try {
+        saveAssessment(db, { enrollmentId: r.enrollmentId, formId, round, assessedDate, answers: r.answers, source: fromKit ? "กรอกย้อนหลังจากชุดฉุกเฉิน" : "โหมดกรอกเร็ว" }, { userId: auth.user.id, can: auth.can, ip });
+        saved++;
+      } catch (e) {
+        errors.push({ enrollmentId: r.enrollmentId, error: toError(e).error });
+      }
+    }
+    revalidatePath("/cohorts");
+    return { ok: true, data: { saved, errors } };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
 export async function completeEnrollmentsAction(cohortId: number, ids: number[], status: "completed" | "failed", date: string): Promise<ActionResult<{ done: number; skipped: Array<{ id: number; reason: string }> }>> {
   try {
     const auth = await requireAction("registry.edit");

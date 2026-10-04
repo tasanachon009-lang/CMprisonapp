@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { getCohort, cohortRoster } from "@/lib/queries/cohorts";
 import { cohortAttendanceSummary } from "@/lib/services/attendance";
 import { ENROLLMENT_STATUS_LABEL } from "@/lib/services/registry";
+import { todayISO } from "@/lib/thai-date";
 import { RosterTable, type RosterRow } from "./roster-table";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export default async function RosterPage({ params, searchParams }: PageProps<"/c
           )}
         </div>
       </div>
-      <RosterTable rows={rows} cohortId={cohort.id} canEdit={auth.can("registry.edit")} passPct={course.passAttendancePct} />
+      <RosterTable rows={rows} cohortId={cohort.id} canEdit={auth.can("registry.edit")} passPct={course.passAttendancePct} defaultDoneDate={cohort.endDate < todayISO() ? cohort.endDate : todayISO()} />
     </div>
   );
 }

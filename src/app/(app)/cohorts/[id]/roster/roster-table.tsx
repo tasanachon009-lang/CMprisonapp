@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, GraduationCap } from "lucide-react";
+import { ThaiDateInput } from "@/components/thai-date-input";
+import { completeEnrollmentsAction } from "@/app/(app)/enrollments/actions";
 import { PersonThumb } from "@/components/person-thumb";
 import { Alert, EmptyState } from "@/components/ui";
 import { confirmAdmissionsAction } from "../../actions";
@@ -17,12 +19,25 @@ export type RosterRow = {
 
 const STATUS_TAG: Record<string, string> = { draft: "tag-warn", active: "tag-ok", completed: "tag-navy", dropped: "tag-danger", withdrawn: "tag-muted", failed: "tag-danger" };
 
-export function RosterTable({ rows, cohortId, canEdit, passPct }: { rows: RosterRow[]; cohortId: number; canEdit: boolean; passPct: number }) {
+export function RosterTable({ rows, cohortId, canEdit, passPct, defaultDoneDate }: { rows: RosterRow[]; cohortId: number; canEdit: boolean; passPct: number; defaultDoneDate: string }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
   const [pending, start] = useTransition();
   const drafts = rows.filter((r) => r.status === "draft");
+  const actives = rows.filter((r) => r.status === "active");
+  const selectable = canEdit && (drafts.length > 0 || actives.length > 0);
+  const [doneDate, setDoneDate] = useState(defaultDoneDate);
+  const complete = (status: "completed" | "failed") =>
+    start(async () => {
+      const ids = [...selected].filter((id) => actives.some((a) => a.enrollmentId === id));
+      const r = await completeEnrollmentsAction(cohortId, ids, status, doneDate);
+      if (!r.ok) return setMsg({ tone: "danger", text: r.error });
+      const below = actives.filter((a) => ids.includes(a.enrollmentId) && a.below).length;
+      setMsg({ tone: r.data!.skipped.length || below ? "warn" : "ok", text: `บันทึก "${status === "completed" ? "ครบหลักสูตร" : "ไม่ผ่าน"}" แล้ว ${r.data!.done} คน${below ? ` · มี ${below} คนที่การเข้าร่วมต่ำกว่าเกณฑ์` : ""}${status === "completed" ? " · สร้างกำหนดการติดตามแล้ว" : ""}` });
+      setSelected(new Set());
+      router.refresh();
+    });
 
   const toggle = (id: number) => {
     const s = new Set(selected);
@@ -46,18 +61,27 @@ export function RosterTable({ rows, cohortId, canEdit, passPct }: { rows: Roster
   return (
     <div className="space-y-3">
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-      {canEdit && drafts.length > 0 && (
+      {selectable && (
         <div className="no-print flex flex-wrap items-center gap-2 rounded-2xl bg-lime-soft px-4 py-2">
           <span>เลือกแล้ว {selected.size} คน</span>
-          <button className="btn-ghost btn-sm" onClick={() => setSelected(new Set(drafts.map((d) => d.enrollmentId)))}>เลือกทุกคนที่เป็นร่าง ({drafts.length})</button>
-          <button className="btn-primary btn-sm" disabled={!selected.size || pending} onClick={confirm}><CheckCheck size={18} aria-hidden /> ยืนยันรับเข้า</button>
+          {drafts.length > 0 && <button className="btn-ghost btn-sm" onClick={() => setSelected(new Set(drafts.map((d) => d.enrollmentId)))}>เลือกทุกคนที่เป็นร่าง ({drafts.length})</button>}
+          {drafts.length > 0 && <button className="btn-primary btn-sm" disabled={![...selected].some((id) => drafts.some((d) => d.enrollmentId === id)) || pending} onClick={confirm}><CheckCheck size={18} aria-hidden /> ยืนยันรับเข้า</button>}
+          {actives.length > 0 && <button className="btn-ghost btn-sm" onClick={() => setSelected(new Set(actives.map((d) => d.enrollmentId)))}>เลือกทุกคนที่กำลังอบรม ({actives.length})</button>}
+          {actives.length > 0 && (
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm">วันที่จบ</span>
+              <span className="w-56"><ThaiDateInput value={doneDate} onChange={setDoneDate} /></span>
+              <button className="btn-secondary btn-sm" disabled={![...selected].some((id) => actives.some((a) => a.enrollmentId === id)) || pending} onClick={() => complete("completed")}><GraduationCap size={18} aria-hidden /> ครบหลักสูตร</button>
+              <button className="btn-ghost btn-sm" disabled={![...selected].some((id) => actives.some((a) => a.enrollmentId === id)) || pending} onClick={() => complete("failed")}>ไม่ผ่าน</button>
+            </span>
+          )}
         </div>
       )}
       <div className="panel overflow-x-auto">
         <table className="table-plain">
           <thead>
             <tr>
-              {canEdit && drafts.length > 0 && <th className="w-10"><span className="sr-only">เลือก</span></th>}
+              {selectable && <th className="w-10"><span className="sr-only">เลือก</span></th>}
               <th>ชื่อ-สกุล</th>
               <th>เลขประจำตัว</th>
               <th>แดน</th>
@@ -69,13 +93,13 @@ export function RosterTable({ rows, cohortId, canEdit, passPct }: { rows: Roster
           <tbody>
             {rows.map((r) => (
               <tr key={r.enrollmentId}>
-                {canEdit && drafts.length > 0 && (
-                  <td>{r.status === "draft" && <input type="checkbox" className="h-5 w-5" checked={selected.has(r.enrollmentId)} onChange={() => toggle(r.enrollmentId)} aria-label={`เลือก ${r.name}`} />}</td>
+                {selectable && (
+                  <td>{(r.status === "draft" || r.status === "active") && <input type="checkbox" className="h-5 w-5" checked={selected.has(r.enrollmentId)} onChange={() => toggle(r.enrollmentId)} aria-label={`เลือก ${r.name}`} />}</td>
                 )}
                 <td>
                   <div className="flex items-center gap-2">
                     <PersonThumb name={r.name} thumb={r.thumb} photo={r.photo} inmateNo={r.inmateNo} zone={r.zone} />
-                    <Link href={`/persons/${r.personId}`} className="font-medium hover:underline">{r.name}</Link>
+                    <Link href={`/enrollments/${r.enrollmentId}`} className="font-medium hover:underline">{r.name}</Link>
                     {r.duplicateName && <span className="tag-orange">ชื่อซ้ำ</span>}
                   </div>
                 </td>

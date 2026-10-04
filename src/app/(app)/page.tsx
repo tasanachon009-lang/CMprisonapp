@@ -8,6 +8,7 @@ import { uncheckedSessions, mySessions, overviewNumbers } from "@/lib/queries/ho
 import { SessionCardView } from "@/components/session-card";
 import { Stat, EmptyState, Alert } from "@/components/ui";
 import { backupHealth } from "@/lib/backup/status";
+import { LastCohortLink } from "@/components/remember-cohort";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function HomePage() {
       <div>
         <p className="text-muted">{formatThaiDate(today, "full")}</p>
         <h1 className="text-3xl">สวัสดี คุณ{auth.user.firstName}</h1>
+        {auth.can("course.view") && <div className="mt-3"><LastCohortLink /></div>}
       </div>
 
       {auth.isAdmin && <AdminAlerts />}

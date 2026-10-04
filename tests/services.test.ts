@@ -140,6 +140,38 @@ describe("เช็คชื่อ (9)", () => {
   });
 });
 
+describe("นำเข้า Excel (7.3)", () => {
+  it("แยกผลตรวจทุกแถว และนำเข้าเฉพาะแถวที่ผ่าน รวมรุ่นที่จบแล้วพร้อมสถานะ", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const { parseWorkbook, checkRows, commitRows, IMPORT_COLUMNS } = await import("@/lib/services/import");
+    const c1 = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
+    const old = createCohort(db, { courseId: b12, startDate: "2025-11-03" }, 1);
+    registerEnrollment(db, input(c1.id, "DUP-1"), actor);
+    registerEnrollment(db, input(c1.id, "SAME-0", { person: { firstName: "สมหมาย", lastName: "ซ้ำชื่อ", birthDate: "1990-01-01" } }), actor);
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("x");
+    ws.addRow(IMPORT_COLUMNS.map((c) => c.header));
+    const row = (o: Record<string, string>) => ws.addRow(IMPORT_COLUMNS.map((c) => o[c.key] ?? ""));
+    row({ inmateNo: "NEW-1", firstName: "ก", lastName: "ข", status: "ครบหลักสูตร", leftDate: "21/11/2568" });
+    row({ inmateNo: "DUP-1", firstName: "ทดสอบ", lastName: "ระบบ" });
+    row({ inmateNo: "SAME-1", firstName: "สมหมาย", lastName: "ซ้ำชื่อ", birthDate: "1/1/2533" });
+    row({ inmateNo: "BAD-1", firstName: "", lastName: "ข", nationalId: "123" });
+    row({ inmateNo: "NEW-1", firstName: "ซ้ำ", lastName: "ในไฟล์" });
+    const raw = await parseWorkbook(Buffer.from(await wb.xlsx.writeBuffer()));
+    expect(raw.length).toBe(5);
+
+    // DUP-1 อยู่รุ่น c1 แล้ว → นำเข้ารุ่นเก่า (หลักสูตรเดียวกัน) ต้องบล็อก
+    const checked = checkRows(db, old.id, raw);
+    expect(checked.map((r) => r.category)).toEqual(["ok", "blocked", "possible_same", "invalid", "invalid"]);
+    const res = commitRows(db, old.id, checked, 1, "test.xlsx");
+    expect(res.imported).toBe(1);
+    const e = db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, old.id)).all();
+    expect(e[0].status).toBe("completed");
+    expect(e[0].leftDate).toBe("2025-11-21");
+  });
+});
+
 describe("ประวัติการใช้งาน", () => {
   it("แก้ไข/ลบ audit log ไม่ได้แม้เข้าฐานข้อมูลตรง", () => {
     db.insert(schema.auditLogs).values({ at: new Date(), action: "test" }).run();

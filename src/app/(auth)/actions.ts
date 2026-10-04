@@ -8,7 +8,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { checkPassword } from "@/lib/password-policy";
 import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, failureLockMinutes, recordFailure, clearFailures } from "@/lib/rate-limit";
 import { nowInTZ } from "@/lib/thai-date";
 import {
   clientIp, createSession, endSession, getAuth, getTrustedDeviceId, trustThisDevice, touchSession,
@@ -20,16 +20,19 @@ export type FormState = { error?: string; ok?: boolean } | undefined;
 export async function verifyOrgCode(_: FormState, formData: FormData): Promise<FormState> {
   const code = String(formData.get("code") ?? "").trim();
   const ip = (await clientIp()) ?? "unknown";
-  if (!rateLimit(`org:${ip}`, 10, 15 * 60000)) {
-    return { error: "ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่" };
-  }
+  // นับเฉพาะครั้งที่ใส่ผิด (ใส่ถูกไม่นับ) — ผิด 10 ครั้งใน 15 นาทีจากเครื่องเดียวกัน → รอ
+  const key = `org:${ip}`;
+  const wait = failureLockMinutes(key, 10, 15 * 60000);
+  if (wait) return { error: `ใส่รหัสหน่วยงานผิดหลายครั้งเกินไป กรุณารอประมาณ ${wait} นาทีแล้วลองใหม่` };
   const db = getDb();
   const hash = getSetting<string | null>(db, "auth.orgCodeHash", null);
   if (!hash) return { error: "ระบบยังไม่ได้ตั้งรหัสหน่วยงาน กรุณาให้ผู้ดูแลรันสคริปต์ติดตั้ง" };
   if (!code || !(await verifyPassword(hash, code))) {
+    recordFailure(key);
     writeAudit(db, { userId: null, action: "device.fail", ip });
-    return { error: "รหัสหน่วยงานไม่ถูกต้อง กรุณาตรวจสอบกับหัวหน้า/รองหัวหน้า" };
+    return { error: "รหัสหน่วยงานไม่ถูกต้อง กรุณาตรวจสอบกับหัวหน้า/รองหัวหน้า (ตัวพิมพ์เล็ก-ใหญ่ต้องตรงกัน)" };
   }
+  clearFailures(key);
   await trustThisDevice();
   writeAudit(db, { userId: null, action: "device.trust", ip });
   redirect("/login");

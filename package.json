@@ -12,6 +12,7 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "seed": "tsx scripts/seed-fake.ts",
+    "dev:otp": "tsx scripts/dev-otp.ts",
     "security-check": "tsx scripts/security-check.ts",
     "db:generate": "drizzle-kit generate"
   },

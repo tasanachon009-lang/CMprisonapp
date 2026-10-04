@@ -211,12 +211,14 @@ powershell -ExecutionPolicy Bypass -File .\update.ps1 -Zip E:\rehab.zip  (จา
 ## 13. สำหรับผู้พัฒนา (เครื่องที่บ้าน)
 ```
 npm install
-npm run seed          # สร้างข้อมูลปลอม ~500 คน (รหัสอยู่ในหัวไฟล์ scripts/seed-fake.ts)
+npm run seed          # สร้างข้อมูลปลอม ~500 คน
 npm run dev           # http://localhost:3000
+npm run dev:otp -- วิภาวรรณ   # ดูรหัส OTP ของผู้ดูแลในข้อมูลปลอม (ใช้กับฐานข้อมูลจริงไม่ได้)
 npm test              # unit test กฎสำคัญ
 npm run typecheck
 npm run security-check   # ตรวจความปลอดภัยอัตโนมัติ (ต้องเปิด dev server ก่อน)
 ```
+- **รหัสทดสอบทุกบทบาท (ข้อมูลปลอม):** ดูที่ [`docs/TEST-ACCOUNTS.md`](docs/TEST-ACCOUNTS.md) — รหัสหน่วยงาน ชื่อผู้ใช้ รหัสผ่าน วิธีผ่าน OTP และวิธีแก้เมื่อเข้าระบบไม่ได้
 - ไฟล์ `.env.local` (เครื่องพัฒนา): `APP_ENV=development`, `DATA_DIR=./data`, `BACKUP_KEY=...`
 - เปลี่ยนโครงสร้างฐานข้อมูล: แก้ `src/lib/db/schema.ts` → `npm run db:generate` → commit ไฟล์ใน `drizzle/` (ห้ามแก้ฐานข้อมูลด้วยมือ)
 - เทคโนโลยี: Next.js (App Router) + TypeScript + Tailwind CSS + SQLite (better-sqlite3 + Drizzle ORM, WAL mode)

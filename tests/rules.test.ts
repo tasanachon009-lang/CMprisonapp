@@ -4,6 +4,7 @@ import { evaluateEnrollment, isPossibleSamePerson, type PriorEnrollment } from "
 import { summarizeAttendance } from "@/lib/rules/attendance-rules";
 import { checkPassword } from "@/lib/password-policy";
 import { normalizeSearch, personSearchKey } from "@/lib/search";
+import { hotp, verifyTotp, base32Encode, base32Decode } from "@/lib/auth/totp";
 
 describe("เลขบัตรประชาชน", () => {
   it("ตรวจ check digit", () => {
@@ -80,6 +81,18 @@ describe("การเข้าร่วม (9)", () => {
   });
   it("ไม่มีคาบที่นับ → ยังไม่มี %", () => {
     expect(summarizeAttendance([{ status: "corrections", hours: 1 }], 60, 80).pct).toBeNull();
+  });
+});
+
+describe("OTP (TOTP RFC 6238)", () => {
+  it("ตรงกับ test vector ของ RFC", () => {
+    // RFC 6238 ภาคผนวก B: secret "12345678901234567890", T=59 → 94287082 (8 หลัก) → 6 หลักท้าย 287082
+    const secret = base32Encode(Buffer.from("12345678901234567890"));
+    expect(base32Decode(secret).toString()).toBe("12345678901234567890");
+    expect(hotp(secret, 1)).toBe("287082");
+    expect(verifyTotp(secret, "287082", 59_000)).toBe(1);
+    expect(verifyTotp(secret, "287082", 59_000, 1)).toBeNull(); // ห้ามใช้รหัสซ้ำ
+    expect(verifyTotp(secret, "000000", 59_000)).toBeNull();
   });
 });
 

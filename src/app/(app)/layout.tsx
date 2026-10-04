@@ -11,6 +11,11 @@ import { NavLinks } from "@/components/nav-links";
 import { QuickLock } from "@/components/quick-lock";
 import { Avatar } from "@/components/avatar";
 import { LogoMark } from "@/components/logo";
+import { InboxGate } from "@/components/inbox-gate";
+import { headers } from "next/headers";
+import { unacked } from "@/lib/services/shift";
+import { userNameMap } from "@/lib/queries/names";
+import { formatThaiDateTime } from "@/lib/thai-date";
 import { switchUser } from "../(auth)/actions";
 import { PROFESSIONS } from "@/lib/auth/permissions";
 
@@ -28,6 +33,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .get()?.n ?? 0;
   const items = NAV.filter((n) => !n.any || n.any.some((p) => auth.can(p))).map(({ href, label, icon }) => ({ href, label, icon }));
   const u = auth.user;
+  const path = (await headers()).get("x-pathname") ?? "";
+  const names = userNameMap(db);
+  const pendingMsgs = auth.can("shift.use") && !path.startsWith("/inbox") && (!auth.isAdmin || auth.mfaOk)
+    ? unacked(db, { userId: u.id, roles: u.roles, canHealth: auth.can("health.view") }).map((m) => ({ id: m.id, level: m.level, body: m.body, author: names.get(m.authorId) ?? "", when: formatThaiDateTime(m.createdAt), healthRelated: m.healthRelated }))
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -71,6 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+      {pendingMsgs.length > 0 && <InboxGate messages={pendingMsgs} />}
     </div>
   );
 }

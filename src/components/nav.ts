@@ -7,8 +7,10 @@ export const NAV: NavItem[] = [
   { href: "/", label: "หน้าแรก", icon: "home" },
   { href: "/courses", label: "หลักสูตร", icon: "book", any: ["course.view"] },
   { href: "/persons", label: "ค้นหาบุคคล", icon: "search", any: ["registry.view"] },
-  { href: "/release", label: "บันทึกออกจากเรือนจำ", icon: "door", any: ["release.view"] },
+  { href: "/release", label: "ออกจากเรือนจำ", icon: "door", any: ["release.view"] },
+  { href: "/bst", label: "บสต./ติดตาม", icon: "clipboard", any: ["bst.view"] },
+  { href: "/inbox", label: "จดหมายเวร", icon: "mail", any: ["shift.use"] },
   { href: "/import", label: "นำเข้า Excel", icon: "upload", any: ["registry.import"] },
-  { href: "/roster", label: "ใบรายชื่อนับยอด", icon: "list", any: ["roster.view", "registry.view"] },
+  { href: "/roster", label: "นับยอด", icon: "list", any: ["roster.view", "registry.view"] },
   { href: "/admin", label: "ตั้งค่า", icon: "settings", any: ["settings.manage", "users.manage", "backup.manage", "audit.view"] },
 ];

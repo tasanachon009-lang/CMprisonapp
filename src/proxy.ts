@@ -18,7 +18,10 @@ export function proxy(req: NextRequest) {
   }
   if (!hasDevice) return NextResponse.redirect(new URL("/device", req.url));
   if (!hasSession && path !== "/change-password" && path !== "/lock") return NextResponse.redirect(new URL("/login", req.url));
-  return NextResponse.next();
+  // ส่งเส้นทางปัจจุบันให้หน้า (ใช้กั้นเมนูเมื่อมีจดหมายเวรสีแดงที่ยังไม่รับทราบ)
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", path);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

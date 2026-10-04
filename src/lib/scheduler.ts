@@ -33,6 +33,24 @@ const JOBS: Job[] = [
     },
   },
   {
+    // เรื่องส่งเวรค้างเกินกำหนด → เตือนหัวหน้า/รอง
+    name: "shift.overdue",
+    slots: () => ["08:30"],
+    run: async () => {
+      const { notifyOverdue } = await import("./services/shift");
+      return `แจ้ง ${notifyOverdue(getDb(), addDays(nowInTZ().date, 0))} เรื่อง`;
+    },
+  },
+  {
+    // ทุกวันศุกร์บ่าย เตือนพิมพ์ชุดกระดาษสำรองฉุกเฉินของสัปดาห์หน้า (สเปก 22B)
+    name: "emergency.reminder",
+    slots: (d) => (weekdayOf(d) === 5 ? ["13:00"] : []),
+    run: async () => {
+      notify(getDb(), { role: "rehab", severity: "info", kind: "emergency_kit", message: "วันศุกร์: กรุณาพิมพ์ \"ชุดกระดาษสำรองฉุกเฉิน\" ของสัปดาห์หน้า เก็บแฟ้มไว้ที่ห้องอบรม", link: "/print/emergency?days=3" });
+      return "แจ้งแล้ว";
+    },
+  },
+  {
     name: "restore.test",
     slots: (d) => (weekdayOf(d) === 0 ? ["23:00"] : []),
     run: async () => {

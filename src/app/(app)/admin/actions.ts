@@ -95,6 +95,22 @@ export async function resetPassword(id: number, tempPassword: string): Promise<A
   }
 }
 
+/** รีเซ็ต OTP ของผู้ดูแลอีกคน (โทรศัพท์หาย) — ผู้นั้นต้องตั้ง OTP ใหม่เมื่อเข้าครั้งถัดไป (ยังต้องใช้รหัสผ่าน) */
+export async function resetOtp(id: number, reason: string): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("users.manage");
+    if (id === auth.user.id) return { ok: false, error: "รีเซ็ต OTP ของตัวเองไม่ได้ — ให้ผู้ดูแลอีกคนทำ หรือใช้ขั้นตอนรหัสฉุกเฉิน" };
+    if (!reason.trim()) return { ok: false, error: "กรุณาระบุเหตุผล" };
+    const db = getDb();
+    db.update(schema.users).set({ totpSecret: null, totpEnabled: false, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.users.id, id)).run();
+    db.update(schema.sessions).set({ endedAt: new Date() }).where(eq(schema.sessions.userId, id)).run();
+    writeAudit(db, { userId: auth.user.id, action: "otp.reset", entity: "user", entityId: id, note: reason, ip: await clientIp() });
+    return { ok: true, message: "รีเซ็ตแล้ว — เมื่อผู้นั้นเข้าระบบครั้งถัดไป จะต้องสแกน QR ตั้ง OTP ใหม่" };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
 /** ระงับบัญชีได้ทันที (ไม่ลบ เพื่อเก็บประวัติ) */
 export async function setUserStatus(id: number, status: "active" | "suspended", reason: string): Promise<ActionResult> {
   try {

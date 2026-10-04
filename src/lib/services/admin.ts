@@ -42,7 +42,8 @@ export type DualAction = keyof typeof DUAL_ACTIONS;
 
 export function requestDual(db: DB, action: DualAction, payload: Record<string, unknown>, reason: string, requestedBy: number, ip?: string | null) {
   if (!reason.trim()) throw new RuleError("กรุณาระบุเหตุผล");
-  const pending = db.select().from(schema.dualApprovals).where(and(eq(schema.dualApprovals.action, action), eq(schema.dualApprovals.status, "pending"))).get();
+  const pending = db.select().from(schema.dualApprovals).where(and(eq(schema.dualApprovals.action, action), eq(schema.dualApprovals.status, "pending"))).all()
+    .find((r) => action === "restore" || (r.payload as { userId?: number })?.userId === (payload as { userId?: number }).userId);
   if (pending) throw new RuleError("มีคำขอประเภทนี้รอยืนยันอยู่แล้ว — ยกเลิกคำขอเดิมก่อน");
   const row = db.insert(schema.dualApprovals).values({ action, payload, reason, requestedBy, requestedAt: new Date() }).returning().get();
   writeAudit(db, { userId: requestedBy, action: "dual.request", entity: "dual_approval", entityId: row.id, after: { action, payload }, note: reason, ip });

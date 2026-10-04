@@ -6,7 +6,8 @@ import { CheckCircle2, GraduationCap } from "lucide-react";
 import { Alert } from "@/components/ui";
 import { Modal } from "@/components/modal";
 import { ThaiDateInput } from "@/components/thai-date-input";
-import { addMedicalNoteAction, setExternalIdAction, markTaskAction, recordFollowupAction, completeEnrollmentsAction } from "../actions";
+import { addMedicalNoteAction, setExternalIdAction, markTaskAction, recordFollowupAction, completeEnrollmentsAction, updateIntakeAction } from "../actions";
+import { recordConsentAction } from "@/app/(app)/cohorts/actions";
 
 export function MedicalNoteForm({ enrollmentId, today, canMedical }: { enrollmentId: number; today: string; canMedical: boolean }) {
   const router = useRouter();
@@ -94,6 +95,54 @@ export function FollowupForm({ followupId, today }: { followupId: number; today:
         router.refresh();
       })}>บันทึกผลติดตาม</button>
     </details>
+  );
+}
+
+export function IntakePanel({ enrollmentId, score, exclusions, criteria, consentSigned, consentDate, today, canEdit }: {
+  enrollmentId: number; score: number | null; exclusions: string[]; criteria: { screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Array<{ code: string; label: string }> } | null;
+  consentSigned: boolean; consentDate: string | null; today: string; canEdit: boolean;
+}) {
+  const router = useRouter();
+  const [s, setS] = useState(score?.toString() ?? "");
+  const [ex, setEx] = useState(exclusions);
+  const [cDate, setCDate] = useState(today);
+  const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
+  const [pending, start] = useTransition();
+  const n = s === "" ? null : Number(s);
+  const out = n != null && criteria?.screeningMin != null && (n < criteria.screeningMin || n > (criteria.screeningMax ?? 999));
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div>
+        <h3 className="font-semibold">เกณฑ์รับเข้า</h3>
+        {criteria?.screeningLabel && (
+          <label className="mt-2 block"><span className="label text-sm">{criteria.screeningLabel}</span>
+            <input className={`input w-32 ${out ? "input-error" : ""}`} inputMode="numeric" disabled={!canEdit} value={s} onChange={(e) => setS(e.target.value.replace(/\D/g, ""))} />
+            {out && <span className="ml-2 text-sm font-semibold text-warn">นอกช่วง {criteria.screeningMin}–{criteria.screeningMax}</span>}
+          </label>
+        )}
+        <div className="mt-2 space-y-1">
+          {criteria?.exclusions?.map((x) => (
+            <label key={x.code} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" disabled={!canEdit} checked={ex.includes(x.code)} onChange={(e) => setEx(e.target.checked ? [...ex, x.code] : ex.filter((c) => c !== x.code))} /> {x.label}</label>
+          ))}
+        </div>
+        {canEdit && <button className="btn-secondary btn-sm mt-2" disabled={pending} onClick={() => start(async () => { const r = await updateIntakeAction(enrollmentId, n, ex); setMsg(r.ok ? { tone: "ok", text: "บันทึกเกณฑ์รับเข้าแล้ว" } : { tone: "danger", text: r.error }); router.refresh(); })}>บันทึกเกณฑ์รับเข้า</button>}
+      </div>
+      <div>
+        <h3 className="font-semibold">หลักฐานความยินยอม (PDPA)</h3>
+        {consentSigned ? <p className="mt-2 tag-ok">ลงนามแล้ว {consentDate ?? ""}</p> : (
+          <>
+            <p className="mt-2 tag-warn">ยังไม่มีหลักฐานการลงนาม</p>
+            {canEdit && (
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                <div className="w-56"><span className="label text-sm">วันที่ลงนาม</span><ThaiDateInput value={cDate} onChange={setCDate} max={today} /></div>
+                <button className="btn-secondary btn-sm mb-1" disabled={pending} onClick={() => start(async () => { const r = await recordConsentAction(enrollmentId, cDate); setMsg(r.ok ? { tone: "ok", text: "บันทึกหลักฐานยินยอมแล้ว — ยืนยันรับเข้าได้ที่หน้ารายชื่อ" } : { tone: "danger", text: r.error }); router.refresh(); })}>บันทึกว่าลงนามแล้ว</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {msg && <div className="md:col-span-2"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
+    </div>
   );
 }
 

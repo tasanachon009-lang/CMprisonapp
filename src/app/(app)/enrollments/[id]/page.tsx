@@ -12,7 +12,7 @@ import { lookupLabel } from "@/lib/bootstrap";
 import { formatThaiDate, todayISO } from "@/lib/thai-date";
 import { Breadcrumb, Alert, EmptyState, Eyebrow } from "@/components/ui";
 import { Avatar } from "@/components/avatar";
-import { MedicalNoteForm, ExternalIdForm, TaskToggle, FollowupForm, CompleteButton } from "./enrollment-client";
+import { MedicalNoteForm, ExternalIdForm, TaskToggle, FollowupForm, CompleteButton, IntakePanel } from "./enrollment-client";
 import { BehaviorNoteButton } from "@/components/behavior-note";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +57,19 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           <Link href={`/persons/${p.id}`} className="btn-ghost">หน้าบุคคล</Link>
           {auth.can("reports.view") && <Link href={`/print/person/${p.id}`} target="_blank" className="btn-ghost">พิมพ์รายงานรายบุคคล</Link>}
         </div>
+      </section>
+
+      <section className="card">
+        <IntakePanel
+          enrollmentId={e.id}
+          score={e.screeningScore}
+          exclusions={((e.intake as { exclusions?: string[] } | null)?.exclusions) ?? []}
+          criteria={course.intakeCriteria as never}
+          consentSigned={e.consentSigned}
+          consentDate={e.consentDate}
+          today={today}
+          canEdit={auth.can("registry.edit") && ["draft", "active"].includes(e.status)}
+        />
       </section>
 
       <section className="card">

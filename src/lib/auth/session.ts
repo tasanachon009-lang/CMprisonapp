@@ -7,6 +7,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "../db";
 import { getSetting } from "../bootstrap";
 import { resolvePermissions, scopedCohorts, scopedPermissions, canInCohorts, type Permission, type Grant } from "./permissions";
+import { activeDelegationsFor, delegatedPermissions, type ActiveDelegation } from "../services/delegation";
 import { todayISO } from "../thai-date";
 
 export const DEVICE_COOKIE = "rh_dev";
@@ -114,6 +115,10 @@ export type Auth = {
   /** ผ่านเงื่อนไข OTP แล้ว (ไม่ต้องใช้ OTP = ผ่านเสมอ) */
   mfaOk: boolean;
   totpEnabled: boolean;
+  /** การมอบอำนาจที่มีผลวันนี้ (สเปก 22B) */
+  delegations: ActiveDelegation[];
+  /** สิทธิ์นี้ได้มาจากการมอบอำนาจหรือไม่ (ไว้เขียน audit "อนุมัติแทน") — null = มีสิทธิ์เอง/ไม่มีสิทธิ์ */
+  viaDelegation: (p: Permission) => ActiveDelegation | null;
 };
 
 /** โหลดเซสชันปัจจุบัน (ครั้งเดียวต่อคำขอ) — ไม่มี/หมดอายุ → null */
@@ -143,6 +148,10 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
     .all();
   const today = todayISO();
   const perms = resolvePermissions(roles, grants, today);
+  // มอบอำนาจอนุมัติชั่วคราว: เพิ่มเฉพาะสิทธิ์ตามขอบเขต ระหว่างช่วงวันที่ (หมดเวลาคืนเอง)
+  const delegations = activeDelegationsFor(db, u.id, today);
+  const viaMap = delegatedPermissions(perms, delegations);
+  for (const p of viaMap.keys()) perms.add(p);
   const scoped = scopedPermissions(grants, today);
   const otpRequired = roles.includes("admin") && getSetting<boolean>(db, "security.adminOtp", false) === true;
   return {
@@ -163,6 +172,8 @@ export const getAuth = cache(async (): Promise<Auth | null> => {
     otpRequired,
     mfaOk: !otpRequired || !!s.mfaVerifiedAt,
     totpEnabled: u.totpEnabled,
+    delegations,
+    viaDelegation: (p) => viaMap.get(p) ?? null,
   };
 });
 

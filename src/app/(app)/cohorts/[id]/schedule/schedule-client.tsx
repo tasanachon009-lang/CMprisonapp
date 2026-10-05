@@ -7,14 +7,20 @@ import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
 import { addStaffAction, removeStaffAction, setStaffRoleAction, updateSessionAction, cancelSessionAction } from "./actions";
 import { setInviteStatusAction } from "../../../sessions/actions";
+import { setSessionSplitAction } from "../../../pay/actions";
 import { ThaiDateInput } from "@/components/thai-date-input";
 
-export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[]; invite?: string; inviteWarn?: boolean; inviteText?: string };
+export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[]; invite?: string; inviteWarn?: boolean; inviteText?: string;
+  /** ยอดค่าตอบแทน (สตางค์) ของคนนี้ในคาบ — null = เบิกไม่ได้ (ดู payNote) · undefined = ไม่แสดง */
+  amount?: number | null; payNote?: string | null; shareRatio?: number | null };
+type SplitInfo = { override: "full" | "equal" | "ratio" | null; note: string | null; topicDefault: string; locked: boolean };
+const SPLIT_OPTS: Array<["" | "full" | "equal" | "ratio", string]> = [["", "ตามหัวข้อ"], ["full", "คนละเต็ม"], ["equal", "หารเท่ากัน"], ["ratio", "กำหนดสัดส่วน"]];
+const fmtBaht = (s: number) => `${(s / 100).toLocaleString("th-TH", { maximumFractionDigits: 2 })} บาท`;
 
 const INVITE: Array<[string, string]> = [["none", "ยังไม่เชิญ"], ["sent", "ส่งหนังสือแล้ว"], ["accepted", "ตอบรับ"], ["declined", "ปฏิเสธ"], ["confirmed", "ยืนยันวันสอน"]];
 const INVITE_LABEL = Object.fromEntries(INVITE);
 type ExternalOpt = { id: number; name: string; org: string | null; ready: boolean };
-type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string; date?: string; location?: string | null; topicId?: number | null; checked?: boolean };
+type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string; date?: string; location?: string | null; topicId?: number | null; checked?: boolean; split?: SplitInfo };
 export type TopicOpt = { id: number; name: string; standardHours: number | null };
 
 const ROLE: Record<string, string> = { lead: "หลัก", co: "ร่วม" };
@@ -38,9 +44,9 @@ export function StaffNames({ staff }: { staff: StaffView[] }) {
 }
 
 /** กดการ์ดคาบ → แก้รายชื่อวิทยากร (เพิ่ม/เอาออก/บทบาท) */
-export function SessionStaffEditor({ cohortId, session, staff, options, externals = [], max, editable, lockedReason, topics = [], locations = [], label }: {
+export function SessionStaffEditor({ cohortId, session, staff, options, externals = [], max, editable, lockedReason, topics = [], locations = [], label, canSplit = false, showPay = false }: {
   cohortId: number; session: SessionView; staff: StaffView[]; options: Array<{ id: number; name: string }>; externals?: ExternalOpt[]; max: number | null; editable: boolean; lockedReason: string | null;
-  topics?: TopicOpt[]; locations?: string[]; label?: string;
+  topics?: TopicOpt[]; locations?: string[]; label?: string; canSplit?: boolean; showPay?: boolean;
 }) {
   const [tab, setTab] = useState<"staff" | "details">("staff");
   const router = useRouter();
@@ -116,6 +122,7 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
                 <span className="font-medium">{x.name}</span>
                 <span className={x.external ? "tag-orange" : "tag-navy"}>{x.external ? "ภายนอก" : "ภายใน"}</span>
                 {x.unregistered && <span className="tag-warn" title="ยังไม่อยู่ในทะเบียนวิทยากร — เบิกเงินไม่ได้">ยังไม่อยู่ในทะเบียน</span>}
+                {showPay && x.amount !== undefined && (x.amount != null ? <span className="tag-ok" title="ยอดตามวิธีแบ่งของคาบนี้ (คาบที่ยังไม่ปิดคิดตามตาราง)">💰 {fmtBaht(x.amount)}</span> : x.payNote ? <span className="tag-muted" title={x.payNote}>ไม่เบิก</span> : null)}
                 {editable ? (
                   <select className="input min-h-11 w-40 py-1" value={x.role ?? ""} disabled={pending} onChange={(e) => changeRole(x.id, e.target.value)} aria-label={`บทบาทของ ${x.name}`}>
                     <option value="">ไม่ระบุบทบาท</option><option value="lead">วิทยากรหลัก</option><option value="co">วิทยากรร่วม</option>
@@ -141,6 +148,9 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
           {!staff.length && <li className="text-muted">ยังไม่มีผู้รับผิดชอบ</li>}
         </ul>
 
+        {showPay && session.split && (
+          <SplitEditor cohortId={cohortId} sessionId={session.id} split={session.split} staff={staff} canEdit={canSplit && !session.split.locked} onDone={() => router.refresh()} />
+        )}
         {editable && (
           full ? <p className="mt-4 text-sm text-muted">ครบจำนวนสูงสุด {max} คนแล้ว — เอาคนเดิมออกก่อนจึงเพิ่มได้</p> : (
             <div className="mt-4 space-y-3 rounded-2xl border border-line p-3">
@@ -222,6 +232,47 @@ function SessionDetailsForm({ cohortId, session, topics, locations, onDone }: { 
             <button className="btn-danger" disabled={pending || !reason.trim()} onClick={cancel}>ยืนยันยกเลิก</button>
           </div>
         </details>
+      )}
+    </div>
+  );
+}
+/** วิธีแบ่งค่าตอบแทนของคาบ — ผู้ดูแลแก้เฉพาะคาบนี้ได้พร้อมหมายเหตุ (สเปก 11.4) */
+function SplitEditor({ cohortId, sessionId, split, staff, canEdit, onDone }: { cohortId: number; sessionId: number; split: SplitInfo; staff: StaffView[]; canEdit: boolean; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [method, setMethod] = useState<"" | "full" | "equal" | "ratio">(split.override ?? "");
+  const [note, setNote] = useState(split.note ?? "");
+  const [ratios, setRatios] = useState<Record<number, string>>(Object.fromEntries(staff.map((x) => [x.id, String(x.shareRatio ?? 1)])));
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const current = split.override ? SPLIT_OPTS.find(([k]) => k === split.override)![1] : `${split.topicDefault} (ตามหัวข้อ)`;
+  const save = () => start(async () => {
+    setErr(null);
+    const r = await setSessionSplitAction(cohortId, sessionId, { method: method || null, note: note || null, ratios: method === "ratio" ? staff.map((x) => ({ staffId: x.id, ratio: Number(ratios[x.id]) })) : undefined });
+    if (!r.ok) return setErr(r.error);
+    setOpen(false);
+    onDone();
+  });
+  return (
+    <div className="mt-3 rounded-2xl border border-line bg-white p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span>วิธีแบ่งค่าตอบแทน: <b>{current}</b>{split.note ? ` — ${split.note}` : ""}</span>
+        {split.locked && <span className="tag-muted">อนุมัติแล้ว (ล็อก)</span>}
+        {canEdit && !open && <button type="button" className="btn-ghost btn-sm ml-auto" onClick={() => setOpen(true)}>แก้เฉพาะคาบนี้</button>}
+      </div>
+      {open && (
+        <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {SPLIT_OPTS.map(([k, l]) => <button key={k} type="button" onClick={() => setMethod(k)} className={`min-h-11 rounded-full border px-3 font-semibold ${method === k ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>{l}</button>)}
+          </div>
+          {method === "ratio" && (
+            <div className="flex flex-wrap gap-3">
+              {staff.map((x) => <label key={x.id} className="flex items-center gap-1">{x.name}<input className="input min-h-11 w-20 py-1" inputMode="decimal" value={ratios[x.id] ?? "1"} onChange={(e) => setRatios({ ...ratios, [x.id]: e.target.value })} aria-label={`สัดส่วนของ ${x.name}`} /></label>)}
+            </div>
+          )}
+          {method && <label className="block"><span className="label">หมายเหตุ (จำเป็น)</span><input className="input" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="เช่น สอนร่วมกันทั้งคาบ" /></label>}
+          {err && <Alert tone="danger">{err}</Alert>}
+          <div className="flex gap-2"><button type="button" className="btn-primary btn-sm" disabled={pending} onClick={save}>{pending ? "กำลังบันทึก..." : "บันทึก"}</button><button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>ยกเลิก</button></div>
+        </div>
       )}
     </div>
   );

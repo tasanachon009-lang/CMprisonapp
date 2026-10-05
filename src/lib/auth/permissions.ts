@@ -47,6 +47,10 @@ export const PERMISSIONS = {
   "instructors.sensitive": "ดูเลขบัตร/ที่อยู่/เลขบัญชีวิทยากรแบบเต็ม",
   "rates.manage": "ตั้งอัตราค่าตอบแทน",
   "topics.manage": "แก้คลังหัวข้อ",
+  "pay.view": "ดูค่าตอบแทนและรอบเบิก",
+  "pay.manage": "สร้างรอบเบิก/ตรวจยอดค่าตอบแทน",
+  "pay.approve": "อนุมัติค่าตอบแทน (ล็อกคาบ)",
+  "budget.approve": "อนุมัติงบประมาณ",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -79,7 +83,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
   // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
   // การเงิน: ทะเบียนวิทยากร (รวมข้อมูลเบิกจ่ายแบบเต็ม) และอัตราค่าตอบแทน
-  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage"],
+  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage"],
   executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary"],
   warden: ["roster.view"],
 };
@@ -157,3 +161,11 @@ export function assignedCohortIds(a: { scoped: Partial<Record<Permission, number
 export function canInCohorts(perms: Set<Permission>, scoped: Partial<Record<Permission, number[]>>, p: Permission, cohortIds: number[]) {
   return perms.has(p) || cohortIds.some((id) => scoped[p]?.includes(id));
 }
+
+/** มอบอำนาจอนุมัติชั่วคราว (สเปก 22B): ขอบเขต → สิทธิ์ที่ได้ระหว่างช่วงมอบอำนาจ (ไม่รวมงานที่ต้องยืนยัน 2 คน) */
+export const DELEGATION_SCOPES = {
+  pay: { label: "อนุมัติค่าตอบแทน", perms: ["pay.view", "pay.approve"] },
+  budget: { label: "อนุมัติงบประมาณ", perms: ["budget.approve"] },
+  schedule: { label: "อนุมัติคำขอเปลี่ยนตาราง", perms: ["schedule.edit"] },
+} as const satisfies Record<string, { label: string; perms: Permission[] }>;
+export type DelegationScope = keyof typeof DELEGATION_SCOPES;

@@ -485,6 +485,11 @@ export const cohortSessions = sqliteTable(
     /** ปิดคาบแล้ว (บันทึกสอนจริง + ผลกิจกรรม — สเปก 11.5, 22B) */
     taughtAt: ts("taught_at"),
     taughtBy: integer("taught_by"),
+    /** วิธีแบ่งค่าตอบแทนเฉพาะคาบนี้ (ผู้ดูแลแก้ — สเปก 11.4): null = ตามหัวข้อ | full | equal | ratio */
+    splitMethod: text("split_method"),
+    splitNote: text("split_note"),
+    /** รอบเบิกที่อนุมัติแล้ว (ล็อกคาบ) */
+    payBatchId: integer("pay_batch_id"),
     ...tracking(),
   },
   (t) => [index("cohort_sessions_idx").on(t.cohortId, t.date), index("cohort_sessions_date_idx").on(t.date)],
@@ -654,6 +659,74 @@ export const sessionReports = sqliteTable(
     ...tracking(),
   },
   (t) => [uniqueIndex("session_reports_session_unique").on(t.sessionId).where(sql`deleted_at IS NULL`)],
+);
+
+/** รอบเบิกค่าตอบแทน (สเปก 11.5C, 11.6) — ร่าง = คำนวณสด · อนุมัติ = เก็บยอด ณ วันอนุมัติ + ล็อกคาบ */
+export const payBatches = sqliteTable(
+  "pay_batches",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+    dateFrom: text("date_from").notNull(),
+    dateTo: text("date_to").notNull(),
+    /** draft | approved | cancelled */
+    status: text("status").notNull().default("draft"),
+    totalSatang: integer("total_satang"),
+    taxSatang: integer("tax_satang"),
+    approvedBy: integer("approved_by"),
+    approvedAt: ts("approved_at"),
+    /** อนุมัติแทนตามการมอบอำนาจ (id ของ delegations) */
+    approvedViaDelegationId: integer("approved_via_delegation_id"),
+    note: text("note"),
+    ...tracking(),
+  },
+  (t) => [index("pay_batches_cohort_idx").on(t.cohortId)],
+);
+
+/** รายการค่าตอบแทนที่อนุมัติแล้ว — 1 แถว = 1 คน 1 คาบ (ยอดคงที่ ไม่เปลี่ยนตามอัตราภายหลัง) */
+export const payLines = sqliteTable(
+  "pay_lines",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    batchId: integer("batch_id").notNull().references(() => payBatches.id),
+    sessionId: integer("session_id").notNull().references(() => cohortSessions.id),
+    sessionStaffId: integer("session_staff_id").notNull(),
+    userId: integer("user_id"),
+    instructorId: integer("instructor_id"),
+    name: text("name").notNull(),
+    /** internal | external */
+    kind: text("kind").notNull(),
+    date: text("date").notNull(),
+    title: text("title").notNull(),
+    hours: real("hours").notNull(),
+    factor: real("factor").notNull(),
+    splitMethod: text("split_method").notNull(),
+    rateId: integer("rate_id"),
+    perHourSatang: integer("per_hour_satang").notNull(),
+    grossSatang: integer("gross_satang").notNull(),
+    capCutSatang: integer("cap_cut_satang").notNull().default(0),
+    amountSatang: integer("amount_satang").notNull(),
+    createdAt: ts("created_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
+  },
+  (t) => [uniqueIndex("pay_lines_unique").on(t.batchId, t.sessionStaffId), index("pay_lines_person_idx").on(t.userId, t.instructorId)],
+);
+
+/** มอบอำนาจอนุมัติชั่วคราว (สเปก 22B) — scopes: pay | budget | schedule · หมดเวลาคืนสิทธิ์เอง */
+export const delegations = sqliteTable(
+  "delegations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    fromUserId: integer("from_user_id").notNull().references(() => users.id),
+    toUserId: integer("to_user_id").notNull().references(() => users.id),
+    scopes: text("scopes", { mode: "json" }).notNull(),
+    startDate: text("start_date").notNull(),
+    endDate: text("end_date").notNull(),
+    reason: text("reason"),
+    revokedAt: ts("revoked_at"),
+    revokedBy: integer("revoked_by"),
+    ...tracking(),
+  },
+  (t) => [index("delegations_to_idx").on(t.toUserId, t.endDate)],
 );
 
 /** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) — วันละ 1 คน (กลุ่ม A) · บันทึกแทนวิทยากรภายนอก */

@@ -250,6 +250,31 @@ async function main() {
         check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ใบบันทึกผลการจัดกิจกรรม / ใบบันทึกหลังสอน ไม่มีชื่อผู้ต้องขัง", rep.status === 200 && note.status === 200 && !rep.text.includes(full) && !note.text.includes(full), `HTTP ${rep.status}/${note.status}`);
       }
     }
+    // ขั้น 3 กลุ่ม 4: ค่าตอบแทน — การเงินเห็นยอด · เจ้าหน้าที่หลักเห็นเฉพาะภาระงาน · ผู้บริหาร/ผู้ช่วยเข้าไม่ได้ · อนุมัติ/ปลดล็อก/มอบอำนาจตรวจที่เซิร์ฟเวอร์
+    {
+      const payFin = await get("/pay", C.finance);
+      const payRehab = await get("/pay", C.rehab);
+      const payExec = await get("/pay", C.executive);
+      const payAsst = await get("/pay", C.assistant);
+      check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ค่าตอบแทน: การเงินเห็นสรุปยอด / เจ้าหน้าที่หลักเห็นเฉพาะชั่วโมงสอน / ผู้บริหาร-ผู้ช่วยเข้าไม่ได้",
+        allowed(payFin) && payFin.text.includes("สรุปค่าตอบแทน") && allowed(payRehab) && payRehab.text.includes("ภาระงานชั่วโมงสอน") && !payRehab.text.includes("สรุปค่าตอบแทน") && !payRehab.text.includes("รอบเบิก / อนุมัติ") && !allowed(payExec) && !allowed(payAsst),
+        `fin ${payFin.status} · rehab ${payRehab.status} · exec ${payExec.status} · asst ${payAsst.status}`);
+      const batch = db.select().from(schema.payBatches).get();
+      if (batch) {
+        const asRehab = await get(`/pay/batches/${batch.id}`, C.rehab);
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "เจ้าหน้าที่หลัก → เปิดรอบเบิกตรงๆ ด้วย URL", !allowed(asRehab), `HTTP ${asRehab.status}${asRehab.location ? ` → ${asRehab.location}` : ""}`);
+      }
+      const paySrc2 = fs.readFileSync("src/app/(app)/pay/actions.ts", "utf8");
+      const paySvc = fs.readFileSync("src/lib/services/pay.ts", "utf8");
+      const delSrc = fs.readFileSync("src/app/(app)/admin/delegations/actions.ts", "utf8");
+      const delSvc = fs.readFileSync("src/lib/services/delegation.ts", "utf8");
+      check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "อนุมัติค่าตอบแทนต้องมีสิทธิ์อนุมัติ · อนุมัติยอดตัวเองไม่ได้ · ปลดล็อกเฉพาะหัวหน้า/รอง · มอบอำนาจเฉพาะหัวหน้า/รอง",
+        fn(paySrc2, "approveBatchAction").includes('requireAction("pay.approve")') && paySvc.includes("อนุมัติเองไม่ได้") && paySvc.includes('if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะหัวหน้า/รอง")')
+          && fn(delSrc, "createDelegationAction").includes('requireAction("users.manage")') && delSvc.includes('if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะหัวหน้า/รอง")'),
+        "ตรวจจากโค้ด server action / service");
+      const delFin = await get("/admin/delegations", C.finance);
+      check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);
+    }
     const asAssistant = await get(`/sessions/${notMine.id}`, C.assistant);
     check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ช่วย → เปิดคาบที่ไม่ได้รับผิดชอบ (ไม่เห็นฟอร์มปิดคาบ)", !allowed(asAssistant) && !asAssistant.text.includes("บันทึกและปิดคาบ"), `HTTP ${asAssistant.status}${asAssistant.location ? ` → ${asAssistant.location}` : ""}`);
   }

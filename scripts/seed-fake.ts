@@ -23,6 +23,7 @@ import { createCohort } from "../src/lib/services/cohorts";
 import { registerEnrollment } from "../src/lib/services/registry";
 import { todayISO, addDays } from "../src/lib/thai-date";
 import { setDutyOfficer } from "../src/lib/services/duty";
+import { createBatch, approveBatch } from "../src/lib/services/pay";
 
 if (config.envLabel === "production") {
   console.error("❌ ห้ามรัน seed ข้อมูลปลอมบนเครื่องใช้จริง (APP_ENV=production)");
@@ -328,6 +329,20 @@ async function main() {
 
   for (const permission of ["contacts.edit", "bst.view", "bst.edit"]) {
     db.insert(schema.permissionGrants).values({ userId: userIds[9], permission, allow: true, scope: `cohort:${cur.id}`, reason: "มอบหมายงานญาติ/ติดตามรุ่นนี้ (ตัวอย่าง)", createdBy: headId }).run();
+  }
+  // ขั้น 3 กลุ่ม 4 ค่าตอบแทน (ข้อมูลปลอม): วิทยากรภายนอกร่วมสอนคาบเช้าที่ผ่านมา · รุ่น 68b อนุมัติแล้ว (ล็อกคาบ) · รุ่นปัจจุบันเป็นร่างรออนุมัติ
+  {
+    const vichai = db.select().from(schema.instructors).where(eq(schema.instructors.firstName, "วิชัย")).get()!;
+    const finance = db.select().from(schema.users).where(eq(schema.users.firstName, "บุญศรี")).get();
+    const addExt = (cohortId: number, n: number) => {
+      const ss = db.select().from(schema.cohortSessions).where(and(eq(schema.cohortSessions.cohortId, cohortId), eq(schema.cohortSessions.startTime, "09:00"))).all().filter((s) => s.taughtAt).slice(0, n);
+      ss.forEach((s, i) => db.insert(schema.sessionStaff).values({ sessionId: s.id, instructorId: i % 2 ? vichai.id : somsri.id, role: "co", inviteStatus: "confirmed", createdBy: headId }).onConflictDoNothing().run());
+    };
+    addExt(c68b.id, 6);
+    addExt(cur.id, 2);
+    const old = createBatch(db, { cohortId: c68b.id, note: "ตัวอย่าง (ข้อมูลปลอม)" }, { userId: finance?.id ?? headId });
+    approveBatch(db, old.id, { userId: headId });
+    createBatch(db, { cohortId: cur.id, note: "ตัวอย่างร่าง รออนุมัติ" }, { userId: finance?.id ?? headId });
   }
 
   // ปีงบ 2570 รุ่นที่ 2 — วางแผนไว้ มีร่างลงทะเบียนล่วงหน้า

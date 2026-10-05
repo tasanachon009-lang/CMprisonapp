@@ -14,6 +14,7 @@ export const NAV: NavItem[] = [
   { href: "/rt101", label: "รท.101", icon: "check", any: ["bst.view"] },
   { href: "/assigned", label: "งานที่ได้รับมอบหมาย", icon: "users", scoped: true },
   { href: "/instructors", label: "วิทยากร", icon: "users", any: ["instructors.view"] },
+  { href: "/pay", label: "ค่าตอบแทน", icon: "money", any: ["pay.view", "reports.view"] },
   { href: "/inbox", label: "จดหมายเวร", icon: "mail", any: ["shift.use"] },
   { href: "/import", label: "นำเข้า Excel", icon: "upload", any: ["registry.import"] },
   { href: "/roster", label: "นับยอด", icon: "list", any: ["roster.view", "registry.view"] },

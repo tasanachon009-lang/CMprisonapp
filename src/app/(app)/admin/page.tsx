@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq, sql } from "drizzle-orm";
-import { BookOpen, Coins, FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, Coins, FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users , UserCheck } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { backupHealth } from "@/lib/backup/status";
@@ -18,6 +18,7 @@ export default async function AdminHome() {
   const cards = [
     { href: "/admin/users", icon: Users, title: "ผู้ใช้และสิทธิ์", desc: "เพิ่มบัญชี รีเซ็ตรหัส ระงับบัญชี ปรับสิทธิ์รายคน มอบหมายรายรุ่น", perm: "users.manage" as const },
     { href: "/admin/approvals", icon: ShieldCheck, title: `ยืนยัน 2 คน${pending ? ` (${pending} รอ)` : ""}`, desc: "กู้คืนข้อมูล เปลี่ยนผู้ดูแลระบบ รหัสฉุกเฉิน", perm: "users.manage" as const },
+    { href: "/admin/delegations", icon: UserCheck, title: "มอบอำนาจอนุมัติชั่วคราว", desc: "มอบให้เจ้าหน้าที่กลุ่ม A อนุมัติแทนระหว่างลา (ค่าตอบแทน/งบประมาณ/ตาราง) หมดเวลาคืนสิทธิ์เอง", perm: "users.manage" as const },
     { href: "/admin/backup", icon: HardDrive, title: "สำรอง/กู้คืนข้อมูล", desc: "สถานะ สำรองทันที สำรองลงดิสก์ถอดเก็บ ทดสอบกู้คืน", perm: "backup.manage" as const },
     { href: "/admin/audit", icon: History, title: "ประวัติการใช้งาน", desc: "ค้นตามผู้ใช้ ผู้ต้องขัง ช่วงวันที่", perm: "audit.view" as const },
     { href: "/admin/forms", icon: FileText, title: "คลังแบบประเมิน", desc: "ข้อคำถาม เฉลย เกณฑ์แปลผล (บันทึกเป็นเวอร์ชัน)", perm: "forms.manage" as const },

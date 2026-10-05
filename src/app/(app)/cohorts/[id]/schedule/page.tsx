@@ -19,6 +19,8 @@ import { Alert } from "@/components/ui";
 import { StaffNames, SessionStaffEditor, type StaffView } from "./schedule-client";
 import { AddSessionButton, ReplaceStaffButton, WeekBoard, DutySelect } from "./schedule-tools";
 import { ensureDutyRoster, dutyMap, dutyCandidates } from "@/lib/services/duty";
+import { payInputs, snapshotLines } from "@/lib/services/pay";
+import { computeLines, SPLIT_LABEL, type PayLine } from "@/lib/pay/calc";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,13 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
   const duty = dutyMap(db, row.cohort.id);
   const dutyPeople = dutyCandidates(db);
   const dutyOf = (d: string) => { const r = duty.get(d); return r ? r.userId : null; };
+  // สเปก 11.4: ยอดของแต่ละคนในหน้าแก้คาบ (คาบที่ยังไม่ปิดคิดตามตาราง · คาบที่อนุมัติแล้วใช้ยอดที่เก็บไว้)
+  const showPay = auth.can("schedule.edit") || auth.can("pay.view");
+  const payLines = new Map<string, PayLine>();
+  if (showPay) {
+    for (const l of computeLines(payInputs(db, { cohortId: row.cohort.id, includeOpen: true }))) payLines.set(`${l.sessionId}:${l.staffId}`, l);
+    for (const bid of new Set(sessions.map((s) => s.payBatchId).filter((x): x is number => !!x))) for (const l of snapshotLines(db, bid)) payLines.set(`${l.sessionId}:${l.staffId}`, l);
+  }
   const dutyName = (d: string) => { const id = dutyOf(d); return id ? names.get(id) ?? "-" : null; };
   const org = `${getSetting<string>(db, "org.unitName", "")} ${getSetting<string>(db, "org.name", "")}`.trim();
   const label = `${row.course.shortName} ${cohortLabel(row.cohort)}`;
@@ -74,6 +83,8 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
       .map((x) => ({
         id: x.id, userId: x.userId, instructorId: x.instructorId, name: x.userId ? names.get(x.userId) ?? "-" : x.instructorId ? insNames.get(x.instructorId) ?? "-" : x.externalName ?? "-", external: !x.userId, unregistered: !x.userId && !x.instructorId, role: x.role,
         conflicts: (iss?.conflicts.find((c) => c.staffId === x.id)?.with ?? []).map(fmtConflict),
+        shareRatio: x.shareRatio,
+        ...(showPay ? (() => { const l = payLines.get(`${sessionId}:${x.id}`); return { amount: l ? (l.payable ? l.amountSatang : null) : null, payNote: l ? (l.payable ? null : l.note) : x.didTeach ? null : "ไม่ได้สอน" }; })() : {}),
         ...(!x.userId ? {
           // สเปก 11.5A: สถานะการเชิญ · เตือนเมื่ออีก ≤ 14 วันยังไม่ตอบรับ/ยืนยัน
           invite: x.inviteStatus ?? "none",
@@ -111,7 +122,10 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
         {(canEdit || who.length > 0) && (
           <SessionStaffEditor
             cohortId={row.cohort.id}
-            session={{ id: s.id, title: s.title, startTime: s.startTime, endTime: s.endTime, hours: s.hours, category: s.category, status: s.status, date: s.date, location: s.location, topicId: s.topicId, checked: !!s.attendanceCheckedAt }}
+            session={{ id: s.id, title: s.title, startTime: s.startTime, endTime: s.endTime, hours: s.hours, category: s.category, status: s.status, date: s.date, location: s.location, topicId: s.topicId, checked: !!s.attendanceCheckedAt,
+              split: { override: (s.splitMethod as "full" | "equal" | "ratio" | null) ?? null, note: s.splitNote, topicDefault: SPLIT_LABEL[((s.topicId ? topics.get(s.topicId)?.splitMethod : null) ?? "full") as "full"], locked: !!s.payBatchId } }}
+            canSplit={auth.isAdmin && canEdit}
+            showPay={showPay}
             staff={who}
             options={options}
             externals={externals}

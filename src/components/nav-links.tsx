@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ClipboardList, DoorOpen, Home, List, Mail, Search, Settings, Upload, Users, BadgeCheck, CalendarDays } from "lucide-react";
+import { BookOpen, ClipboardList, DoorOpen, Home, List, Mail, Search, Settings, Upload, Users, BadgeCheck, CalendarDays, Banknote } from "lucide-react";
 
-const ICONS = { home: Home, book: BookOpen, search: Search, door: DoorOpen, upload: Upload, list: List, settings: Settings, clipboard: ClipboardList, mail: Mail, users: Users, check: BadgeCheck, calendar: CalendarDays } as const;
+const ICONS = { home: Home, book: BookOpen, search: Search, door: DoorOpen, upload: Upload, list: List, settings: Settings, clipboard: ClipboardList, mail: Mail, users: Users, check: BadgeCheck, calendar: CalendarDays, money: Banknote } as const;
 
 export function NavLinks({ items }: { items: Array<{ href: string; label: string; icon: string }> }) {
   const path = usePathname();

@@ -71,6 +71,13 @@
       "when": 1791184070482,
       "tag": "0009_step3_duty_chips",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791184912212,
+      "tag": "0010_step3_pay",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,8 @@ import { getCohort, cohortSessions } from "@/lib/queries/cohorts";
 import { sessionRoster, attendanceVersion } from "@/lib/services/attendance";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { activeStaff, STAFF_ROLE_LABEL } from "@/lib/services/schedule";
-import { reportOf, sessionStarted, makeupNeeded, OUTCOME_LABEL, PARTICIPATION_LABEL } from "@/lib/services/session-close";
+import { reportOf, sessionStarted, makeupNeeded, chipsForSession, OUTCOME_LABEL, PARTICIPATION_LABEL } from "@/lib/services/session-close";
+import { getSetting } from "@/lib/bootstrap";
 import { userNameMap, instructorNameMap } from "@/lib/queries/names";
 import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-date";
 import { Breadcrumb, Alert } from "@/components/ui";
@@ -79,7 +80,11 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
           <p className="text-muted">{formatThaiDate(session.date, "full")} · {session.startTime}–{session.endTime} น. ({session.hours} ชม.){session.location ? ` · ${session.location}` : ""}</p>
           <p className="mt-1">วิทยากร: {staff.length ? staff.map((x) => `${staffName(x)}${x.userId ? "" : " (ภายนอก)"}${x.role ? ` – ${STAFF_ROLE_LABEL[x.role]}` : ""}`).join(", ") : <span className="text-muted">ยังไม่ระบุ</span>}</p>
         </div>
-        <Link href={`/print/session-sheet/${session.id}`} target="_blank" className="btn-ghost no-print"><Printer size={20} aria-hidden /> พิมพ์ใบเช็คชื่อ</Link>
+        <div className="no-print flex flex-wrap gap-2">
+          {session.takesAttendance && <Link href={`/print/session-sheet/${session.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> ใบเช็คชื่อ</Link>}
+          {staff.some((x) => !x.userId) && <Link href={`/print/speaker-note/${session.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> ใบบันทึกหลังสอน (วิทยากร)</Link>}
+          {session.taughtAt && <Link href={`/print/session-report?session=${session.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> บันทึกผลการจัดกิจกรรม</Link>}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -107,6 +112,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
             {report.participation ? ` · การมีส่วนร่วม ${PARTICIPATION_LABEL[report.participation]}` : ""} · ผู้เข้าร่วม {report.participants} คน
             <br />บันทึกโดย {names.get(session.taughtBy ?? 0) ?? "-"} เมื่อ {formatThaiDateTime(session.taughtAt)}
             {report.proxyEntry && <span className="tag-orange ml-2">บันทึกแทนผู้สอน</span>}
+            {report.source === "paper_copy" && <span className="tag-muted ml-2">คัดลอกจากใบบันทึกของวิทยากร</span>}
           </Alert>
         )}
         {session.lockedAt && <Alert tone="warn">คาบนี้ถูกล็อกหลังอนุมัติค่าตอบแทน — แก้ได้เฉพาะหัวหน้า/รอง</Alert>}
@@ -120,7 +126,11 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
             attendance={session.takesAttendance ? { rows: attendanceRows, loadedVersion: version, canNote: auth.can("behavior.edit") } : null}
             staff={staff.map((x) => ({ id: x.id, name: staffName(x), external: !x.userId, didTeach: x.didTeach, actualHours: x.actualHours }))}
             hours={session.hours}
-            initial={report ? { outcome: report.outcome as never, reason: report.reason ?? "", participation: report.participation ?? "", summary: report.summary ?? "", issues: report.issues ?? "" } : null}
+            initial={report ? { outcome: report.outcome as never, reason: report.reason ?? "", participation: report.participation ?? "", summary: report.summary ?? "", issues: report.issues ?? "", chips: (report.chips as string[] | null) ?? [], source: report.source === "paper_copy" ? "paper_copy" : "direct" } : null}
+            hasExternal={staff.some((x) => !x.userId)}
+            chips={chipsForSession(db, session, getSetting<string[]>(db, "report.generalChips", []))}
+            reasons={getSetting<{ partial: string[]; not_done: string[] }>(db, "report.reasons", { partial: [], not_done: [] })}
+            canShift={auth.can("shift.use")}
             started={started}
             closed={!!session.taughtAt}
             proxyHint={!staff.some((x) => x.userId === auth.user.id)}

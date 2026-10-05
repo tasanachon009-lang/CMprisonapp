@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
-import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS } from "./reference-data";
+import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 
 /**
@@ -79,6 +79,10 @@ function seedRatesAndTopics(tx: Pick<DB, "select" | "insert" | "update">) {
       });
     }
     const topics = tx.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, course.id)).all();
+    // สเปก 22B: ชิป "สิ่งที่ได้" ชุดร่าง (เฉพาะหัวข้อที่ยังไม่มี)
+    for (const t of topics) {
+      if (t.outcomeChips == null) tx.update(schema.activityTopics).set({ outcomeChips: draftChips(t.name, t.staffingType) }).where(eq(schema.activityTopics.id, t.id)).run();
+    }
     const byName = new Map(topics.map((t) => [t.name, t.id]));
     for (const ts of tx.select().from(schema.courseTemplateSessions).where(and(eq(schema.courseTemplateSessions.courseId, course.id), isNull(schema.courseTemplateSessions.topicId))).all()) {
       const id = byName.get(ts.title);

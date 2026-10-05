@@ -72,13 +72,13 @@ describe("บันทึกสอนจริง + ผลกิจกรรม 
     const other = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, cohortId)).all().find((x) => x.date === s1.date && x.id !== s1.id)!;
     addStaff(db, other.id, { externalName: "นอก" }, { userId: 1 });
     const today = s1.date;
-    const mine = pendingReports(db, u2, { includeProxy: false, today });
+    const mine = pendingReports(db, u2, { scope: "own", today });
     expect(mine.map((x) => x.id)).toEqual([s1.id]);
-    const withProxy = pendingReports(db, u2, { includeProxy: true, today });
+    const withProxy = pendingReports(db, u2, { scope: "main", today });
     expect(withProxy.find((x) => x.id === other.id)?.proxy).toBe(true);
-    expect(pendingReports(db, u3, { includeProxy: false, today })).toEqual([]);
+    expect(pendingReports(db, u3, { scope: "own", today })).toEqual([]);
     saveSessionReport(db, s1.id, { outcome: "not_done", reason: "งดกิจกรรม" }, { userId: u2, isAdmin: false });
-    expect(pendingReports(db, u2, { includeProxy: false, today })).toEqual([]);
+    expect(pendingReports(db, u2, { scope: "own", today })).toEqual([]);
   });
 
   it("คาบชดเชย: ป้ายเมื่อมีผู้ติดเหตุราชทัณฑ์ · รายชื่อเฉพาะคนที่ติด · วิทยากรเดิม", () => {

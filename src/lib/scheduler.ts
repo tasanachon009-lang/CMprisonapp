@@ -42,6 +42,18 @@ const JOBS: Job[] = [
     },
   },
   {
+    // สเปก 22B: คาบที่เลยวันแล้วยังไม่บันทึกผล → แจ้งหัวหน้า/รองวันถัดไป (ไม่มีข้อมูลผู้ต้องขัง)
+    name: "report.overdue",
+    slots: (d) => (isWeekday(d) ? ["08:30"] : []),
+    run: async () => {
+      const { overdueReports } = await import("./services/session-close");
+      const db = getDb();
+      const rows = overdueReports(db, nowInTZ().date);
+      if (rows.length) notify(db, { role: "admin", severity: "warning", kind: "report_overdue", message: `มีคาบที่เลยวันแล้วยังไม่บันทึกผล ${rows.length} คาบ (${new Set(rows.map((r) => r.cohortId)).size} รุ่น) — ตามผู้รับผิดชอบประจำวัน/ผู้สอน`, link: "/" });
+      return `ค้าง ${rows.length} คาบ`;
+    },
+  },
+  {
     // ทุกวันศุกร์บ่าย เตือนพิมพ์ชุดกระดาษสำรองฉุกเฉินของสัปดาห์หน้า (สเปก 22B)
     name: "emergency.reminder",
     slots: (d) => (weekdayOf(d) === 5 ? ["13:00"] : []),

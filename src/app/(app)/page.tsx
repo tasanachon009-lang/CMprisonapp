@@ -9,10 +9,11 @@ import { getDb, schema } from "@/lib/db";
 import { todayISO, addDays, formatThaiDate, currentFiscalYear, formatThaiDateTime } from "@/lib/thai-date";
 import { uncheckedSessions, mySessions, overviewNumbers } from "@/lib/queries/home";
 import { SessionCardView } from "@/components/session-card";
+import { userNameMap } from "@/lib/queries/names";
 import { Stat, EmptyState, Alert } from "@/components/ui";
 import { backupHealth } from "@/lib/backup/status";
 import { LastCohortLink } from "@/components/remember-cohort";
-import { pendingReports, invitesDue, INVITE_LABEL } from "@/lib/services/session-close";
+import { pendingReports, invitesDue, dutyTodaySessions, INVITE_LABEL } from "@/lib/services/session-close";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {(isMain || isAssistantOnly) && <CloseReminders today={today} userId={auth.user.id} includeProxy={isMain} invites={auth.can("schedule.edit")} />}
+      {(isMain || isAssistantOnly) && <CloseReminders today={today} userId={auth.user.id} scope={auth.isAdmin ? "admin" : isMain ? "main" : "own"} invites={auth.can("schedule.edit")} />}
 
       {isMain && <MainCards today={today} userId={auth.user.id} mineToday={mineToday} mineTomorrow={mineTomorrow} scopes={auth.cohortScopes} />}
 
@@ -112,13 +113,30 @@ function MainCards({ today, mineToday, mineTomorrow }: { today: string; userId: 
 }
 
 /** คาบที่สอนแล้วแต่ยังไม่ "บันทึกและปิดคาบ" (ป้ายแดง) + วิทยากรภายนอกที่ยังไม่ยืนยัน (≤ 14 วัน) */
-function CloseReminders({ today, userId, includeProxy, invites }: { today: string; userId: number; includeProxy: boolean; invites: boolean }) {
+function CloseReminders({ today, userId, scope, invites }: { today: string; userId: number; scope: "own" | "main" | "admin"; invites: boolean }) {
   const db = getDb();
-  const pending = pendingReports(db, userId, { includeProxy, today });
+  const pending = pendingReports(db, userId, { scope, today });
   const due = invites ? invitesDue(db, today) : [];
-  if (!pending.length && !due.length) return null;
+  const duty = scope === "own" ? null : dutyTodaySessions(db, userId, today);
+  if (!pending.length && !due.length && !duty?.cohorts.length) return null;
   return (
     <div className="grid gap-6 lg:grid-cols-2">
+      {duty && duty.cohorts.length > 0 && (
+        <section className="card border-2 border-navy/40">
+          <h2 className="flex items-center gap-2 text-xl"><BadgeCheck aria-hidden /> วันนี้คุณเป็นผู้รับผิดชอบประจำวัน</h2>
+          <p className="text-sm text-muted">{duty.cohorts.map((c) => c.label).join(", ")} — บันทึกผลแทนคาบวิทยากรภายนอกของวันนี้</p>
+          {duty.sessions.length ? (
+            <ul className="mt-3 space-y-2">
+              {duty.sessions.map((s) => (
+                <li key={s.id}><Link href={`/sessions/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
+                  <span><b>{s.startTime}–{s.endTime} {s.title}</b><span className="block text-sm text-muted">{s.cohortLabel}</span></span>
+                  {s.taughtAt ? <span className="tag-ok">บันทึกแล้ว</span> : s.started ? <span className="tag-danger">ต้องบันทึกแทน</span> : <span className="tag-muted">ยังไม่ถึงเวลา</span>}
+                </Link></li>
+              ))}
+            </ul>
+          ) : <p className="mt-3 text-muted">วันนี้ไม่มีคาบวิทยากรภายนอกที่ต้องบันทึกแทน</p>}
+        </section>
+      )}
       {pending.length > 0 && (
         <section className="card border-2 border-danger/40">
           <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> ยังไม่บันทึกผลคาบ <span className="rounded-full bg-danger px-2.5 py-0.5 text-base text-white">{pending.length}</span></h2>
@@ -127,7 +145,7 @@ function CloseReminders({ today, userId, includeProxy, invites }: { today: strin
             {pending.slice(0, 8).map((s) => (
               <li key={s.id}><Link href={`/sessions/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
                 <span><b>{s.title}</b><span className="block text-sm text-muted">{s.cohortLabel} · {formatThaiDate(s.date)} {s.startTime}–{s.endTime}</span></span>
-                <span className="flex gap-1">{s.proxy && <span className="tag-orange">บันทึกแทน</span>}{s.overdue && <span className="tag-danger">เลยวันแล้ว</span>}</span>
+                <span className="flex gap-1">{s.proxy && <span className="tag-orange">บันทึกแทน</span>}{s.proxy && s.dutyUserId && s.dutyUserId !== userId && <span className="tag-muted">ผู้รับผิดชอบ: {userNameMap(db).get(s.dutyUserId)}</span>}{s.overdue && <span className="tag-danger">เลยวันแล้ว</span>}</span>
               </Link></li>
             ))}
           </ul>

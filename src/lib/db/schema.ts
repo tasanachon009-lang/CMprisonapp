@@ -619,6 +619,10 @@ export const activityTopics = sqliteTable(
     splitMethod: text("split_method").notNull().default("full"),
     /** ผู้รับผิดชอบประจำ (เติมให้ทุกรุ่นอัตโนมัติ): [{userId} | {instructorId}] */
     defaultStaff: text("default_staff", { mode: "json" }),
+    /** ชิปข้อความสำเร็จรูป "สิ่งที่ได้" ของหัวข้อ (สเปก 22B) — string[] */
+    outcomeChips: text("outcome_chips", { mode: "json" }),
+    /** null = ยังเป็นชุดร่างที่ระบบเตรียม (รอผู้ดูแลตรวจกับคู่มือ) */
+    chipsReviewedAt: ts("chips_reviewed_at"),
     sortOrder: integer("sort_order").notNull().default(100),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     ...tracking(),
@@ -643,9 +647,28 @@ export const sessionReports = sqliteTable(
     participants: integer("participants"),
     /** บันทึกแทนวิทยากรภายนอก (ผู้บันทึกไม่ใช่ผู้สอน) */
     proxyEntry: integer("proxy_entry", { mode: "boolean" }).notNull().default(false),
+    /** ชิปที่เลือก (สิ่งที่ได้) — string[] */
+    chips: text("chips", { mode: "json" }),
+    /** direct = บันทึกในระบบ | paper_copy = คัดลอกจากใบบันทึกของวิทยากร (เก็บใบไว้ที่แฟ้ม) */
+    source: text("source").notNull().default("direct"),
     ...tracking(),
   },
   (t) => [uniqueIndex("session_reports_session_unique").on(t.sessionId).where(sql`deleted_at IS NULL`)],
+);
+
+/** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) — วันละ 1 คน (กลุ่ม A) · บันทึกแทนวิทยากรภายนอก */
+export const dutyOfficers = sqliteTable(
+  "duty_officers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+    date: text("date").notNull(),
+    userId: integer("user_id").notNull().references(() => users.id),
+    /** auto = หมุนเวียนตามรายชื่อ | manual = กำหนดเอง */
+    source: text("source").notNull().default("auto"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("duty_officers_unique").on(t.cohortId, t.date).where(sql`deleted_at IS NULL`), index("duty_officers_user_idx").on(t.userId, t.date)],
 );
 
 // ───────────────────────── การลงทะเบียน การเช็คชื่อ ─────────────────────────

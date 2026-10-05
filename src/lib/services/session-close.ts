@@ -6,19 +6,24 @@ import { RuleError } from "../errors";
 import { addDays, nowInTZ, todayISO, isValidISODate } from "../thai-date";
 import { cohortLabel } from "./cohorts";
 import { activeStaff, getSession } from "./schedule";
+import { dutyLookup, myDutyCohorts } from "./duty";
+import { OUTCOME_LABEL, PARTICIPATION_LABEL, SHIFT_CHIP, composeSummary } from "../session-report-text";
 
 /**
  * บันทึกการสอนจริงและผลกิจกรรม (สเปก 11.5) · หน้า "คาบของฉัน" ปุ่ม "บันทึกและปิดคาบ" (สเปก 22B)
  * บันทึกแทนวิทยากรภายนอก (ผู้สอน ≠ ผู้บันทึก) · คาบชดเชย (สเปก 9) · สถานะเชิญวิทยากรภายนอก (สเปก 11.5A)
  */
-export const OUTCOME_LABEL: Record<string, string> = { planned: "ตามแผน", partial: "บางส่วน", not_done: "ไม่ได้ทำ" };
-export const PARTICIPATION_LABEL: Record<string, string> = { excellent: "ดีมาก", good: "ดี", fair: "พอใช้", needs_improvement: "ควรปรับปรุง" };
+export { OUTCOME_LABEL, PARTICIPATION_LABEL, SHIFT_CHIP, composeSummary };
 export const INVITE_LABEL: Record<string, string> = { none: "ยังไม่เชิญ", sent: "ส่งหนังสือแล้ว", accepted: "ตอบรับ", declined: "ปฏิเสธ", confirmed: "ยืนยันวันสอน" };
 
 export type ReportInput = {
   outcome: "planned" | "partial" | "not_done"; reason?: string | null; participation?: string | null; summary?: string | null; issues?: string | null;
   /** สอนจริงรายคน: ไม่ส่ง = สอนตามตาราง */
   staff?: Array<{ staffId: number; didTeach: boolean; actualHours?: number | null }>;
+  /** ชิป "สิ่งที่ได้" ที่เลือก (สเปก 22B) */
+  chips?: string[] | null;
+  /** paper_copy = คัดลอกจากใบบันทึกของวิทยากร */
+  source?: "direct" | "paper_copy";
 };
 
 /** คาบนี้จบแล้วหรือยัง (บันทึกผลได้ตั้งแต่เวลาเริ่มของวันสอน) */
@@ -48,6 +53,8 @@ export function saveSessionReport(db: DB, sessionId: number, input: ReportInput,
     if (input.participation && !PARTICIPATION_LABEL[input.participation]) throw new RuleError("ระดับการมีส่วนร่วมไม่ถูกต้อง");
     const summary = input.summary?.trim().slice(0, 500) || null;
     const issues = input.issues?.trim().slice(0, 1000) || null;
+    const chips = Array.from(new Set((input.chips ?? []).map((c) => String(c).trim().slice(0, 100)).filter(Boolean))).slice(0, 30);
+    const source = input.source === "paper_copy" ? "paper_copy" : "direct";
 
     const staff = activeStaff(t, [sessionId]);
     for (const x of input.staff ?? []) {
@@ -64,7 +71,7 @@ export function saveSessionReport(db: DB, sessionId: number, input: ReportInput,
     const participants = tx.select({ n: sql<number>`count(*)` }).from(schema.attendance).where(and(eq(schema.attendance.sessionId, sessionId), eq(schema.attendance.status, "present"))).get()?.n ?? 0;
     // บันทึกแทน: ผู้บันทึกไม่ได้อยู่ในรายชื่อผู้สอน (เช่น บันทึกแทนวิทยากรภายนอก)
     const proxyEntry = !staff.some((x) => x.userId === actor.userId);
-    const values = { outcome: input.outcome, reason, participation: input.participation || null, summary, issues, participants, proxyEntry };
+    const values = { outcome: input.outcome, reason, participation: input.participation || null, summary, issues, participants, proxyEntry, chips: input.outcome === "not_done" ? null : chips, source };
     const prev = reportOf(t, sessionId);
     if (prev) {
       tx.update(schema.sessionReports).set({ ...values, updatedBy: actor.userId, updatedAt: new Date(), version: prev.version + 1 }).where(eq(schema.sessionReports.id, prev.id)).run();
@@ -75,14 +82,19 @@ export function saveSessionReport(db: DB, sessionId: number, input: ReportInput,
     writeAudit(tx, {
       userId: actor.userId, action: prev ? "update" : "create", entity: "session_report", entityId: sessionId,
       before: prev ? { outcome: prev.outcome, participation: prev.participation } : null, after: { ...values, staff: input.staff ?? null },
-      note: proxyEntry ? "บันทึกแทนผู้สอน" : null, ip: actor.ip,
+      note: [proxyEntry ? "บันทึกแทนผู้สอน" : null, source === "paper_copy" ? "คัดลอกจากใบบันทึกของวิทยากร" : null].filter(Boolean).join(" · ") || null, ip: actor.ip,
     });
     return { participants, proxyEntry };
   });
 }
 
-/** คาบที่จบแล้วแต่ยังไม่บันทึกผล (14 วันล่าสุด) — ของฉัน (เป็นผู้สอน) + ถ้าเป็นเจ้าหน้าที่หลัก: คาบที่มีแต่วิทยากรภายนอก/ยังไม่มีผู้รับผิดชอบ */
-export function pendingReports(db: DB, userId: number, opts: { includeProxy: boolean; today?: string }) {
+/**
+ * คาบที่เริ่มแล้วแต่ยังไม่บันทึกผล (14 วันล่าสุด)
+ * - own: เฉพาะคาบที่ฉันเป็นผู้สอน
+ * - main: + คาบที่ไม่มีวิทยากรภายใน (บันทึกแทน) ในวันที่ฉันเป็นผู้รับผิดชอบประจำวัน (หรือวันที่ยังไม่มีผู้รับผิดชอบ)
+ * - admin: + คาบบันทึกแทนที่เลยวันแล้วทุกคาบ (สเปก 22B: แจ้งหัวหน้า/รองวันถัดไป)
+ */
+export function pendingReports(db: DB, userId: number, opts: { scope: "own" | "main" | "admin"; today?: string }) {
   const today = opts.today ?? todayISO();
   const rows = db
     .select({ s: schema.cohortSessions, c: schema.cohorts, course: schema.courses })
@@ -95,13 +107,79 @@ export function pendingReports(db: DB, userId: number, opts: { includeProxy: boo
     .filter((x) => sessionStarted(x.s));
   if (!rows.length) return [];
   const staff = activeStaff(db, rows.map((r) => r.s.id));
+  const duty = dutyLookup(db, Array.from(new Set(rows.map((r) => r.c.id))));
   return rows
-    .filter(({ s }) => {
+    .map(({ s, c, course }) => {
       const mine = staff.filter((x) => x.sessionId === s.id);
-      if (mine.some((x) => x.userId === userId)) return true;
-      return opts.includeProxy && mine.every((x) => !x.userId);
+      const proxy = mine.every((x) => !x.userId);
+      const dutyUserId = duty.get(`${c.id}:${s.date}`) ?? null;
+      return { ...s, cohortLabel: `${course.shortName} ${cohortLabel(c)}`, overdue: s.date < today, proxy, dutyUserId, isMine: mine.some((x) => x.userId === userId) };
     })
-    .map(({ s, c, course }) => ({ ...s, cohortLabel: `${course.shortName} ${cohortLabel(c)}`, overdue: s.date < today, proxy: !staff.some((x) => x.sessionId === s.id && x.userId === userId) }));
+    .filter((x) => {
+      if (x.isMine) return true;
+      if (!x.proxy || opts.scope === "own") return false;
+      if (x.dutyUserId === userId || x.dutyUserId == null) return true;
+      return opts.scope === "admin" && x.overdue;
+    });
+}
+
+/** หน้าแรกของผู้รับผิดชอบประจำวัน: คาบวันนี้ที่ไม่มีวิทยากรภายใน (ต้องบันทึกแทน) ในรุ่นที่ฉันรับผิดชอบ */
+export function dutyTodaySessions(db: DB, userId: number, today = todayISO()) {
+  const cohortIds = myDutyCohorts(db, userId, today);
+  if (!cohortIds.length) return { cohorts: [] as Array<{ id: number; label: string }>, sessions: [] };
+  const rows = db
+    .select({ s: schema.cohortSessions, c: schema.cohorts, course: schema.courses })
+    .from(schema.cohortSessions)
+    .innerJoin(schema.cohorts, eq(schema.cohorts.id, schema.cohortSessions.cohortId))
+    .innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId))
+    .where(and(inArray(schema.cohortSessions.cohortId, cohortIds), eq(schema.cohortSessions.date, today), isNull(schema.cohortSessions.deletedAt), ne(schema.cohortSessions.status, "cancelled")))
+    .orderBy(asc(schema.cohortSessions.startTime))
+    .all();
+  const staff = activeStaff(db, rows.map((r) => r.s.id));
+  const cohorts = new Map<number, string>();
+  for (const r of rows) cohorts.set(r.c.id, `${r.course.shortName} ${cohortLabel(r.c)}`);
+  const sessions = rows
+    .filter((r) => staff.filter((x) => x.sessionId === r.s.id).every((x) => !x.userId))
+    .map((r) => ({ ...r.s, cohortLabel: cohorts.get(r.c.id)!, started: sessionStarted(r.s) }));
+  // รุ่นที่รับผิดชอบแต่วันนี้ไม่มีคาบ ก็แสดงชื่อรุ่น
+  for (const id of cohortIds) {
+    if (!cohorts.has(id)) {
+      const c = db.select({ c: schema.cohorts, course: schema.courses }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.cohorts.id, id)).get();
+      if (c) cohorts.set(id, `${c.course.shortName} ${cohortLabel(c.c)}`);
+    }
+  }
+  return { cohorts: [...cohorts].map(([id, label]) => ({ id, label })), sessions };
+}
+
+/** คาบที่เลยวันแล้วยังไม่บันทึกผล (สำหรับแจ้งหัวหน้า/รองทุกเช้า) — ไม่มีข้อมูลผู้ต้องขัง */
+export function overdueReports(db: DB, today = todayISO()) {
+  return db
+    .select({ id: schema.cohortSessions.id, cohortId: schema.cohortSessions.cohortId, date: schema.cohortSessions.date })
+    .from(schema.cohortSessions)
+    .innerJoin(schema.cohorts, eq(schema.cohorts.id, schema.cohortSessions.cohortId))
+    .where(and(isNull(schema.cohortSessions.taughtAt), isNull(schema.cohortSessions.deletedAt), ne(schema.cohortSessions.status, "cancelled"), lte(schema.cohortSessions.date, addDays(today, -1)), gte(schema.cohortSessions.date, addDays(today, -14)), ne(schema.cohorts.status, "closed")))
+    .all();
+}
+// ───────── ชิป "สิ่งที่ได้" ของหัวข้อ (สเปก 22B) ─────────
+
+export function cleanChips(chips: string[]) {
+  return Array.from(new Set(chips.map((c) => c.trim().slice(0, 100)).filter(Boolean))).slice(0, 20);
+}
+
+/** หัวหน้า/รองแก้ชิปของหัวข้อ → นับว่าตรวจแล้ว (ป้าย "ร่าง" หายไป) */
+export function setTopicChips(db: DB, topicId: number, chips: string[], actor: { userId: number; ip?: string | null }) {
+  const t = db.select().from(schema.activityTopics).where(and(eq(schema.activityTopics.id, topicId), isNull(schema.activityTopics.deletedAt))).get();
+  if (!t) throw new RuleError("ไม่พบหัวข้อ");
+  const next = cleanChips(chips);
+  db.update(schema.activityTopics).set({ outcomeChips: next, chipsReviewedAt: new Date(), updatedBy: actor.userId, updatedAt: new Date() }).where(eq(schema.activityTopics.id, topicId)).run();
+  writeAudit(db, { userId: actor.userId, action: "update", entity: "activity_topic_chips", entityId: topicId, before: { chips: t.outcomeChips }, after: { chips: next }, ip: actor.ip });
+  return next;
+}
+
+/** ชิปของคาบ = ชิปของหัวข้อ + ชิปทั่วไป + ชิปแจ้งเวร */
+export function chipsForSession(db: DB, s: { topicId: number | null }, general: string[]) {
+  const topic = s.topicId ? db.select().from(schema.activityTopics).where(eq(schema.activityTopics.id, s.topicId)).get() : null;
+  return { topic: (topic?.outcomeChips as string[] | null) ?? [], general: cleanChips(general).filter((c) => c !== SHIFT_CHIP), draft: !!topic && !topic.chipsReviewedAt };
 }
 
 // ───────── คาบชดเชย (สเปก 9) ─────────

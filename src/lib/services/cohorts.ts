@@ -3,6 +3,7 @@ import type { DB } from "../db";
 import { schema } from "../db";
 import { trainingDays, fiscalYearOf } from "../thai-date";
 import { writeAudit } from "../audit";
+import { ensureDutyRoster } from "./duty";
 
 export function cohortLabel(c: { number: number; fiscalYear: number }) {
   return `รุ่นที่ ${c.number}/${c.fiscalYear}`;
@@ -118,7 +119,9 @@ export function createCohort(
       for (const st of staff) {
         tx.insert(schema.sessionStaff).values({ sessionId: sess.id, userId: st.userId, instructorId: st.instructorId, role: st.role, createdBy: userId, updatedBy: userId }).onConflictDoNothing().run();
       }
-    }    writeAudit(tx, { userId, action: "create", entity: "cohort", entityId: cohort.id, after: cohort });
+    }
+    ensureDutyRoster(tx as unknown as DB, cohort.id, userId); // สเปก 22B: ผู้รับผิดชอบประจำวัน หมุนเวียน
+    writeAudit(tx, { userId, action: "create", entity: "cohort", entityId: cohort.id, after: cohort });
     return cohort;
   });
 }

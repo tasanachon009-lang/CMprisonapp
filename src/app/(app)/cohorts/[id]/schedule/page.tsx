@@ -17,7 +17,8 @@ import { getSetting } from "@/lib/bootstrap";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { Alert } from "@/components/ui";
 import { StaffNames, SessionStaffEditor, type StaffView } from "./schedule-client";
-import { AddSessionButton, ReplaceStaffButton, WeekBoard } from "./schedule-tools";
+import { AddSessionButton, ReplaceStaffButton, WeekBoard, DutySelect } from "./schedule-tools";
+import { ensureDutyRoster, dutyMap, dutyCandidates } from "@/lib/services/duty";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,12 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
   const externals = canEdit ? listInstructors(db).filter((i) => i.kind === "external" && i.active).map((i) => ({ id: i.id, name: i.displayName, org: i.organization, ready: i.readiness.ready })) : [];
   const today = todayISO();
   const makeups = makeupNeeded(db, row.cohort.id);
+  // สเปก 22B: ผู้รับผิดชอบประจำวัน (เติมวันที่ยังไม่มีแบบหมุนเวียน)
+  ensureDutyRoster(db, row.cohort.id);
+  const duty = dutyMap(db, row.cohort.id);
+  const dutyPeople = dutyCandidates(db);
+  const dutyOf = (d: string) => { const r = duty.get(d); return r ? r.userId : null; };
+  const dutyName = (d: string) => { const id = dutyOf(d); return id ? names.get(id) ?? "-" : null; };
   const org = `${getSetting<string>(db, "org.unitName", "")} ${getSetting<string>(db, "org.name", "")}`.trim();
   const label = `${row.course.shortName} ${cohortLabel(row.cohort)}`;
   const days = Array.from(new Set(sessions.map((s) => s.date)));
@@ -155,6 +162,14 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
             <span className="font-semibold">{formatThaiDate(weekStart)} – {formatThaiDate(addDays(weekStart, 6))}</span>
             <Link href={`?view=week&week=${addDays(weekStart, 7)}`} className="btn-ghost btn-sm">สัปดาห์ถัดไป →</Link>
           </div>
+          {weekDates.some((d) => days.includes(d)) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-line bg-white px-3 py-2">
+              <span className="text-sm font-semibold">ผู้รับผิดชอบประจำวัน:</span>
+              {weekDates.filter((d) => days.includes(d)).map((d) => canEdit
+                ? <DutySelect key={d} cohortId={row.cohort.id} date={d} userId={dutyOf(d)} people={dutyPeople} editable compact />
+                : <span key={d} className="text-sm">{formatThaiDate(d)}: <b>{dutyName(d) ?? "ยังไม่กำหนด"}</b></span>)}
+            </div>
+          )}
           <WeekBoard
             cohortId={row.cohort.id}
             editable={canEdit}
@@ -168,6 +183,8 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
             <section key={d} className={`panel p-4 ${d === today ? "ring-2 ring-navy" : ""}`}>
               <h2 className="text-lg">วันที่ {i + 1}</h2>
               <p className="text-sm text-muted">{formatThaiDate(d, "full")}</p>
+              <DutySelect cohortId={row.cohort.id} date={d} userId={dutyOf(d)} people={dutyPeople} editable={canEdit} />
+              {d <= today && <Link href={`/print/session-report?cohort=${row.cohort.id}&date=${d}`} target="_blank" className="text-sm text-navy underline">พิมพ์บันทึกผลการจัดกิจกรรมของวันนี้</Link>}
               <ul className="mt-2 space-y-2">
                 {sessions.filter((s) => s.date === d).map((s) => <li key={s.id} className="rounded-xl bg-cream px-3 py-2">{card(s)}</li>)}
               </ul>

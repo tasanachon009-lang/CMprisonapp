@@ -7,6 +7,7 @@ import { RuleError } from "../errors";
 import { isValidISODate } from "../thai-date";
 import { cohortLabel } from "./cohorts";
 import { activeStaff, assertEditable, findConflicts, getSession, overlaps, type Conflict } from "./schedule";
+import { ensureDutyRoster } from "./duty";
 
 /**
  * แก้ตารางของรุ่น (สเปก 11.4) และตรวจความทับซ้อน (สเปก 22B)
@@ -79,6 +80,7 @@ export function updateSession(db: DB, id: number, patch: SessionPatch, actor: Ac
     before: { date: prev.date, startTime: prev.startTime, endTime: prev.endTime, hours: prev.hours, location: prev.location, title: prev.title, topicId: prev.topicId },
     after: next, note: warnings.length ? `ยืนยันทั้งที่มีความทับซ้อน: ${warnings.join(" | ")}` : null, ip: actor.ip,
   });
+  if (next.date !== prev.date) ensureDutyRoster(db, prev.cohortId, actor.userId);
   return { warnings };
 }
 
@@ -102,6 +104,7 @@ export function addSession(db: DB, cohortId: number, input: { date: string; star
     topicId: input.topicId ?? null, location: input.location?.trim() || c.location, takesAttendance: input.takesAttendance ?? true, createdBy: actor.userId, updatedBy: actor.userId,
   }).returning().get();
   writeAudit(db, { userId: actor.userId, action: "create", entity: "cohort_session", entityId: row.id, after: { cohortId, date: input.date, startTime: input.startTime, title }, ip: actor.ip });
+  ensureDutyRoster(db, cohortId, actor.userId);
   return row;
 }
 

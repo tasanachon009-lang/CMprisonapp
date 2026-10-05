@@ -52,6 +52,8 @@ const ReportZ = z.object({
   summary: z.string().max(500).nullable().optional(),
   issues: z.string().max(1000).nullable().optional(),
   staff: z.array(z.object({ staffId: z.number().int(), didTeach: z.boolean(), actualHours: z.number().nullable().optional() })).max(50).optional(),
+  chips: z.array(z.string().max(100)).max(30).nullable().optional(),
+  source: z.enum(["direct", "paper_copy"]).optional(),
 });
 
 /** "บันทึกและปิดคาบ" — ผู้สอน หรือเจ้าหน้าที่ที่เช็คชื่อได้ (บันทึกแทนวิทยากรภายนอก) */

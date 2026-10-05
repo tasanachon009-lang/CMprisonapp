@@ -22,6 +22,7 @@ import { hashPassword } from "../src/lib/auth/password";
 import { createCohort } from "../src/lib/services/cohorts";
 import { registerEnrollment } from "../src/lib/services/registry";
 import { todayISO, addDays } from "../src/lib/thai-date";
+import { setDutyOfficer } from "../src/lib/services/duty";
 
 if (config.envLabel === "production") {
   console.error("❌ ห้ามรัน seed ข้อมูลปลอมบนเครื่องใช้จริง (APP_ENV=production)");
@@ -201,7 +202,7 @@ async function main() {
         if (s.date >= addDays(today, -1) || s.status === "cancelled") continue;
         const recorder = s.takesAttendance ? pick(rehabStaff) : rehabStaff[0];
         const present = tx.select({ id: schema.attendance.id }).from(schema.attendance).where(and(eq(schema.attendance.sessionId, s.id), eq(schema.attendance.status, "present"))).all().length;
-        tx.insert(schema.sessionReports).values({ sessionId: s.id, ...(rand() < 0.95 ? { outcome: "planned" as const, reason: null } : { outcome: "partial" as const, reason: "เวลาไม่พอ (ข้อมูลทดสอบ)" }), participation: pick(["excellent", "good", "good", "fair"]), summary: "ผู้เข้าอบรมร่วมกิจกรรมตามแผน (ข้อมูลทดสอบ)", participants: present, proxyEntry: false, createdBy: recorder, updatedBy: recorder }).onConflictDoNothing().run();
+        tx.insert(schema.sessionReports).values({ sessionId: s.id, ...(rand() < 0.95 ? { outcome: "planned" as const, reason: null } : { outcome: "partial" as const, reason: "เวลาไม่พอ (ข้อมูลทดสอบ)" }), participation: pick(["excellent", "good", "good", "fair"]), summary: "ดำเนินกิจกรรมตามแผน — สมาชิกกล้าแสดงออก (ข้อมูลทดสอบ)", chips: ["สมาชิกกล้าแสดงออก"], participants: present, proxyEntry: false, createdBy: recorder, updatedBy: recorder }).onConflictDoNothing().run();
         tx.update(schema.cohortSessions).set({ taughtAt: new Date(), taughtBy: recorder, status: "done" }).where(eq(schema.cohortSessions.id, s.id)).run();
       }
     });
@@ -316,6 +317,15 @@ async function main() {
     db.update(schema.cohortSessions).set({ maxStaff: 3 }).where(eq(schema.cohortSessions.id, twoStaff[0].id)).run();
     db.insert(schema.sessionStaff).values({ sessionId: twoStaff[0].id, instructorId: somsri.id, role: "co" }).onConflictDoNothing().run();
   }
+  // สเปก 22B: คาบบ่ายวันนี้มีแต่วิทยากรภายนอก → ผู้รับผิดชอบประจำวัน (ศิริลักษณ์) เห็นการ์ด "ต้องบันทึกแทน" ที่หน้าแรก
+  const pmToday = future.find((s) => s.date === today && s.startTime === "13:00");
+  if (pmToday) {
+    db.update(schema.sessionStaff).set({ deletedAt: new Date(), deletedBy: headId }).where(eq(schema.sessionStaff.sessionId, pmToday.id)).run();
+    db.insert(schema.sessionStaff).values({ sessionId: pmToday.id, instructorId: somsri.id, inviteStatus: "confirmed", createdBy: headId }).run();
+  }
+  const sirilak = db.select().from(schema.users).where(eq(schema.users.firstName, "ศิริลักษณ์")).get();
+  if (sirilak && future.some((s) => s.date === today)) setDutyOfficer(db, cur.id, today, sirilak.id, { userId: headId });
+
   for (const permission of ["contacts.edit", "bst.view", "bst.edit"]) {
     db.insert(schema.permissionGrants).values({ userId: userIds[9], permission, allow: true, scope: `cohort:${cur.id}`, reason: "มอบหมายงานญาติ/ติดตามรุ่นนี้ (ตัวอย่าง)", createdBy: headId }).run();
   }

@@ -7,6 +7,7 @@ import { requireAction, clientIp } from "@/lib/auth/session";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { addStaff, removeStaff, setStaffRole } from "@/lib/services/schedule";
 import { updateSession, addSession, cancelSession, replaceStaffInRange } from "@/lib/services/schedule-edit";
+import { setDutyOfficer } from "@/lib/services/duty";
 
 const StaffSchema = z.object({
   userId: z.number().int().positive().nullable().optional(),
@@ -110,6 +111,18 @@ export async function replaceStaffAction(input: z.input<typeof ReplaceZ>): Promi
     revalidatePath("/cohorts");
     revalidatePath("/calendar");
     return { ok: true, data: r };
+  } catch (e) {
+    return toError(e);
+  }
+}
+/** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) */
+export async function setDutyAction(cohortId: number, date: string, userId: number): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("schedule.edit");
+    setDutyOfficer(getDb(), cohortId, date, userId, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath(`/cohorts/${cohortId}/schedule`);
+    revalidatePath("/");
+    return { ok: true, message: "เปลี่ยนผู้รับผิดชอบประจำวันแล้ว" };
   } catch (e) {
     return toError(e);
   }

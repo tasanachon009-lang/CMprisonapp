@@ -6,6 +6,8 @@ import { listRates, listTopics } from "@/lib/services/pay-setup";
 import { listInstructors } from "@/lib/services/instructors";
 import { Breadcrumb, PageHeader, Alert } from "@/components/ui";
 import { TopicsEditor } from "./topics-client";
+import { TopicChipsEditor, ReportChoicesEditor } from "./chips-client";
+import { getSetting } from "@/lib/bootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,16 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
         rates={rates.map((r) => ({ id: r.id, name: r.name, kind: r.kind, perHourBaht: r.perHourSatang / 100, isSample: r.isSample }))}
         people={people.map((p) => ({ key: p.userId ? `u${p.userId}` : `i${p.id}`, userId: p.userId, instructorId: p.userId ? null : p.id, name: p.displayName, kind: p.kind }))}
       />
+      <section className="card space-y-3">
+        <h2 className="text-xl">ชิป &quot;สิ่งที่ได้&quot; สำหรับบันทึกผลหลังสอน</h2>
+        <p className="text-muted">ผู้บันทึกกดเลือกชิปแทนการพิมพ์ ระบบประกอบเป็นประโยคสรุปให้ (สเปก 22B)</p>
+        {topics.some((t) => t.active && !t.chipsReviewedAt) && <Alert tone="warn">ชิปที่มีป้าย &quot;ร่าง&quot; ระบบร่างจากชื่อหัวข้อ เพราะยังไม่มีไฟล์คู่มือหลักสูตรในระบบ — กรุณาตรวจกับ &quot;จุดประสงค์การเรียนรู้&quot; ในคู่มือ แล้วกดบันทึก</Alert>}
+        <TopicChipsEditor topics={topics.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name, chips: (t.outcomeChips as string[] | null) ?? [], draft: !t.chipsReviewedAt }))} />
+      </section>
+      <section className="card space-y-3">
+        <h2 className="text-xl">ชิปทั่วไปและเหตุผลสำเร็จรูป (ทุกหลักสูตร)</h2>
+        <ReportChoicesEditor generalChips={getSetting<string[]>(db, "report.generalChips", [])} reasons={getSetting<{ partial: string[]; not_done: string[] }>(db, "report.reasons", { partial: [], not_done: [] })} />
+      </section>
     </div>
   );
 }

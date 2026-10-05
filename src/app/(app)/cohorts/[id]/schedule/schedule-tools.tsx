@@ -7,7 +7,7 @@ import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
 import { ThaiDateInput } from "@/components/thai-date-input";
 import { formatThaiDate } from "@/lib/thai-date";
-import { addSessionAction, replaceStaffAction, updateSessionAction } from "./actions";
+import { addSessionAction, replaceStaffAction, updateSessionAction, setDutyAction } from "./actions";
 import type { TopicOpt } from "./schedule-client";
 
 type PersonOpt = { key: string; label: string; userId: number | null; instructorId: number | null };
@@ -131,5 +131,25 @@ export function WeekBoard({ cohortId, days, cards, editable }: { cohortId: numbe
         ))}
       </div>
     </div>
+  );
+}
+
+/** ผู้รับผิดชอบประจำวัน (สเปก 22B) — เลือกจากเจ้าหน้าที่หลัก · ดูอย่างเดียวเมื่อไม่มีสิทธิ์ */
+export function DutySelect({ cohortId, date, userId, people, editable, compact }: { cohortId: number; date: string; userId: number | null; people: Array<{ id: number; name: string }>; editable: boolean; compact?: boolean }) {
+  const router = useRouter();
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const name = people.find((p) => p.id === userId)?.name ?? "ยังไม่กำหนด";
+  if (!editable) return <p className="text-sm">ผู้รับผิดชอบประจำวัน: <b>{name}</b></p>;
+  return (
+    <label className={`flex flex-wrap items-center gap-2 text-sm ${compact ? "" : "mt-1"}`}>
+      <span>{compact ? formatThaiDate(date) : "ผู้รับผิดชอบประจำวัน"}</span>
+      <select className="input min-h-11 w-auto py-1" value={userId ?? ""} disabled={pending} aria-label={`ผู้รับผิดชอบประจำวัน ${formatThaiDate(date)}`}
+        onChange={(e) => start(async () => { setErr(null); const r = await setDutyAction(cohortId, date, Number(e.target.value)); if (!r.ok) setErr(r.error); router.refresh(); })}>
+        {userId == null && <option value="">ยังไม่กำหนด</option>}
+        {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+      {err && <span className="text-danger">{err}</span>}
+    </label>
   );
 }

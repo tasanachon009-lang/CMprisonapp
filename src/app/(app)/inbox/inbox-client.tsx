@@ -7,14 +7,15 @@ import { Alert } from "@/components/ui";
 import { ThaiDateInput } from "@/components/thai-date-input";
 import { sendShiftMessage, ackShiftMessage, resolveShiftMessage } from "./actions";
 
-export function Compose({ staff, cohorts, canHealth, today }: { staff: Array<{ id: number; name: string }>; cohorts: Array<{ id: number; label: string }>; canHealth: boolean; today: string }) {
+/** prefill = เปิดจากชิป "มีเหตุการณ์ต้องแจ้งเวร" ในหน้าคาบ (สเปก 22B) — เติมรุ่น/คาบให้ */
+export function Compose({ staff, cohorts, canHealth, today, prefill }: { staff: Array<{ id: number; name: string }>; cohorts: Array<{ id: number; label: string }>; canHealth: boolean; today: string; prefill?: { body: string; cohortId: number | null } }) {
   const router = useRouter();
   const blank = { level: "normal" as "normal" | "important" | "red", body: "", healthRelated: false, recipientType: "next_shift" as "next_shift" | "all" | "user" | "cohort", recipientUserId: "", recipientCohortId: "", needsAction: false, dueDate: "" };
-  const [f, setF] = useState(blank);
+  const [f, setF] = useState(prefill ? { ...blank, level: "important" as const, body: prefill.body, ...(prefill.cohortId ? { recipientType: "cohort" as const, recipientCohortId: String(prefill.cohortId) } : {}) } : blank);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
   return (
-    <details className="card" open={false}>
+    <details className="card" open={!!prefill}>
       <summary className="cursor-pointer text-lg font-semibold">✍️ เขียนข้อความส่งเวร</summary>
       <div className="mt-4 space-y-3">
         <div className="flex flex-wrap gap-2">

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { requireAction, clientIp } from "@/lib/auth/session";
+import { setTopicChips, cleanChips } from "@/lib/services/session-close";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { getSetting, setSetting } from "@/lib/bootstrap";
 import { writeAudit } from "@/lib/audit";
@@ -79,6 +80,44 @@ export async function bulkTopicsAction(courseId: number, ids: number[], patch: P
     const n = bulkUpdateTopics(getDb(), courseId, ids.slice(0, 500), p.data as never, { userId: auth.user.id, ip: await clientIp() });
     revalidatePath("/admin/topics");
     return { ok: true, data: { n }, message: `แก้แล้ว ${n} หัวข้อ` };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+/** สเปก 22B: ชิป "สิ่งที่ได้" ของหัวข้อ */
+export async function saveTopicChipsAction(topicId: number, chips: string[]): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("topics.manage");
+    const p = z.array(z.string().max(100)).max(20).safeParse(chips);
+    if (!p.success) return { ok: false, error: "ชิปได้สูงสุด 20 อัน อันละไม่เกิน 100 ตัวอักษร" };
+    setTopicChips(getDb(), topicId, p.data, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath("/admin/topics");
+    return { ok: true, message: "บันทึกชิปแล้ว" };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+const ChoicesZ = z.object({
+  generalChips: z.array(z.string().max(100)).max(20),
+  reasons: z.object({ partial: z.array(z.string().max(100)).max(20), not_done: z.array(z.string().max(100)).max(20) }),
+});
+
+/** สเปก 22B: ชิปทั่วไป + เหตุผลสำเร็จรูป */
+export async function saveReportChoicesAction(input: z.input<typeof ChoicesZ>): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("topics.manage");
+    const p = ChoicesZ.safeParse(input);
+    if (!p.success) return { ok: false, error: "รายการได้สูงสุด 20 ข้อ ข้อละไม่เกิน 100 ตัวอักษร" };
+    const db = getDb();
+    const before = { generalChips: getSetting(db, "report.generalChips", null), reasons: getSetting(db, "report.reasons", null) };
+    const clean = { generalChips: cleanChips(p.data.generalChips), reasons: { partial: cleanChips(p.data.reasons.partial), not_done: cleanChips(p.data.reasons.not_done) } };
+    setSetting(db, "report.generalChips", clean.generalChips, auth.user.id);
+    setSetting(db, "report.reasons", clean.reasons, auth.user.id);
+    writeAudit(db, { userId: auth.user.id, action: "settings.change", entity: "report_choices", before, after: clean, ip: await clientIp() });
+    revalidatePath("/admin/topics");
+    return { ok: true, message: "บันทึกแล้ว" };
   } catch (e) {
     return toError(e);
   }

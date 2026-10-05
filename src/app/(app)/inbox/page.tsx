@@ -34,13 +34,16 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
   const staff = db.select({ id: schema.users.id, f: schema.users.firstName, l: schema.users.lastName }).from(schema.users).where(eq(schema.users.status, "active")).all().filter((u) => u.id !== auth.user.id);
   const pendingAck = msgs.filter((m) => !m.mine && !m.ackedByMe);
   const today = todayISO();
+  // จากชิป "มีเหตุการณ์ต้องแจ้งเวร" ในหน้าคาบ → เติมรุ่น/คาบ (ส่งถึงทีมของรุ่นถ้าส่งได้)
+  const fromSession = typeof sp.session === "string" ? db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, Number(sp.session))).get() : undefined;
+  const prefill = fromSession ? { body: `เหตุการณ์ในคาบ "${fromSession.title}" (${cohortName.get(fromSession.cohortId) ?? "รุ่น"}) วันที่ ${formatThaiDate(fromSession.date)} ${fromSession.startTime} น.: `, cohortId: cohorts.some((c) => c.id === fromSession.cohortId) ? fromSession.cohortId : null } : undefined;
   return (
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ label: "จดหมายเวร" }]} />
       <PageHeader en="Shift Handoff" title="กล่องจดหมายเวร" subtitle="ส่งต่องานระหว่างเวร — ผู้รับต้องกด &quot;รับทราบภารกิจ&quot; ทีละข้อ ระบบบันทึกว่าใครรับทราบเมื่อไร" />
       {!v.full && <Alert tone="info">คุณเห็นเฉพาะข้อความที่ส่งถึงคุณ หรือถึงทีมของรุ่นที่คุณสอน — ส่งข้อความถึงเจ้าหน้าที่หลักได้ตามปกติ</Alert>}
       {sp.must && pendingAck.some((m) => m.level === "red") && <Alert tone="danger">มีข้อความระดับสีแดงที่ยังไม่รับทราบ — ต้องกด &quot;รับทราบภารกิจ&quot; ก่อนจึงจะเข้าเมนูอื่นได้</Alert>}
-      <Compose staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))} cohorts={cohorts} canHealth={auth.can("health.view")} today={today} />
+      <Compose staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))} cohorts={cohorts} canHealth={auth.can("health.view")} today={today} prefill={prefill} />
       <section className="space-y-3">
         {msgs.length === 0 && <EmptyState title="ยังไม่มีข้อความ" />}
         {msgs.map((m) => (

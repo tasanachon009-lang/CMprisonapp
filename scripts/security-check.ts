@@ -229,6 +229,27 @@ async function main() {
       && body("createMakeupAction").includes('requireAction("schedule.edit")')
       && body("setInviteStatusAction").includes('requireAction("schedule.edit")');
     check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "บันทึกและปิดคาบ: ตรวจสิทธิ์รายคาบที่เซิร์ฟเวอร์ · สร้างคาบชดเชย/เปลี่ยนสถานะเชิญ ต้องมีสิทธิ์แก้ตาราง", ok, "ตรวจจากโค้ด server action");
+    // สเปก 22B: ผู้รับผิดชอบประจำวัน / ชิป — ตรวจสิทธิ์ที่เซิร์ฟเวอร์
+    const schedSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/schedule/actions.ts", "utf8");
+    const paySrc = fs.readFileSync("src/app/(app)/admin/pay-actions.ts", "utf8");
+    const fn = (src: string, name: string) => src.slice(src.indexOf(`export async function ${name}`)).split("export async function")[1] ?? "";
+    check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้รับผิดชอบประจำวัน: เปลี่ยนได้เฉพาะผู้มีสิทธิ์แก้ตาราง · ชิป/เหตุผลสำเร็จรูป: เฉพาะผู้ดูแลคลังหัวข้อ",
+      fn(schedSrc, "setDutyAction").includes('requireAction("schedule.edit")') && fn(paySrc, "saveTopicChipsAction").includes('requireAction("topics.manage")') && fn(paySrc, "saveReportChoicesAction").includes('requireAction("topics.manage")'), "ตรวจจากโค้ด server action");
+    // ใบพิมพ์บันทึกผล/บันทึกหลังสอน ไม่มีชื่อผู้ต้องขัง
+    {
+      const taughtS = db.select().from(schema.cohortSessions).all().find((s) => s.taughtAt && s.takesAttendance && s.cohortId === notMine.cohortId);
+      if (taughtS) {
+        const inmate = db.select({ f: schema.persons.firstName, l: schema.persons.lastName }).from(schema.attendance)
+          .innerJoin(schema.enrollments, eq(schema.enrollments.id, schema.attendance.enrollmentId))
+          .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId))
+          .innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId))
+          .where(eq(schema.attendance.sessionId, taughtS.id)).get();
+        const rep = await get(`/print/session-report?session=${taughtS.id}`, C.rehab);
+        const note = await get(`/print/speaker-note/${taughtS.id}`, C.rehab);
+        const full = inmate ? `${inmate.f} ${inmate.l}` : "@@none@@";
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ใบบันทึกผลการจัดกิจกรรม / ใบบันทึกหลังสอน ไม่มีชื่อผู้ต้องขัง", rep.status === 200 && note.status === 200 && !rep.text.includes(full) && !note.text.includes(full), `HTTP ${rep.status}/${note.status}`);
+      }
+    }
     const asAssistant = await get(`/sessions/${notMine.id}`, C.assistant);
     check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ช่วย → เปิดคาบที่ไม่ได้รับผิดชอบ (ไม่เห็นฟอร์มปิดคาบ)", !allowed(asAssistant) && !asAssistant.text.includes("บันทึกและปิดคาบ"), `HTTP ${asAssistant.status}${asAssistant.location ? ` → ${asAssistant.location}` : ""}`);
   }

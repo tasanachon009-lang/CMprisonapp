@@ -18,6 +18,7 @@ import {
   index,
   uniqueIndex,
   type AnySQLiteColumn,
+  check,
 } from "drizzle-orm/sqlite-core";
 
 const ts = (name: string) => integer(name, { mode: "timestamp_ms" });
@@ -747,6 +748,85 @@ export const delegations = sqliteTable(
   },
   (t) => [index("delegations_to_idx").on(t.toUserId, t.endDate)],
 );
+
+// ───────────────────────── งบประมาณ (สเปก 13) — เงินเป็นสตางค์ (จำนวนเต็ม) ทุกช่อง ─────────────────────────
+
+const intMoney = (col: string) => sql.raw(`typeof(${col}) = 'integer' AND ${col} >= 0`);
+
+/** การจัดสรรงบต่อปีงบ (13.1): แหล่งเงิน เลขที่หนังสือ จำนวนเงิน เงื่อนไขถัวเฉลี่ย */
+export const budgetAllocations = sqliteTable(
+  "budget_allocations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    fiscalYear: integer("fiscal_year").notNull(),
+    /** lookups.fund_source */
+    source: text("source").notNull(),
+    docNo: text("doc_no"),
+    docDate: text("doc_date"),
+    subject: text("subject").notNull(),
+    courseId: integer("course_id").references(() => courses.id),
+    amountSatang: integer("amount_satang").notNull(),
+    targetPeople: integer("target_people"),
+    targetCohorts: integer("target_cohorts"),
+    /** true = ถัวเฉลี่ยได้ · false = ห้ามถัว (เกินหมวดต้องผู้ดูแลยืนยัน) */
+    flexible: integer("flexible", { mode: "boolean" }).notNull().default(true),
+    note: text("note"),
+    ...tracking(),
+  },
+  (t) => [index("budget_allocations_fy_idx").on(t.fiscalYear), check("budget_allocations_amount_int", intMoney("amount_satang"))],
+);
+
+/** งบของรุ่น (13.2): รายการ + แหล่งเงิน + สูตร "หน่วย × จำนวน × ..." → amount_satang (ฐานข้อมูลกันรวมเกินที่จัดสรรด้วย trigger) */
+export const budgetLines = sqliteTable(
+  "budget_lines",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+    allocationId: integer("allocation_id").notNull().references(() => budgetAllocations.id),
+    /** lookups.budget_item: "<หมวด>.<รายการ>" เช่น compensation.speaker_external */
+    item: text("item").notNull(),
+    label: text("label"),
+    unitSatang: integer("unit_satang").notNull(),
+    /** [{ qty, unit }] เช่น [{qty:15, unit:"ชม."}, {qty:1, unit:"คน"}] */
+    factors: text("factors", { mode: "json" }).notNull(),
+    amountSatang: integer("amount_satang").notNull(),
+    sortOrder: integer("sort_order").notNull().default(100),
+    ...tracking(),
+  },
+  (t) => [index("budget_lines_cohort_idx").on(t.cohortId), index("budget_lines_alloc_idx").on(t.allocationId), check("budget_lines_amount_int", intMoney("amount_satang")), check("budget_lines_unit_int", intMoney("unit_satang"))],
+);
+
+/** ใช้จ่ายจริง (13.3) — ค่าวิทยากรไม่อยู่ที่นี่ (ดึงจากรอบเบิกที่อนุมัติแล้วเสมอ) · kind = expense | refund (คืนเงินเหลือ) */
+export const budgetExpenses = sqliteTable(
+  "budget_expenses",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+    allocationId: integer("allocation_id").notNull().references(() => budgetAllocations.id),
+    kind: text("kind").notNull().default("expense"),
+    /** รายการงบ (null เมื่อคืนเงินเหลือ) */
+    item: text("item"),
+    date: text("date").notNull(),
+    description: text("description").notNull(),
+    amountSatang: integer("amount_satang").notNull(),
+    docNo: text("doc_no"),
+    ...tracking(),
+  },
+  (t) => [index("budget_expenses_cohort_idx").on(t.cohortId), check("budget_expenses_amount_int", sql.raw("typeof(amount_satang) = 'integer' AND amount_satang > 0"))],
+);
+
+/** ผู้ดูแลยืนยันการใช้เกินงบหมวดของแหล่งเงินที่ห้ามถัว (13.3) — ยืนยันที่ยอดเกินเท่าใด (เกินเพิ่มอีก = ต้องยืนยันใหม่) */
+export const budgetOverrunAcks = sqliteTable("budget_overrun_acks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+  allocationId: integer("allocation_id").notNull().references(() => budgetAllocations.id),
+  category: text("category").notNull(),
+  overSatang: integer("over_satang").notNull(),
+  note: text("note").notNull(),
+  viaDelegationId: integer("via_delegation_id"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: ts("created_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
+});
 
 /** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) — วันละ 1 คน (กลุ่ม A) · บันทึกแทนวิทยากรภายนอก */
 export const dutyOfficers = sqliteTable(

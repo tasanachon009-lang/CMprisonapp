@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
 import { openDatabase, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
 
@@ -285,6 +285,24 @@ async function main() {
           bundleFin.status === 200 && bundleFin.text.includes("ตรวจยอดแล้ว") && pdfFin.status === 200 && (pdfFin.headers.get("content-type") ?? "").includes("application/pdf")
             && !allowed(bundleRehab) && xlsRehab.status === 403 && pdfRehab.status === 403 && testRehab.status === 403,
           `fin ${bundleFin.status}/${pdfFin.status} · rehab ${bundleRehab.status}/${pdfRehab.status} · xls ${xlsRehab.status} · test ${testRehab.status}`);
+      }
+      // กลุ่ม 6 งบประมาณ: หัวหน้า/รองแก้ · การเงินบันทึกจ่ายจริง · ผู้บริหารดูอย่างเดียว · เจ้าหน้าที่หลัก/ผู้ช่วยเข้าไม่ได้
+      {
+        const bAdmin = await get("/budget", C.admin), bFin = await get("/budget", C.finance), bExec = await get("/budget", C.executive), bRehab = await get("/budget", C.rehab), bAsst = await get("/budget", C.assistant);
+        const withBudget = db.select({ id: schema.budgetLines.cohortId }).from(schema.budgetLines).innerJoin(schema.cohorts, eq(schema.cohorts.id, schema.budgetLines.cohortId)).where(ne(schema.cohorts.status, "closed")).get();
+        const cbFin = withBudget ? await get(`/cohorts/${withBudget.id}/budget`, C.finance) : null;
+        const cbExec = withBudget ? await get(`/cohorts/${withBudget.id}/budget`, C.executive) : null;
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "งบประมาณ: หัวหน้าเพิ่มการจัดสรรได้ / การเงินบันทึกจ่ายจริงได้แต่จัดสรรไม่ได้ / ผู้บริหารดูอย่างเดียว / เจ้าหน้าที่หลัก-ผู้ช่วยเข้าไม่ได้",
+          bAdmin.text.includes("เพิ่มการจัดสรร") && allowed(bFin) && !bFin.text.includes("เพิ่มการจัดสรร") && allowed(bExec) && bExec.text.includes("ดูอย่างเดียว") && !bExec.text.includes("เพิ่มการจัดสรร")
+            && !allowed(bRehab) && !allowed(bAsst) && (!cbFin || (cbFin.text.includes("บันทึกใช้จ่าย") && !cbFin.text.includes("เพิ่มรายการเอง"))) && (!cbExec || (!cbExec.text.includes("บันทึกใช้จ่าย") && !cbExec.text.includes("เพิ่มรายการเอง"))),
+          `admin ${bAdmin.status} · fin ${bFin.status} · exec ${bExec.status} · rehab ${bRehab.status} · asst ${bAsst.status}`);
+        const bsrc = fs.readFileSync("src/app/(app)/budget/actions.ts", "utf8");
+        const manageOk = ["saveAllocationAction", "deleteAllocationAction", "saveLineAction", "deleteLineAction", "applyTemplateAction", "copyLinesAction"].every((n) => fn(bsrc, n).includes('requireAction("budget.manage")'));
+        const spendOk = ["recordExpenseAction", "recordRefundAction", "deleteExpenseAction"].every((n) => fn(bsrc, n).includes('requireAction("budget.spend")'));
+        const triggers = sqlite.prepare("select name from sqlite_master where type = 'trigger' and name like 'budget_%'").all().length;
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "งบประมาณตรวจสิทธิ์ที่เซิร์ฟเวอร์ทุก action · ยืนยันเกินงบต้องมีสิทธิ์ · ฐานข้อมูลกันรวมงบเกินจัดสรร (trigger) + เงินเป็นสตางค์จำนวนเต็ม (CHECK)",
+          manageOk && spendOk && fn(bsrc, "confirmOverrunAction").includes('requireAction("budget.approve")') && triggers === 3,
+          `trigger ${triggers}/3 · ตรวจจากโค้ด server action`);
       }
       const delFin = await get("/admin/delegations", C.finance);
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);

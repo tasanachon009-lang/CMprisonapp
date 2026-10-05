@@ -50,7 +50,10 @@ export const PERMISSIONS = {
   "pay.view": "ดูค่าตอบแทนและรอบเบิก",
   "pay.manage": "สร้างรอบเบิก/ตรวจยอดค่าตอบแทน",
   "pay.approve": "อนุมัติค่าตอบแทน (ล็อกคาบ)",
-  "budget.approve": "อนุมัติงบประมาณ",
+  "budget.approve": "ยืนยันการใช้เกินงบหมวด (แหล่งเงินห้ามถัว)",
+  "budget.view": "ดูงบประมาณ",
+  "budget.manage": "จัดสรรงบ / ตั้งงบของรุ่น",
+  "budget.spend": "บันทึกใช้จ่ายจริง / คืนเงินเหลือ",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -83,8 +86,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
   // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
   // การเงิน: ทะเบียนวิทยากร (รวมข้อมูลเบิกจ่ายแบบเต็ม) และอัตราค่าตอบแทน
-  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage"],
-  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary"],
+  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage", "budget.view", "budget.spend"],
+  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "budget.view"],
   warden: ["roster.view"],
 };
 

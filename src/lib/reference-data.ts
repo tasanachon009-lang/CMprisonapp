@@ -199,6 +199,27 @@ export const LOOKUPS: Record<string, Array<[code: string, label: string]>> = {
     ["court", "เอกสารศาล"],
     ["other", "อื่นๆ"],
   ],
+  // สเปก 13.1: แหล่งเงิน (ตั้งค่าได้)
+  fund_source: [
+    ["dept", "กรมราชทัณฑ์"],
+    ["nhso", "สปสช."],
+    ["oncb", "ป.ป.ส."],
+    ["prison", "งบเรือนจำ"],
+    ["donation", "เงินบริจาค"],
+    ["other", "อื่นๆ"],
+  ],
+  // สเปก 13.2: หมวด/รายการงบ — รหัส "<หมวด>.<รายการ>" (หมวด: compensation ค่าตอบแทน / operating ค่าใช้สอย / materials ค่าวัสดุ)
+  // ค่าวิทยากรภายใน/ภายนอก ตัดงบอัตโนมัติจากรอบเบิกที่อนุมัติแล้ว (สเปก 11.5A, 13.3)
+  budget_item: [
+    ["compensation.speaker_internal", "ค่าตอบแทนวิทยากรภายใน"],
+    ["compensation.speaker_external", "ค่าตอบแทนวิทยากรภายนอก"],
+    ["compensation.overtime", "ค่าตอบแทนนอกเวลาราชการ"],
+    ["operating.food", "ค่าอาหาร/อาหารว่างและเครื่องดื่ม"],
+    ["operating.copy", "ค่าถ่ายเอกสาร"],
+    ["operating.contract", "ค่าจ้างเหมา"],
+    ["materials.stationery", "ค่าเครื่องเขียน"],
+    ["materials.equipment", "ค่าอุปกรณ์"],
+  ],
   substance: [
     ["meth", "ยาบ้า (เมทแอมเฟตามีน)"],
     ["ice", "ไอซ์"],
@@ -257,6 +278,19 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "docs.payerName": "",
   "docs.voucherCorner": "เอกสารหมายเลข ๑",
   "docs.showKtbForm": true,
+  // สเปก 13.2/17: แม่แบบงบของหลักสูตร — ใส่จำนวนคน → คำนวณทั้งหมด · var: people = จำนวนคน, speakers = ceil(คน/perSpeaker)
+  // ⚠️ ค่าตัวอย่างจากคู่มือ (3 วัน: วิทยากร 600 × 15 ชม. ต่อ 50 คน, วัสดุ 159 บาท/คน) — แก้ได้ทุกปี
+  "budget.templates": {
+    PRE3: { perSpeaker: 50, lines: [
+      { item: "compensation.speaker_external", unitSatang: 60000, factors: [{ qty: 15, unit: "ชม." }, { var: "speakers", unit: "คน" }] },
+      { item: "materials.stationery", unitSatang: 15900, factors: [{ var: "people", unit: "คน" }] },
+    ] },
+    B12: { perSpeaker: 50, lines: [
+      { item: "compensation.speaker_external", unitSatang: 60000, factors: [{ qty: 20, unit: "ชม." }, { var: "speakers", unit: "คน" }] },
+      { item: "operating.food", unitSatang: 3500, factors: [{ var: "people", unit: "คน" }, { qty: 12, unit: "วัน" }] },
+      { item: "materials.stationery", unitSatang: 2000, factors: [{ var: "people", unit: "คน" }] },
+    ] },
+  },
   // สเปก 22: ปรับตำแหน่งการพิมพ์ทั้งหน้า (มม.) ต่อแบบฟอร์ม
   "print.offsets": { ktb: { dx: 0, dy: 0 }, voucher: { dx: 0, dy: 0 }, report: { dx: 0, dy: 0 } },
   "docs.ktbTemplate": {

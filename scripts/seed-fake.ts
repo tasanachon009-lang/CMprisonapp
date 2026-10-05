@@ -24,6 +24,7 @@ import { registerEnrollment } from "../src/lib/services/registry";
 import { todayISO, addDays } from "../src/lib/thai-date";
 import { setDutyOfficer } from "../src/lib/services/duty";
 import { createBatch, approveBatch } from "../src/lib/services/pay";
+import { saveAllocation, saveLine, applyCourseTemplate, copyLinesFrom, recordExpense, recordRefund } from "../src/lib/services/budget";
 
 if (config.envLabel === "production") {
   console.error("❌ ห้ามรัน seed ข้อมูลปลอมบนเครื่องใช้จริง (APP_ENV=production)");
@@ -251,8 +252,10 @@ async function main() {
   const fastPeople = fillCohort(cf.id, 30, { yy: 68, admitted: "2025-08-01", enrolled: "2026-07-06", status: "active" });
 
   // 3 วัน (จบแล้ว) ปีงบ 2569
+  const pre3Cohorts: number[] = [];
   for (const start of ["2025-03-17", "2025-12-15", "2026-03-16", "2026-08-17"]) {
     const c = createCohort(db, { courseId: pre3.id, startDate: start, targetCount: 50 }, headId);
+    if (start >= "2025-10-01") pre3Cohorts.push(c.id);
     fillCohort(c.id, 45, { yy: 66, admitted: "2023-11-01", enrolled: start, status: "active" });
     completeCohort(c.id, true);
   }
@@ -344,9 +347,44 @@ async function main() {
     approveBatch(db, old.id, { userId: headId });
     createBatch(db, { cohortId: cur.id, note: "ตัวอย่างร่าง รออนุมัติ" }, { userId: finance?.id ?? headId });
   }
-
+  // ขั้น 3 กลุ่ม 6 งบประมาณ (ข้อมูลปลอม — เลขหนังสือสมมติ) ตามตัวอย่างคู่มือ
+  let p70Id = 0;
+  {
+    const a = { userId: headId };
+    // ตั้งงบก่อนปิดรุ่น (รุ่นที่ปิดแล้วแก้งบไม่ได้) → เปิดชั่วคราวแล้วปิดกลับ
+    const withOpen = (cid: number, fn: () => void) => {
+      const st = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cid)).get()!.status;
+      db.update(schema.cohorts).set({ status: "active" }).where(eq(schema.cohorts.id, cid)).run();
+      fn();
+      db.update(schema.cohorts).set({ status: st }).where(eq(schema.cohorts.id, cid)).run();
+    };
+    const fin = db.select().from(schema.users).where(eq(schema.users.firstName, "บุญศรี")).get()?.id ?? headId;
+    // ปีงบ 2569: 3 วัน — วิทยากร 600 × 15 ชม. × 1 คน, วัสดุ 159 × 50 คน ต่อรุ่น · ถัวเฉลี่ยได้
+    const p69 = saveAllocation(db, null, { fiscalYear: 2569, source: "dept", docNo: "ยธ 0708.6/ว 1234 (สมมติ)", docDate: "2025-10-20", subject: "งบโครงการฟื้นฟูก่อนพ้นโทษ ปีงบ 2569 (ข้อมูลปลอม)", courseId: pre3.id, amountSatang: 5100000, targetPeople: 150, targetCohorts: 3, flexible: true }, a);
+    pre3Cohorts.forEach((cid, i) => {
+      withOpen(cid, () => applyCourseTemplate(db, cid, p69.id, 50, a));
+      const mat = [795000, 810000, 750000][i]; // รุ่น 2 เกินหมวดวัสดุ 150 บาท (ถัวได้ = เหลือง)
+      recordExpense(db, cid, { allocationId: p69.id, item: "materials.stationery", date: "2026-03-20", description: "ค่าวัสดุอบรม 50 ชุด", amountSatang: mat, docNo: `บจ.${i + 1}/2569 (สมมติ)` }, { userId: fin, canConfirm: false });
+      if (i === 2) recordRefund(db, cid, { allocationId: p69.id, date: "2026-09-25", amountSatang: 45000, description: "คืนเงินเหลือค่าวัสดุ", docNo: "คืน 1/2569 (สมมติ)" }, a);
+    });
+    // ปีงบ 2568: 12 วัน รุ่น 2/2568 — ห้ามถัว · ค่าวิทยากรภายนอก = รอบเบิกที่อนุมัติแล้ว 10,800 บาท
+    const p68 = saveAllocation(db, null, { fiscalYear: 2568, source: "nhso", docNo: "1.2/2568 (สมมติ)", docDate: "2025-04-01", subject: "งบปรับเปลี่ยนพฤติกรรม 12 วัน ปีงบ 2568 (ข้อมูลปลอม)", courseId: b12.id, amountSatang: 3000000, targetPeople: 40, targetCohorts: 1, flexible: false }, a);
+    withOpen(c68b.id, () => {
+      saveLine(db, c68b.id, null, { allocationId: p68.id, item: "compensation.speaker_external", unitSatang: 60000, factors: [{ qty: 18, unit: "ชม." }, { qty: 1, unit: "คน" }] }, a);
+      saveLine(db, c68b.id, null, { allocationId: p68.id, item: "operating.food", unitSatang: 3500, factors: [{ qty: 40, unit: "คน" }, { qty: 12, unit: "วัน" }] }, a);
+      saveLine(db, c68b.id, null, { allocationId: p68.id, item: "materials.stationery", unitSatang: 2000, factors: [{ qty: 40, unit: "คน" }] }, a);
+    });
+    recordExpense(db, c68b.id, { allocationId: p68.id, item: "operating.food", date: "2025-06-17", description: "อาหารว่าง 12 วัน", amountSatang: 1650000, docNo: "บจ.7/2568 (สมมติ)" }, { userId: fin, canConfirm: false });
+    // ใช้วัสดุเกินหมวด 150 บาท (ห้ามถัว = แดง) — ตั้งใจไม่ยืนยันไว้ให้หัวหน้าลองกด "ยืนยันใช้เกินงบ"
+    db.insert(schema.budgetExpenses).values({ cohortId: c68b.id, allocationId: p68.id, kind: "expense", item: "materials.stationery", date: "2025-06-02", description: "เครื่องเขียน 40 ชุด", amountSatang: 95000, docNo: "บจ.8/2568 (สมมติ)", createdBy: fin, updatedBy: fin }).run();
+    // ปีงบ 2570: 12 วัน 2 รุ่น — แม่แบบ 45 คน · ถัวได้ · รอบเบิกรุ่นปัจจุบันยังเป็นร่าง (ยังไม่ตัดงบ)
+    p70Id = saveAllocation(db, null, { fiscalYear: 2570, source: "dept", docNo: "ยธ 0708.6/ว 5678 (สมมติ)", docDate: "2026-09-15", subject: "งบปรับเปลี่ยนพฤติกรรม 12 วัน ปีงบ 2570 (ข้อมูลปลอม)", courseId: b12.id, amountSatang: 7000000, targetPeople: 90, targetCohorts: 2, flexible: true }, a).id;
+    applyCourseTemplate(db, cur.id, p70Id, 45, a);
+    recordExpense(db, cur.id, { allocationId: p70Id, item: "operating.food", date: "2026-10-05", description: "อาหารว่าง 1–5 ต.ค.", amountSatang: 630000, docNo: "บจ.1/2570 (สมมติ)" }, { userId: fin, canConfirm: false });
+  }
   // ปีงบ 2570 รุ่นที่ 2 — วางแผนไว้ มีร่างลงทะเบียนล่วงหน้า
   const next = createCohort(db, { courseId: b12.id, startDate: "2027-01-11", targetCount: 45, location: "ห้องอบรม 2" }, headId);
+  copyLinesFrom(db, next.id, cur.id, p70Id, { userId: headId }); // งบรุ่นที่ 2/2570 คัดลอกจากรุ่นที่ 1
   fillCohort(next.id, 40, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
 
   // ── ข้อมูลขั้นที่ 2 (ปลอม) ──

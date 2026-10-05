@@ -2,6 +2,7 @@ import { requireAction, AuthError } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { docContext, payees, reconcile, markPrinted } from "@/lib/services/pay-docs";
 import { batchView } from "@/lib/services/pay";
+import { compensationBudget } from "@/lib/services/budget";
 import { createPdf } from "@/lib/pdf/core";
 import { drawKtb } from "@/lib/pdf/ktb";
 import { drawVoucher } from "@/lib/pdf/voucher";
@@ -46,7 +47,8 @@ export async function GET(req: Request, ctx: RouteContext<"/api/pay-docs/[id]">)
     const pdf = await createPdf();
     const blankIfOdd = (n: number) => { if (duplex && n % 2 === 1) pdf.doc.addPage(); };
     const total = people.reduce((a, p) => a + p.grossSatang, 0);
-    if (parts.has("summary")) blankIfOdd(await drawSummary(pdf, people, { ...c, total, tax: v.tax }, off.report));
+    // งบที่ได้รับ/คงเหลือ: ยอดเดียวกับหน้างบของรุ่น (สเปก 13 — ตรงกันทุกที่)
+    if (parts.has("summary")) blankIfOdd(await drawSummary(pdf, people, { ...c, total, tax: v.tax, budget: compensationBudget(db, c.batch.cohortId) }, off.report));
     if (parts.has("vouchers")) {
       for (const p of people) {
         blankIfOdd(await drawVoucher(pdf, p, { orgName: c.orgName, project: c.project, corner: c.corner, payerName: payer, date, tax: v.tax }, off.voucher));

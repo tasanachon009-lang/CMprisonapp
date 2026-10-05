@@ -85,6 +85,20 @@
       "when": 1791207530377,
       "tag": "0011_step3_vouchers",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791209413186,
+      "tag": "0012_step3_budget",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1791209427419,
+      "tag": "0013_budget_triggers",
+      "breakpoints": true
     }
   ]
 }

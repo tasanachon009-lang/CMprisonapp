@@ -12,6 +12,7 @@ import { SessionCardView } from "@/components/session-card";
 import { Stat, EmptyState, Alert } from "@/components/ui";
 import { backupHealth } from "@/lib/backup/status";
 import { LastCohortLink } from "@/components/remember-cohort";
+import { pendingReports, invitesDue, INVITE_LABEL } from "@/lib/services/session-close";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,8 @@ export default async function HomePage() {
         </section>
       )}
 
+      {(isMain || isAssistantOnly) && <CloseReminders today={today} userId={auth.user.id} includeProxy={isMain} invites={auth.can("schedule.edit")} />}
+
       {isMain && <MainCards today={today} userId={auth.user.id} mineToday={mineToday} mineTomorrow={mineTomorrow} scopes={auth.cohortScopes} />}
 
       {(isMain || auth.can("health.view")) && <Step2Cards today={today} />}
@@ -104,6 +107,47 @@ function MainCards({ today, mineToday, mineTomorrow }: { today: string; userId: 
           {mineTomorrow.length ? mineTomorrow.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่คุณรับผิดชอบ</p>}
         </div>
       </section>
+    </div>
+  );
+}
+
+/** คาบที่สอนแล้วแต่ยังไม่ "บันทึกและปิดคาบ" (ป้ายแดง) + วิทยากรภายนอกที่ยังไม่ยืนยัน (≤ 14 วัน) */
+function CloseReminders({ today, userId, includeProxy, invites }: { today: string; userId: number; includeProxy: boolean; invites: boolean }) {
+  const db = getDb();
+  const pending = pendingReports(db, userId, { includeProxy, today });
+  const due = invites ? invitesDue(db, today) : [];
+  if (!pending.length && !due.length) return null;
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {pending.length > 0 && (
+        <section className="card border-2 border-danger/40">
+          <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> ยังไม่บันทึกผลคาบ <span className="rounded-full bg-danger px-2.5 py-0.5 text-base text-white">{pending.length}</span></h2>
+          <p className="text-sm text-muted">กดเข้าไปเช็คชื่อ + ผลกิจกรรม แล้วกด &quot;บันทึกและปิดคาบ&quot; (ใช้คำนวณค่าตอบแทน)</p>
+          <ul className="mt-3 space-y-2">
+            {pending.slice(0, 8).map((s) => (
+              <li key={s.id}><Link href={`/sessions/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
+                <span><b>{s.title}</b><span className="block text-sm text-muted">{s.cohortLabel} · {formatThaiDate(s.date)} {s.startTime}–{s.endTime}</span></span>
+                <span className="flex gap-1">{s.proxy && <span className="tag-orange">บันทึกแทน</span>}{s.overdue && <span className="tag-danger">เลยวันแล้ว</span>}</span>
+              </Link></li>
+            ))}
+          </ul>
+          {pending.length > 8 && <p className="mt-2 text-sm text-muted">และอีก {pending.length - 8} คาบ</p>}
+        </section>
+      )}
+      {due.length > 0 && (
+        <section className="card">
+          <h2 className="flex items-center gap-2 text-xl"><Mail aria-hidden /> วิทยากรภายนอกยังไม่ยืนยัน <span className="tag-warn">{due.length}</span></h2>
+          <p className="text-sm text-muted">อีกไม่เกิน 14 วันจะถึงวันสอน — ส่งหนังสือ/โทรยืนยัน แล้วเปลี่ยนสถานะที่ตารางของรุ่น</p>
+          <ul className="mt-3 space-y-2">
+            {due.slice(0, 8).map((d) => (
+              <li key={d.staffId}><Link href={`/cohorts/${d.session.cohortId}/schedule?view=week&week=${d.session.date}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
+                <span><b>{d.name}</b><span className="block text-sm text-muted">{d.session.title} · {d.cohortLabel} · {formatThaiDate(d.session.date)}</span></span>
+                <span className="tag-warn">{INVITE_LABEL[d.status]}</span>
+              </Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

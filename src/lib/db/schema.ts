@@ -482,6 +482,9 @@ export const cohortSessions = sqliteTable(
     maxStaff: integer("max_staff"),
     /** หัวข้อในคลังหัวข้อ (สเปก 11.3) — ใช้หาอัตรา/วิธีแบ่ง/จำนวนสูงสุด */
     topicId: integer("topic_id").references((): AnySQLiteColumn => activityTopics.id),
+    /** ปิดคาบแล้ว (บันทึกสอนจริง + ผลกิจกรรม — สเปก 11.5, 22B) */
+    taughtAt: ts("taught_at"),
+    taughtBy: integer("taught_by"),
     ...tracking(),
   },
   (t) => [index("cohort_sessions_idx").on(t.cohortId, t.date), index("cohort_sessions_date_idx").on(t.date)],
@@ -502,6 +505,12 @@ export const sessionStaff = sqliteTable(
     instructorId: integer("instructor_id").references((): AnySQLiteColumn => instructors.id),
     /** สัดส่วนเมื่อหัวข้อแบ่งแบบ "กำหนดสัดส่วน" (ขั้น 3 ค่าตอบแทน) */
     shareRatio: real("share_ratio"),
+    /** สอนจริง (สเปก 11.5): ไม่แก้ = สอนตามตาราง · false = ไม่ได้สอน · actual_hours = ชั่วโมงไม่เต็ม */
+    didTeach: integer("did_teach", { mode: "boolean" }).notNull().default(true),
+    actualHours: real("actual_hours"),
+    /** สถานะการเชิญวิทยากรภายนอก: none | sent | accepted | declined | confirmed */
+    inviteStatus: text("invite_status"),
+    inviteUpdatedAt: ts("invite_updated_at"),
     ...tracking(),
   },
   (t) => [
@@ -615,6 +624,28 @@ export const activityTopics = sqliteTable(
     ...tracking(),
   },
   (t) => [uniqueIndex("activity_topics_unique").on(t.courseId, t.name).where(sql`deleted_at IS NULL`)],
+);
+
+/** ผลกิจกรรมของคาบ (สเปก 11.5) — 1 คาบ 1 รายการ · ผู้บันทึกแยกจากผู้สอน (บันทึกแทนวิทยากรภายนอก — สเปก 22B) */
+export const sessionReports = sqliteTable(
+  "session_reports",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sessionId: integer("session_id").notNull().references(() => cohortSessions.id),
+    /** planned = ตามแผน | partial = บางส่วน | not_done = ไม่ได้ทำ */
+    outcome: text("outcome").notNull(),
+    reason: text("reason"),
+    /** excellent | good | fair | needs_improvement */
+    participation: text("participation"),
+    summary: text("summary"),
+    issues: text("issues"),
+    /** จำนวนผู้เข้าร่วม ณ เวลาบันทึก (จากเช็คชื่อ) */
+    participants: integer("participants"),
+    /** บันทึกแทนวิทยากรภายนอก (ผู้บันทึกไม่ใช่ผู้สอน) */
+    proxyEntry: integer("proxy_entry", { mode: "boolean" }).notNull().default(false),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("session_reports_session_unique").on(t.sessionId).where(sql`deleted_at IS NULL`)],
 );
 
 // ───────────────────────── การลงทะเบียน การเช็คชื่อ ─────────────────────────

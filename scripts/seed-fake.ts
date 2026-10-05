@@ -196,6 +196,14 @@ async function main() {
         tx.update(schema.cohortSessions).set({ attendanceCheckedAt: new Date(), attendanceCheckedBy: pick(rehabStaff), status: "done" }).where(eq(schema.cohortSessions.id, s.id)).run();
         tx.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).onConflictDoNothing().run();
       }
+      // ผลกิจกรรม/ปิดคาบ (ขั้น 3) — เว้นคาบเมื่อวานไว้ให้เห็นป้าย "ยังไม่บันทึกผลคาบ"
+      for (const s of sessions) {
+        if (s.date >= addDays(today, -1) || s.status === "cancelled") continue;
+        const recorder = s.takesAttendance ? pick(rehabStaff) : rehabStaff[0];
+        const present = tx.select({ id: schema.attendance.id }).from(schema.attendance).where(and(eq(schema.attendance.sessionId, s.id), eq(schema.attendance.status, "present"))).all().length;
+        tx.insert(schema.sessionReports).values({ sessionId: s.id, ...(rand() < 0.95 ? { outcome: "planned" as const, reason: null } : { outcome: "partial" as const, reason: "เวลาไม่พอ (ข้อมูลทดสอบ)" }), participation: pick(["excellent", "good", "good", "fair"]), summary: "ผู้เข้าอบรมร่วมกิจกรรมตามแผน (ข้อมูลทดสอบ)", participants: present, proxyEntry: false, createdBy: recorder, updatedBy: recorder }).onConflictDoNothing().run();
+        tx.update(schema.cohortSessions).set({ taughtAt: new Date(), taughtBy: recorder, status: "done" }).where(eq(schema.cohortSessions.id, s.id)).run();
+      }
     });
   };
 

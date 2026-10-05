@@ -221,6 +221,17 @@ async function main() {
   const schedRehab = await get(`/cohorts/${cohort.id}/schedule`, C.rehab);
   const schedExec = await get(`/cohorts/${cohort.id}/schedule`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ตารางกิจกรรม: เจ้าหน้าที่หลักแก้คาบ/เพิ่มคาบ/เปลี่ยนวิทยากรได้ / ผู้บริหารดูอย่างเดียว", schedRehab.text.includes("เพิ่มคาบ") && schedRehab.text.includes("แก้คาบ / วิทยากร") && allowed(schedExec) && schedExec.text.includes("ดูอย่างเดียว") && !schedExec.text.includes("เพิ่มคาบ") && !schedExec.text.includes("เปลี่ยนวิทยากรเป็นช่วง"), `rehab HTTP ${schedRehab.status} · exec HTTP ${schedExec.status}`);
+  // สเปก 11.5/22B: บันทึกผลคาบตรวจสิทธิ์รายคาบ · คาบชดเชย/สถานะเชิญ ต้องมี schedule.edit
+  {
+    const src = fs.readFileSync("src/app/(app)/sessions/actions.ts", "utf8");
+    const body = (name: string) => src.slice(src.indexOf(`export async function ${name}`)).split("export async function")[1] ?? "";
+    const ok = body("saveSessionReportAction").includes("sessionAccess(auth, s.id, s.cohortId).canEdit")
+      && body("createMakeupAction").includes('requireAction("schedule.edit")')
+      && body("setInviteStatusAction").includes('requireAction("schedule.edit")');
+    check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "บันทึกและปิดคาบ: ตรวจสิทธิ์รายคาบที่เซิร์ฟเวอร์ · สร้างคาบชดเชย/เปลี่ยนสถานะเชิญ ต้องมีสิทธิ์แก้ตาราง", ok, "ตรวจจากโค้ด server action");
+    const asAssistant = await get(`/sessions/${notMine.id}`, C.assistant);
+    check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้ช่วย → เปิดคาบที่ไม่ได้รับผิดชอบ (ไม่เห็นฟอร์มปิดคาบ)", !allowed(asAssistant) && !asAssistant.text.includes("บันทึกและปิดคาบ"), `HTTP ${asAssistant.status}${asAssistant.location ? ` → ${asAssistant.location}` : ""}`);
+  }
   // สเปก 10.1: แบบพิมพ์เปล่ามีรหัสแบบ (จับคู่กระดาษกับคน/แบบ/รอบ)
   const blank = await get(`/print/blank-forms/${cohort.id}?form=KNOW&round=pre`, C.rehab);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน)", blank.status === 200 && /KNOW-v\d+-ก่อน-E\d+/.test(blank.text), `HTTP ${blank.status}`);

@@ -12,6 +12,9 @@ import { listTopics } from "@/lib/services/pay-setup";
 import { scheduleIssues, maxStaffOf } from "@/lib/services/schedule";
 import { payableOverage, locationConflicts } from "@/lib/services/schedule-edit";
 import { ACTIVITY_TYPE_LABEL } from "@/lib/reference-data";
+import { makeupNeeded, invitationText } from "@/lib/services/session-close";
+import { getSetting } from "@/lib/bootstrap";
+import { cohortLabel } from "@/lib/services/cohorts";
 import { Alert } from "@/components/ui";
 import { StaffNames, SessionStaffEditor, type StaffView } from "./schedule-client";
 import { AddSessionButton, ReplaceStaffButton, WeekBoard } from "./schedule-tools";
@@ -41,6 +44,9 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
   const canEdit = auth.can("schedule.edit") && row.cohort.status !== "closed";
   const externals = canEdit ? listInstructors(db).filter((i) => i.kind === "external" && i.active).map((i) => ({ id: i.id, name: i.displayName, org: i.organization, ready: i.readiness.ready })) : [];
   const today = todayISO();
+  const makeups = makeupNeeded(db, row.cohort.id);
+  const org = `${getSetting<string>(db, "org.unitName", "")} ${getSetting<string>(db, "org.name", "")}`.trim();
+  const label = `${row.course.shortName} ${cohortLabel(row.cohort)}`;
   const days = Array.from(new Set(sessions.map((s) => s.date)));
   const active = sessions.filter((s) => s.status !== "cancelled");
   const totalHours = active.reduce((s, x) => s + x.hours, 0);
@@ -54,12 +60,19 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
   const fmtConflict = (c: { title: string; label: string; startTime: string; endTime: string }) => `${c.title} (${c.label}) ${c.startTime}–${c.endTime}`;
   const staffView = (sessionId: number): StaffView[] => {
     const iss = issues.get(sessionId);
+    const s = sessions.find((x) => x.id === sessionId)!;
     return staff
       .filter((x) => x.sessionId === sessionId)
       .sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0) || a.id - b.id)
       .map((x) => ({
         id: x.id, userId: x.userId, instructorId: x.instructorId, name: x.userId ? names.get(x.userId) ?? "-" : x.instructorId ? insNames.get(x.instructorId) ?? "-" : x.externalName ?? "-", external: !x.userId, unregistered: !x.userId && !x.instructorId, role: x.role,
         conflicts: (iss?.conflicts.find((c) => c.staffId === x.id)?.with ?? []).map(fmtConflict),
+        ...(!x.userId ? {
+          // สเปก 11.5A: สถานะการเชิญ · เตือนเมื่ออีก ≤ 14 วันยังไม่ตอบรับ/ยืนยัน
+          invite: x.inviteStatus ?? "none",
+          inviteWarn: s.status !== "cancelled" && s.date >= today && s.date <= addDays(today, 14) && !["accepted", "confirmed"].includes(x.inviteStatus ?? "none"),
+          inviteText: invitationText({ name: x.instructorId ? insNames.get(x.instructorId) ?? "-" : x.externalName ?? "-", title: s.title, date: s.date, startTime: s.startTime, endTime: s.endTime, location: s.location, cohortLabel: label, org }, (d) => formatThaiDate(d, "full")),
+        } : {}),
       }));
   };
   const counts = { noStaff: 0, overMax: 0, conflicts: 0 };
@@ -84,6 +97,9 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
         {s.location && <p className={`text-xs ${lc.length ? "font-semibold text-danger" : "text-muted"}`}>📍 {s.location}{lc.length ? ` — ใช้ซ้อนกับ ${lc.map(fmtConflict).join(", ")}` : ""}</p>}
         <div className="mt-1"><StaffNames staff={who} /></div>
         {iss?.overMax != null && <p className="mt-1 text-sm text-danger">วิทยากรเกินจำนวนสูงสุด ({iss.overMax} คน)</p>}
+        {makeups.get(s.id) && !makeups.get(s.id)!.makeupId && <p className="mt-1"><Link href={`/sessions/${s.id}`} className="tag-warn">ควรจัดสอนชดเชย ({makeups.get(s.id)!.count} คน)</Link></p>}
+        {s.makeupOfId && <p className="mt-1"><span className="tag-navy">คาบชดเชย</span></p>}
+        {!compact && s.status !== "cancelled" && s.date <= today && <p className="mt-1 text-xs">{s.taughtAt ? <span className="tag-ok">บันทึกผลแล้ว</span> : <Link href={`/sessions/${s.id}`} className="tag-danger">ยังไม่บันทึกผล</Link>}</p>}
         {po && <p className="mt-1 text-sm text-warn">เกินที่เบิกได้: {ACTIVITY_TYPE_LABEL[po.type]} เบิกได้ {po.limit} คน (มี {po.count})</p>}
         {(canEdit || who.length > 0) && (
           <SessionStaffEditor

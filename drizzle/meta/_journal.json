@@ -57,6 +57,13 @@
       "when": 1791178056773,
       "tag": "0007_step3_master",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791183103035,
+      "tag": "0008_session_reports",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ import { BehaviorNoteButton } from "@/components/behavior-note";
 import { useAutosave } from "@/components/use-autosave";
 import { DraftOffer, DraftSavedHint } from "@/components/draft-offer";
 
-type Row = {
+export type Row = {
   enrollmentId: number; incarcerationId: number; name: string; inmateNo: string; zone: string | null; thumb: string | null;
   duplicateName: boolean; draft: boolean; status: AttendanceStatus; correctionsType: string | null; note: string | null; saved: boolean;
 };
@@ -27,7 +27,8 @@ const COLOR: Record<AttendanceStatus, string> = {
 };
 
 /** เช็คชื่อ: ค่าเริ่มต้น "มา" ทั้งรุ่น แก้เฉพาะคนที่ไม่มา */
-export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOnly, canNote }: { sessionId: number; rows: Row[]; loadedVersion: number; readOnly: boolean; canNote?: boolean }) {
+/** embedded = อยู่ในฟอร์ม "บันทึกและปิดคาบ" (ไม่มีปุ่มบันทึกของตัวเอง ส่งสถานะขึ้นไปทาง onRowsChange) */
+export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOnly, canNote, embedded, onRowsChange }: { sessionId: number; rows: Row[]; loadedVersion: number; readOnly: boolean; canNote?: boolean; embedded?: boolean; onRowsChange?: (rows: Row[], version: number) => void }) {
   const router = useRouter();
   const [rows, setRows] = useState(initial);
   const [version, setVersion] = useState(loadedVersion);
@@ -62,6 +63,8 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
     setVersion(loadedVersion);
   }, [initial, loadedVersion]);
 
+  useEffect(() => { onRowsChange?.(rows, version); }, [rows, version, onRowsChange]);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const r of rows) c[r.status] = (c[r.status] ?? 0) + 1;
@@ -94,19 +97,19 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
   // Ctrl+S บันทึก
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && !readOnly) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && !readOnly && !embedded) {
         e.preventDefault();
         doSave(rows, initial);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [rows, initial, doSave, readOnly]);
+  }, [rows, initial, doSave, readOnly, embedded]);
 
   if (!rows.length) return <EmptyState title="ไม่มีรายชื่อที่ต้องเช็คในคาบนี้">อาจยังไม่มีผู้ลงทะเบียน หรือทุกคนออกจากเรือนจำ/ออกก่อนกำหนดก่อนวันนี้</EmptyState>;
 
   return (
-    <div className="space-y-3 pb-24">
+    <div className={`space-y-3 ${embedded ? "" : "pb-24"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="tag-muted"><Users size={16} aria-hidden /> ทั้งหมด {rows.length}</span>
         {ORDER.map((s) => (counts[s] ? <span key={s} className="tag-muted">{ATTENDANCE_LABEL[s]} {counts[s]}</span> : null))}
@@ -115,7 +118,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
         )}
       </div>
       {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={restore} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
-      {!anySaved && !readOnly && <Alert tone="info">ทุกคนถูกตั้งเป็น &quot;มา&quot; ไว้แล้ว — แก้เฉพาะคนที่ไม่มา แล้วกด &quot;บันทึก&quot; (Ctrl+S)</Alert>}
+      {!anySaved && !readOnly && <Alert tone="info">ทุกคนถูกตั้งเป็น &quot;มา&quot; ไว้แล้ว — แก้เฉพาะคนที่ไม่มา แล้วกด {embedded ? "\"บันทึกและปิดคาบ\" ด้านล่าง" : "\"บันทึก\" (Ctrl+S)"}</Alert>}
       {error && <Alert tone="danger">{error}</Alert>}
 
       <ul className="panel divide-y divide-line">
@@ -161,7 +164,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
         ))}
       </ul>
 
-      {!readOnly && (
+      {!readOnly && !embedded && (
         <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-line bg-cream/95 px-4 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-end gap-3">
             <span className="mr-auto"><DraftSavedHint savedAt={dirty ? autosave.savedAt : null} /></span>

@@ -38,6 +38,11 @@ export function sessionRoster(db: DB, sessionId: number) {
     )
     .orderBy(asc(schema.persons.firstName), asc(schema.persons.lastName))
     .all();
+  // คาบชดเชย: เฉพาะคนที่ติดเหตุราชทัณฑ์ในคาบเดิม (สเปก 9)
+  if (session.makeupOfId) {
+    const need = new Set(db.select({ e: schema.attendance.enrollmentId }).from(schema.attendance).where(and(eq(schema.attendance.sessionId, session.makeupOfId), eq(schema.attendance.status, "corrections"))).all().map((r) => r.e));
+    rows.splice(0, rows.length, ...rows.filter((r) => need.has(r.enrollmentId)));
+  }
   const existing = db.select().from(schema.attendance).where(eq(schema.attendance.sessionId, sessionId)).all();
   const byEnrollment = new Map(existing.map((a) => [a.enrollmentId, a]));
   // ชื่อซ้ำในรุ่นเดียวกัน → ป้าย "ชื่อซ้ำ"

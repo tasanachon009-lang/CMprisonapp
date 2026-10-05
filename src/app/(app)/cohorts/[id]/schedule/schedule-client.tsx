@@ -6,9 +6,13 @@ import { Plus, X, AlertTriangle, Pencil } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
 import { addStaffAction, removeStaffAction, setStaffRoleAction, updateSessionAction, cancelSessionAction } from "./actions";
+import { setInviteStatusAction } from "../../../sessions/actions";
 import { ThaiDateInput } from "@/components/thai-date-input";
 
-export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[] };
+export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[]; invite?: string; inviteWarn?: boolean; inviteText?: string };
+
+const INVITE: Array<[string, string]> = [["none", "ยังไม่เชิญ"], ["sent", "ส่งหนังสือแล้ว"], ["accepted", "ตอบรับ"], ["declined", "ปฏิเสธ"], ["confirmed", "ยืนยันวันสอน"]];
+const INVITE_LABEL = Object.fromEntries(INVITE);
 type ExternalOpt = { id: number; name: string; org: string | null; ready: boolean };
 type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string; date?: string; location?: string | null; topicId?: number | null; checked?: boolean };
 export type TopicOpt = { id: number; name: string; standardHours: number | null };
@@ -26,6 +30,7 @@ export function StaffNames({ staff }: { staff: StaffView[] }) {
           {x.name}
           <span className={x.external ? "tag-orange px-1.5 py-0 text-xs" : "tag-navy px-1.5 py-0 text-xs"}>{x.external ? "นอก" : "ใน"}</span>
           {x.role && <span className="text-xs text-muted">({ROLE[x.role]})</span>}
+          {x.inviteWarn && <span className="tag-warn px-1.5 py-0 text-xs" title="อีกไม่เกิน 14 วันจะถึงวันสอน แต่ยังไม่ตอบรับ/ยืนยัน">{INVITE_LABEL[x.invite ?? "none"]}</span>}
         </span>
       ))}
     </span>
@@ -71,6 +76,15 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
     setMsg(r.ok ? { tone: "ok", text: "เอาออกแล้ว" } : { tone: "danger", text: r.error });
     router.refresh();
   });
+  const changeInvite = (id: number, v: string) => start(async () => {
+    const r = await setInviteStatusAction(id, v);
+    setMsg(r.ok ? { tone: "ok", text: "บันทึกสถานะการเชิญแล้ว" } : { tone: "danger", text: r.error });
+    router.refresh();
+  });
+  // ข้อความไม่มีข้อมูลผู้ต้องขัง — คัดลอกไปส่ง LINE/อีเมลให้วิทยากรเอง
+  const copyText = (text: string) => {
+    navigator.clipboard?.writeText(text).then(() => setMsg({ tone: "ok", text: "คัดลอกข้อความแล้ว — วางในแชตหรืออีเมลถึงวิทยากรได้เลย" }), () => setMsg({ tone: "warn", text: text }));
+  };
   const changeRole = (id: number, v: string) => start(async () => {
     const r = await setStaffRoleAction(cohortId, id, v === "lead" || v === "co" ? v : null);
     if (!r.ok) setMsg({ tone: "danger", text: r.error });
@@ -110,6 +124,18 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
                 {editable && <button className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full hover:bg-danger/10" disabled={pending} onClick={() => remove(x.id)} aria-label={`เอา ${x.name} ออก`}><X size={20} /></button>}
               </div>
               {x.conflicts.map((c) => <p key={c} className="mt-1 flex items-center gap-1 text-sm text-danger"><AlertTriangle size={14} aria-hidden /> สอนซ้อนเวลา: {c}</p>)}
+              {x.external && x.invite && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-muted">การเชิญ:</span>
+                  {editable ? (
+                    <select className="input min-h-11 w-44 py-1" value={x.invite} disabled={pending} onChange={(e) => changeInvite(x.id, e.target.value)} aria-label={`สถานะการเชิญ ${x.name}`}>
+                      {INVITE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  ) : <span>{INVITE_LABEL[x.invite]}</span>}
+                  {x.inviteText && <button type="button" className="btn-ghost btn-sm" onClick={() => copyText(x.inviteText!)}>คัดลอกข้อความแจ้งกำหนดสอน</button>}
+                  {x.inviteWarn && <span className="text-warn">อีกไม่เกิน 14 วันจะถึงวันสอน — ยังไม่ตอบรับ/ยืนยัน</span>}
+                </div>
+              )}
             </li>
           ))}
           {!staff.length && <li className="text-muted">ยังไม่มีผู้รับผิดชอบ</li>}

@@ -235,6 +235,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "pay.maxPayableByType": { lecture: 1, panel: 5, group: 2, practice: 2, other: 1 },
   // สเปก 11.5A: หักภาษี ณ ที่จ่าย (วิทยากรภายนอก)
   "pay.withholdingTax": { enabled: false, pct: 3 },
+  // สเปก 9: คาบสอนชดเชยคิดค่าตอบแทนหรือไม่ (ค่าเริ่มต้น = ไม่คิด)
+  "pay.makeupPayable": false,
   /** ติดตามหลังบำบัด: เดือนที่ (ตั้งค่าได้) */
   "followup.months": [1, 3, 6, 12],
   /** กำหนดลง บสต./รท.101 (วันนับจากวันลงทะเบียน/วันจบ) */

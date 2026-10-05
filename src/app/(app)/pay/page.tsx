@@ -7,7 +7,9 @@ import { personTotals, lineFormula, baht } from "@/lib/pay/calc";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { currentFiscalYear, fiscalYearRange, formatThaiDate } from "@/lib/thai-date";
 import { Breadcrumb, PageHeader, Alert, EmptyState } from "@/components/ui";
-import { CreateBatchForm } from "./pay-client";
+import { CreateBatchForm, DocSettingsForm } from "./pay-client";
+import { unsignedCount } from "@/lib/services/pay-docs";
+import { getSetting } from "@/lib/bootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -197,7 +199,9 @@ function Batches({ canManage, cohorts }: { canManage: boolean; cohorts: Array<{ 
   return (
     <div className="space-y-4">
       <Alert tone="info">สร้างรอบเบิกต่อรุ่น (ทั้งรุ่นหรือช่วงวันที่ เช่น รายเดือนของชุมชนบำบัด) → ตรวจยอด → หัวหน้า/รองกด &quot;อนุมัติ&quot; → ยอดคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบ · คาบที่เบิกแล้วไม่ถูกนำไปเบิกซ้ำ</Alert>
+      {(() => { const n = unsignedCount(db); return n > 0 ? <Alert tone="warn">ใบสำคัญรับเงินที่พิมพ์แล้วแต่ยังไม่ได้ลายเซ็น {n} ใบ — เปิดรอบเบิกแล้วติ๊ก &quot;เซ็นรับแล้ว&quot; เมื่อได้ใบคืน</Alert> : null; })()}
       {canManage && <CreateBatchForm cohorts={cohorts} />}
+      {canManage && <DocSettingsForm initial={{ payerName: getSetting<string>(db, "docs.payerName", ""), corner: getSetting<string>(db, "docs.voucherCorner", ""), showKtbForm: getSetting<boolean>(db, "docs.showKtbForm", true) !== false, intro: getSetting<{ intro: string }>(db, "docs.ktbTemplate", { intro: "" }).intro, companyNote: getSetting<{ companyNote: string }>(db, "docs.ktbTemplate", { companyNote: "" }).companyNote }} />}
       {batches.length === 0 ? <EmptyState title="ยังไม่มีรอบเบิก" /> : (
         <ul className="space-y-2">
           {batches.map((b) => (

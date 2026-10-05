@@ -272,6 +272,16 @@ async function main() {
         fn(paySrc2, "approveBatchAction").includes('requireAction("pay.approve")') && paySvc.includes("อนุมัติเองไม่ได้") && paySvc.includes('if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะหัวหน้า/รอง")')
           && fn(delSrc, "createDelegationAction").includes('requireAction("users.manage")') && delSvc.includes('if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะหัวหน้า/รอง")'),
         "ตรวจจากโค้ด server action / service");
+      // กลุ่ม 5: เอกสารการเงิน (มีเลขบัตร/ที่อยู่/บัญชีวิทยากร) เฉพาะผู้มีสิทธิ์ดูค่าตอบแทน
+      const appr = db.select().from(schema.payBatches).where(eq(schema.payBatches.status, "approved")).get();
+      if (appr) {
+        const bundleRehab = await get(`/print/pay-bundle/${appr.id}`, C.rehab);
+        const bundleFin = await get(`/print/pay-bundle/${appr.id}`, C.finance);
+        const xlsRehab = await get(`/api/export/pay/${appr.id}`, C.rehab);
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ชุดเอกสารการเงิน/Excel ค่าตอบแทน: การเงินพิมพ์ได้ (ตรวจยอดผ่าน) / เจ้าหน้าที่หลักเปิดตรงๆ ไม่ได้",
+          bundleFin.status === 200 && bundleFin.text.includes("ใบสำคัญรับเงิน (สำหรับวิทยากร)") && bundleFin.text.includes("ตรวจยอดแล้ว") && !allowed(bundleRehab) && xlsRehab.status === 403,
+          `fin ${bundleFin.status} · rehab ${bundleRehab.status} · xls ${xlsRehab.status}`);
+      }
       const delFin = await get("/admin/delegations", C.finance);
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);
     }

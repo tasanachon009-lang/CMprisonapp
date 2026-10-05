@@ -7,6 +7,9 @@ import { requireAction, clientIp } from "@/lib/auth/session";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { createBatch, approveBatch, unlockBatch, cancelBatch, setSessionSplit } from "@/lib/services/pay";
 import { delegationNote } from "@/lib/services/delegation";
+import { setSigned } from "@/lib/services/pay-docs";
+import { getSetting, setSetting } from "@/lib/bootstrap";
+import { writeAudit } from "@/lib/audit";
 import { baht } from "@/lib/pay/calc";
 
 const BatchZ = z.object({ cohortId: z.number().int(), dateFrom: z.string().max(10).nullable().optional(), dateTo: z.string().max(10).nullable().optional(), note: z.string().max(500).nullable().optional() });
@@ -77,6 +80,40 @@ export async function setSessionSplitAction(cohortId: number, sessionId: number,
     setSessionSplit(getDb(), sessionId, p.data, { userId: auth.user.id, isAdmin: auth.isAdmin, ip: await clientIp() });
     revalidatePath(`/cohorts/${cohortId}/schedule`);
     return { ok: true, message: "บันทึกวิธีแบ่งแล้ว" };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+/** ติ๊กเมื่อได้ใบสำคัญรับเงินที่เซ็นกลับมา (สเปก 11.5D) */
+export async function setSignedAction(batchId: number, personKey: string, signed: boolean): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("pay.manage");
+    setSigned(getDb(), batchId, String(personKey).slice(0, 60), !!signed, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath(`/pay/batches/${batchId}`);
+    return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+const DocZ = z.object({ payerName: z.string().max(120), corner: z.string().max(60), showKtbForm: z.boolean(), intro: z.string().max(500), companyNote: z.string().max(500) });
+
+/** ตั้งค่าเอกสารการเงิน: ผู้จ่ายเงิน มุมขวาบน แสดงแบบ KTB และข้อความแบบฟอร์ม KTB (แก้ได้ถ้าธนาคาร/การเงินเปลี่ยนแบบ) */
+export async function saveDocSettingsAction(input: z.input<typeof DocZ>): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("pay.manage");
+    const p = DocZ.safeParse(input);
+    if (!p.success) return { ok: false, error: "ข้อความยาวเกินไป — ตรวจแต่ละช่องอีกครั้ง" };
+    const db = getDb();
+    const before = { payer: getSetting(db, "docs.payerName", ""), corner: getSetting(db, "docs.voucherCorner", ""), ktb: getSetting(db, "docs.showKtbForm", true), tpl: getSetting(db, "docs.ktbTemplate", null) };
+    setSetting(db, "docs.payerName", p.data.payerName.trim(), auth.user.id);
+    setSetting(db, "docs.voucherCorner", p.data.corner.trim(), auth.user.id);
+    setSetting(db, "docs.showKtbForm", p.data.showKtbForm, auth.user.id);
+    setSetting(db, "docs.ktbTemplate", { intro: p.data.intro.trim(), companyNote: p.data.companyNote.trim() }, auth.user.id);
+    writeAudit(db, { userId: auth.user.id, action: "settings.change", entity: "doc_settings", before, after: p.data, ip: await clientIp() });
+    revalidatePath("/pay");
+    return { ok: true, message: "บันทึกตั้งค่าเอกสารแล้ว" };
   } catch (e) {
     return toError(e);
   }

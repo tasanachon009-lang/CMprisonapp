@@ -711,6 +711,25 @@ export const payLines = sqliteTable(
   (t) => [uniqueIndex("pay_lines_unique").on(t.batchId, t.sessionStaffId), index("pay_lines_person_idx").on(t.userId, t.instructorId)],
 );
 
+/** สถานะใบสำคัญรับเงินรายคนในรอบเบิก (สเปก 11.5C/D): พิมพ์แล้ว (ยอด ณ ตอนพิมพ์) / เซ็นรับแล้ว */
+export const payVouchers = sqliteTable(
+  "pay_vouchers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    batchId: integer("batch_id").notNull().references(() => payBatches.id),
+    /** u<userId> | i<instructorId> */
+    personKey: text("person_key").notNull(),
+    printedAmountSatang: integer("printed_amount_satang"),
+    printedAt: ts("printed_at"),
+    printedBy: integer("printed_by"),
+    printCount: integer("print_count").notNull().default(0),
+    signedAt: ts("signed_at"),
+    signedBy: integer("signed_by"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("pay_vouchers_unique").on(t.batchId, t.personKey)],
+);
+
 /** มอบอำนาจอนุมัติชั่วคราว (สเปก 22B) — scopes: pay | budget | schedule · หมดเวลาคืนสิทธิ์เอง */
 export const delegations = sqliteTable(
   "delegations",

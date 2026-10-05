@@ -10,7 +10,9 @@ import { cohortLabel } from "@/lib/services/cohorts";
 import { userNameMap } from "@/lib/queries/names";
 import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-date";
 import { Breadcrumb, PageHeader, Alert, EmptyState } from "@/components/ui";
-import { BatchActions } from "../../pay-client";
+import { BatchActions, SignedToggle } from "../../pay-client";
+import { payees, voucherStatuses, VOUCHER_STATUS_LABEL } from "@/lib/services/pay-docs";
+import { Printer, FileSpreadsheet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,8 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
         {b.approvedAt && <span className="text-sm text-muted">อนุมัติโดย {names.get(b.approvedBy ?? 0)} เมื่อ {formatThaiDateTime(b.approvedAt)}{viaRow ? ` (อนุมัติแทน — มอบอำนาจโดย ${names.get(viaRow.fromUserId)})` : ""}</span>}
       </div>
       <BatchActions id={b.id} status={b.status} canApprove={auth.can("pay.approve")} canManage={auth.can("pay.manage")} isAdmin={auth.isAdmin} blockSelf={v.lines.some((l) => l.userId === auth.user.id)} delegationNote={via ? delegationNote(via) : null} />
+
+      {b.status === "approved" && <DocsSection batchId={b.id} canManage={auth.can("pay.manage")} />}
 
       {v.changedAfterApproval > 0 && <Alert tone="warn">ข้อมูลสอนจริง/อัตราของคาบในรอบนี้เปลี่ยนหลังอนุมัติ {v.changedAfterApproval} รายการ — ยอดที่อนุมัติยังเป็นยอดเดิม ถ้าต้องแก้ให้หัวหน้า/รองปลดล็อกแล้วอนุมัติใหม่ (เอกสารที่พิมพ์แล้วต้องพิมพ์ใหม่)</Alert>}
       {v.unrecorded.length > 0 && (
@@ -91,5 +95,49 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
         </details>
       )}
     </div>
+  );
+}
+
+const STATUS_TAG: Record<string, string> = { none: "tag-muted", printed: "tag-warn", signed: "tag-ok", reprint: "tag-danger" };
+
+/** เอกสารการเงิน (สเปก 11.5C/D): พิมพ์ชุดเอกสาร / Excel · สถานะรายใบ ยังไม่พิมพ์ / พิมพ์แล้ว / เซ็นรับแล้ว / ต้องพิมพ์ใหม่ */
+function DocsSection({ batchId, canManage }: { batchId: number; canManage: boolean }) {
+  const db = getDb();
+  const people = payees(db, batchId);
+  const st = voucherStatuses(db, batchId, people);
+  const count = (s: string) => people.filter((p) => st.get(p.key)?.status === s).length;
+  const incomplete = people.filter((p) => p.missing.length).length;
+  return (
+    <section className="card space-y-3">
+      <h2 className="text-xl">เอกสารส่งการเงิน</h2>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/print/pay-bundle/${batchId}`} target="_blank" className="btn-primary"><Printer size={18} aria-hidden /> พิมพ์ชุดเอกสาร (สรุป + ใบสำคัญฯ + KTB)</Link>
+        <Link href={`/print/pay-bundle/${batchId}?parts=summary,vouchers,detail`} target="_blank" className="btn-ghost">+ ตารางรายละเอียด</Link>
+        <a href={`/api/export/pay/${batchId}`} className="btn-ghost"><FileSpreadsheet size={18} aria-hidden /> Excel</a>
+      </div>
+      <p className="text-sm text-muted">ยังไม่พิมพ์ {count("none")} · พิมพ์แล้วรอเซ็น {count("printed")} · เซ็นรับแล้ว {count("signed")}{count("reprint") ? ` · ต้องพิมพ์ใหม่ ${count("reprint")}` : ""}{incomplete ? ` · ข้อมูลวิทยากรไม่ครบ ${incomplete} คน` : ""}</p>
+      {count("reprint") > 0 && <Alert tone="danger">มีใบที่ยอดหรือข้อมูลวิทยากรเปลี่ยนหลังพิมพ์ — ต้องพิมพ์ใหม่แล้วให้เซ็นใหม่</Alert>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">ยอด</th><th>ข้อมูลเบิก</th><th>สถานะ</th><th>เซ็นรับ</th><th /></tr></thead>
+          <tbody>
+            {people.map((p) => {
+              const s = st.get(p.key)!;
+              return (
+                <tr key={p.key} className="border-t border-line align-middle">
+                  <td className="py-2">{p.fullName}</td>
+                  <td><span className={p.kind === "external" ? "tag-orange" : "tag-navy"}>{p.kind === "external" ? "ภายนอก" : "ภายใน"}</span></td>
+                  <td className="text-right">{baht(p.grossSatang)}</td>
+                  <td>{p.missing.length ? <span className="tag-danger" title={p.missing.join(", ")}>ไม่ครบ: {p.missing.slice(0, 2).join(", ")}{p.missing.length > 2 ? "…" : ""}</span> : <span className="tag-ok">พร้อมเบิก</span>}</td>
+                  <td><span className={STATUS_TAG[s.status]}>{VOUCHER_STATUS_LABEL[s.status]}</span>{s.row?.printCount ? <span className="text-xs text-muted"> ({s.row.printCount} ครั้ง)</span> : null}</td>
+                  <td><SignedToggle batchId={batchId} personKey={p.key} signed={!!s.row?.signedAt && s.status === "signed"} disabled={!canManage || s.status === "none" || s.status === "reprint"} /></td>
+                  <td><Link href={`/print/pay-bundle/${batchId}?parts=vouchers&keys=${p.key}`} target="_blank" className="text-navy underline">พิมพ์เฉพาะคนนี้</Link></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

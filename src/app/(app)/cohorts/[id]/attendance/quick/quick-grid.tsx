@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useAutosave } from "@/components/use-autosave";
+import { DraftOffer, DraftSavedHint } from "@/components/draft-offer";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Save } from "lucide-react";
@@ -10,7 +12,7 @@ import { saveAttendanceAction } from "@/app/(app)/sessions/actions";
 import type { AttendanceStatus } from "@/lib/rules/attendance-rules";
 
 type Person = { enrollmentId: number; name: string; inmateNo: string; zone: string | null; thumb: string | null; duplicateName: boolean };
-type Sess = { id: number; title: string; time: string; version: number; members: number[]; values: Record<number, { status: string; correctionsType: string | null }> };
+type Sess = { id: number; title: string; time: string; version: number; members: number[]; values: Record<number, { status: string; correctionsType: string | null; note: string | null }> };
 
 /** รหัสแป้นพิมพ์ (ช่องว่าง = มา) */
 const CODES: Record<string, { status: AttendanceStatus; corrections?: string; label: string }> = {
@@ -36,12 +38,31 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
     for (const s of sessions) for (const p of people) g[`${p.enrollmentId}:${s.id}`] = toCode(s.values[p.enrollmentId]);
     return g;
   });
+  // หมายเหตุเดิมต้องไม่หายเมื่อบันทึกจากหน้านี้ · รหัส 8 (เบิกตัวอื่นๆ) ต้องระบุเหตุ
+  const [notes, setNotes] = useState<Record<string, string>>(() => {
+    const n: Record<string, string> = {};
+    for (const s of sessions) for (const [eid, v] of Object.entries(s.values)) if (v.note) n[`${eid}:${s.id}`] = v.note;
+    return n;
+  });
   const [fromKit, setFromKit] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
   const refs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const invalid = Object.entries(grid).filter(([, v]) => v && !CODES[v]);
+  // ร่างอัตโนมัติ (ทุก 30 วินาที/ก่อนล็อกหน้าจอ) — แยกตามวันที่
+  const initialGrid = useMemo(() => {
+    const g: Record<string, string> = {};
+    for (const s of sessions) for (const p of people) g[`${p.enrollmentId}:${s.id}`] = toCode(s.values[p.enrollmentId]);
+    return JSON.stringify(g);
+  }, [sessions, people]);
+  const dirty = JSON.stringify(grid) !== initialGrid;
+  const autosave = useAutosave(`attendance-grid:${cohortId}:${date}`, { grid, notes }, dirty);
+  const [draftOffer, setDraftOffer] = useState<{ updatedAt: number; data: unknown } | null>(null);
+  useEffect(() => {
+    autosave.load().then((d) => { if (d) setDraftOffer(d); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
 
   const focus = (pi: number, si: number) => {
     const p = people[pi], s = sessions[si];
@@ -73,17 +94,21 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
     start(async () => {
       setMsg(null);
       if (invalid.length) return setMsg({ tone: "danger", text: `มีช่องที่รหัสไม่ถูกต้อง ${invalid.length} ช่อง (สีแดง) — ใช้ตัวเลข 1–8 หรือเว้นว่าง` });
+      const noReason = Object.entries(grid).filter(([k, v]) => v === "8" && !notes[k]?.trim());
+      if (noReason.length) return setMsg({ tone: "danger", text: `รหัส 8 (เบิกตัวอื่นๆ) ต้องระบุเหตุในช่องใต้รหัส — ยังไม่ระบุ ${noReason.length} ช่อง` });
       let created = 0, updated = 0;
       for (const s of sessions) {
         const entries = s.members.map((eid) => {
           const c = CODES[grid[`${eid}:${s.id}`] || "1"];
-          return { enrollmentId: eid, status: c.status, correctionsType: c.corrections ?? null };
+          // ไม่ใช่ "มา" = คงหมายเหตุเดิมไว้ · กลับเป็น "มา" = ล้างหมายเหตุ (เหมือนหน้าเช็คชื่อ)
+          return { enrollmentId: eid, status: c.status, correctionsType: c.corrections ?? null, note: c.status === "present" ? null : notes[`${eid}:${s.id}`]?.trim() || null };
         });
         const r = await saveAttendanceAction(s.id, entries, s.version, fromKit ? "emergency_kit" : "quick_entry");
         if (!r.ok) return setMsg({ tone: "danger", text: `${s.title}: ${r.error}` });
         created += r.data!.created;
         updated += r.data!.updated;
       }
+      void autosave.clear();
       setMsg({ tone: "ok", text: `บันทึกแล้ว ${sessions.length} คาบ (ใหม่ ${created} · แก้ไข ${updated})` });
       router.refresh();
     });
@@ -102,6 +127,7 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
         <p><b>ช่องว่าง = มา</b> · 2 ขาด · 3 ลา · 4 ป่วย · 5 ไปศาล · 6 พบทนาย · 7 ออก รพ.ภายนอก · 8 เบิกตัวอื่นๆ</p>
         <p className="text-sm text-muted">Enter/ลูกศรลง = คนถัดไป · ลูกศรซ้าย-ขวา = คาบถัดไป · คัดลอกจาก Excel แล้ววางได้ทั้งแผ่น · Ctrl+S ไม่ใช้ในหน้านี้ ให้กดปุ่มบันทึก</p>
       </Alert>
+      {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={() => { const d = draftOffer.data as { grid: typeof grid; notes: typeof notes }; setGrid(d.grid); setNotes(d.notes ?? {}); setDraftOffer(null); }} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="panel overflow-x-auto">
         <table className="table-plain">
@@ -139,6 +165,13 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
                         className={`h-10 w-14 rounded-lg border text-center text-lg ${bad ? "border-danger bg-danger/10 text-danger" : v ? "border-navy bg-lime-soft" : "border-line"}`}
                       />
                       {v && CODES[v] && <span className="block text-xs text-muted">{CODES[v].label}</span>}
+                      {v === "8" && (
+                        <input
+                          value={notes[key] ?? ""} onChange={(e) => setNotes({ ...notes, [key]: e.target.value })} placeholder="ระบุเหตุ"
+                          aria-label={`เหตุเบิกตัวของ ${p.name} ${s.title}`}
+                          className={`mt-1 h-9 w-28 rounded-lg border px-2 text-sm ${notes[key]?.trim() ? "border-line" : "border-danger bg-danger/10"}`}
+                        />
+                      )}
                     </td>
                   );
                 })}
@@ -148,7 +181,8 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
         </table>
       </div>
       <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-line bg-cream/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl justify-end">
+        <div className="mx-auto flex max-w-7xl items-center justify-end gap-3">
+          <DraftSavedHint savedAt={dirty ? autosave.savedAt : null} />
           <button className="btn-primary" onClick={save} disabled={pending}><Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : `บันทึกทั้ง ${sessions.length} คาบ`}</button>
         </div>
       </div>

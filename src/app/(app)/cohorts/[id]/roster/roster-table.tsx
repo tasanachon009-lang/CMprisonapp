@@ -13,13 +13,13 @@ import { confirmAdmissionsAction } from "../../actions";
 export type RosterRow = {
   enrollmentId: number; personId: number; name: string; inmateNo: string; zone: string | null;
   thumb: string | null; photo: string | null; status: string; statusLabel: string;
-  consentSigned: boolean; consentRefused: boolean; pct: number | null; sessions: string; below: boolean;
+  consentSigned: boolean; consentRefused: boolean; pct: number | null; sessions: string; below: boolean; hours: number | null;
   otherCourses: string[]; isReturnee: boolean; duplicateName: boolean; released: boolean; override: boolean;
 };
 
 const STATUS_TAG: Record<string, string> = { draft: "tag-warn", active: "tag-ok", completed: "tag-navy", dropped: "tag-danger", withdrawn: "tag-muted", failed: "tag-danger" };
 
-export function RosterTable({ rows, cohortId, canEdit, passPct, defaultDoneDate }: { rows: RosterRow[]; cohortId: number; canEdit: boolean; passPct: number; defaultDoneDate: string }) {
+export function RosterTable({ rows, cohortId, canEdit, passPct, targetHours, defaultDoneDate }: { rows: RosterRow[]; cohortId: number; canEdit: boolean; passPct: number; targetHours: number; defaultDoneDate: string }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
@@ -113,7 +113,13 @@ export function RosterTable({ rows, cohortId, canEdit, passPct, defaultDoneDate 
                 <td>
                   {r.pct == null ? <span className="text-muted">-</span> : (
                     <span className={r.below ? "font-semibold text-danger" : ""} title={`มา ${r.sessions} คาบ (เกณฑ์ ${passPct}%)`}>
-                      {r.pct}% <span className="text-sm text-muted">({r.sessions})</span>
+                      {r.pct}% <span className="text-sm text-muted">(มา {r.sessions} ครั้ง)</span>
+                    </span>
+                  )}
+                  {r.hours != null && targetHours > 0 && (
+                    <span className="mt-1 block" title={`ชั่วโมงสะสม ${r.hours} จากเป้าหมายหลักสูตร ${targetHours} ชม.`}>
+                      <span className="block h-1.5 w-28 overflow-hidden rounded-full bg-line" aria-hidden><span className="block h-full rounded-full bg-navy" style={{ width: `${Math.min(100, (r.hours / targetHours) * 100)}%` }} /></span>
+                      <span className="text-xs text-muted">{r.hours}/{targetHours} ชม.</span>
                     </span>
                   )}
                 </td>

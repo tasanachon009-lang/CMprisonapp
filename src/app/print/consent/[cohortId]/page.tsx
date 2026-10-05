@@ -6,18 +6,9 @@ import { getCohort, cohortRoster } from "@/lib/queries/cohorts";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { logPrint } from "@/lib/print";
 import { DocHeader, DocFooter } from "../../doc-header";
+import { DEFAULT_CONSENT_TEXT, DEFAULT_CONSENT_TITLE, fillConsent } from "@/lib/consent-text";
 
 export const dynamic = "force-dynamic";
-
-/**
- * ข้อความแบบฟอร์มยินยอมเริ่มต้น — ⚠️ ร่าง ต้องให้ฝ่ายกฎหมาย/ผู้รับผิดชอบ PDPA ของหน่วยงานตรวจก่อนใช้จริง
- * ผู้ดูแลแก้ข้อความได้ (ตั้งค่า pdpa.consentText)
- */
-const DEFAULT_TEXT = [
-  "ข้าพเจ้ารับทราบว่า {unit} {org} จะจัดเก็บและใช้ข้อมูลส่วนบุคคลของข้าพเจ้า ได้แก่ ข้อมูลทั่วไป ข้อมูลคดี ประวัติการใช้สารเสพติด ผลการประเมิน และข้อมูลสุขภาพที่เกี่ยวข้อง เพื่อวัตถุประสงค์ในการฟื้นฟูสมรรถภาพ การติดตามผลหลังการบำบัด และการรายงานต่อหน่วยงานที่เกี่ยวข้องตามกฎหมายเท่านั้น",
-  "ข้อมูลจะถูกเก็บรักษาอย่างปลอดภัย เข้าถึงได้เฉพาะเจ้าหน้าที่ที่ได้รับมอบหมาย และจะเก็บไว้ตามระยะเวลาที่หน่วยงานกำหนด",
-  "ข้าพเจ้าได้รับคำอธิบายและเข้าใจแล้ว จึงลงลายมือชื่อไว้เป็นหลักฐาน",
-];
 
 export default async function ConsentForms({ params, searchParams }: PageProps<"/print/consent/[cohortId]">) {
   const auth = await requirePage("registry.edit");
@@ -28,7 +19,9 @@ export default async function ConsentForms({ params, searchParams }: PageProps<"
   if (!row) notFound();
   const org = getSetting(db, "org.name", "");
   const unit = getSetting(db, "org.unitName", "");
-  const text = (getSetting<string[] | null>(db, "pdpa.consentText", null) ?? DEFAULT_TEXT).map((t) => t.replace("{org}", org).replace("{unit}", unit));
+  // ข้อความแก้ได้ที่ ตั้งค่า → แบบฟอร์มยินยอม (pdpa.consentTitle / pdpa.consentText)
+  const text = (getSetting<string[] | null>(db, "pdpa.consentText", null) ?? DEFAULT_CONSENT_TEXT).map((t) => fillConsent(t, org, unit));
+  const title = fillConsent(getSetting<string | null>(db, "pdpa.consentTitle", null) ?? DEFAULT_CONSENT_TITLE, org, unit);
   // ค่าเริ่มต้น: เฉพาะคนที่ยังไม่มีหลักฐานยินยอม · ?all=1 พิมพ์ทุกคน · ?blank=1 ฟอร์มเปล่า 1 แผ่น
   const people = sp.blank ? [null] : cohortRoster(db, row.cohort.id).filter((r) => sp.all || !r.enrollment.consentSigned);
   const footer = await logPrint(auth, "consent_form", row.cohort.id);
@@ -37,7 +30,7 @@ export default async function ConsentForms({ params, searchParams }: PageProps<"
       {people.length === 0 && <div className="sheet"><p>ทุกคนในรุ่นนี้มีหลักฐานการยินยอมแล้ว — ถ้าต้องการพิมพ์ทุกคนให้เพิ่ม ?all=1 ท้ายที่อยู่</p></div>}
       {people.map((r, i) => (
         <div className="sheet" key={r?.enrollment.id ?? i}>
-          <DocHeader title="หนังสือแสดงความยินยอมให้เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล" subtitle={`${row.course.name} ${cohortLabel(row.cohort)}`} />
+          <DocHeader title={title} subtitle={`${row.course.name} ${cohortLabel(row.cohort)}`} />
           <p style={{ marginTop: 16 }}>ข้าพเจ้า {r ? <b>{r.person.prefix}{r.person.firstName} {r.person.lastName}</b> : "................................................................"} เลขประจำตัวผู้ต้องขัง {r ? <b>{r.inc.inmateNo}</b> : "...................."}</p>
           {text.map((t, j) => <p key={j} style={{ textIndent: "2.5em", marginTop: 8 }}>{t}</p>)}
           <p style={{ marginTop: 16 }}>☐ ยินยอม &nbsp;&nbsp;&nbsp; ☐ ไม่ยินยอม เนื่องจาก ................................................................</p>

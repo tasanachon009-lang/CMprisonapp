@@ -90,6 +90,11 @@ export function saveAttendance(
       if (e.status === "corrections" && !e.correctionsType) throw new RuleError("กรุณาระบุประเภทเหตุราชทัณฑ์ (ไปศาล/พบทนาย/ออก รพ./อื่นๆ)");
       const correctionsType = e.status === "corrections" ? e.correctionsType ?? null : null;
       const note = e.note?.trim() || null;
+      // สเปก 9: "เบิกตัวอื่นๆ — ระบุ" ต้องระบุเหตุในหมายเหตุ
+      if (correctionsType === "other" && !note) {
+        const who = rows.find((r) => r.enrollmentId === e.enrollmentId);
+        throw new RuleError(`กรุณาระบุเหตุของ "เบิกตัวอื่นๆ" ในหมายเหตุ${who ? ` (${who.firstName} ${who.lastName})` : ""}`);
+      }
       const prev = rows.find((r) => r.enrollmentId === e.enrollmentId)!.record;
       if (!prev) {
         tx.insert(schema.attendance)

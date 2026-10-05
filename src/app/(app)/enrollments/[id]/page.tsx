@@ -5,6 +5,7 @@ import type { Permission } from "@/lib/auth/permissions";
 import { requirePage } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { enrollmentContext, bstOf, medicalNotesOf, behaviorNotesOf } from "@/lib/queries/enrollment";
+import { cohortAttendanceSummary } from "@/lib/services/attendance";
 import { listForms, resultsOf, formAccess, versionFor } from "@/lib/services/assessments";
 import { maxScore, individualPrePost } from "@/lib/assessments/prepost";
 import type { Item } from "@/lib/assessments/scoring";
@@ -48,6 +49,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
     return [f.id, maxScore(f.kind, v.items as Item[], v.scoring as Record<string, unknown>)] as const;
   }));
   const chartRows = individualPrePost(results, e.id, maxOf);
+  const att = cohortAttendanceSummary(db, c.id, course.passAttendancePct, course.totalHours).get(e.id);
   const canHealth = auth.can("health.view");
   const bst = bstOf(db, e.id);
   const notes = canHealth ? medicalNotesOf(db, e.id) : [];
@@ -67,6 +69,11 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           <Eyebrow>Member File</Eyebrow>
           <h1 className="text-2xl">{ctx.name}</h1>
           <p className="text-muted">เลขประจำตัว {inc.inmateNo} · {course.name} {ctx.label} · <span className="font-semibold">{ENROLLMENT_STATUS_LABEL[e.status]}</span>{e.leftDate ? ` (${formatThaiDate(e.leftDate)})` : ""}</p>
+          {att && (
+            <p className={`text-sm ${att.belowThreshold ? "font-semibold text-danger" : "text-muted"}`}>
+              เข้าร่วม {att.pct ?? "-"}% (มา {att.present}/{att.counted} ครั้ง{att.corrections ? ` · เหตุราชทัณฑ์ ${att.corrections} ครั้ง ไม่นับ` : ""}) · ชั่วโมงสะสม {att.presentHours}/{course.totalHours} ชม.{att.belowThreshold ? ` — ต่ำกว่าเกณฑ์ ${course.passAttendancePct}%` : ""}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {auth.canIn("behavior.edit", [c.id]) && <BehaviorNoteButton incarcerationId={inc.id} enrollmentId={e.id} name={ctx.name} />}

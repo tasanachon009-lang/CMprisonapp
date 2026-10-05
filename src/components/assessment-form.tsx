@@ -8,6 +8,8 @@ import { ThaiDateInput } from "./thai-date-input";
 import { computeResult } from "@/lib/assessments/compute";
 import { q8Guidance, bmi, bmiLabel, type Item, type Option, type DepressionAnswers, type FitnessAnswers, type ConditionAnswers } from "@/lib/assessments/scoring";
 import { saveAssessmentAction } from "@/app/(app)/enrollments/actions";
+import { useAutosave } from "./use-autosave";
+import { DraftOffer, DraftSavedHint } from "./draft-offer";
 
 type Props = {
   enrollmentId: number;
@@ -34,14 +36,29 @@ export function AssessmentForm(p: Props) {
   const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
   const [pending, start] = useTransition();
   const result = useMemo(() => computeResult(p.form.kind, p.version.items, p.version.scoring, answers), [answers, p.form.kind, p.version]);
+  // ร่างอัตโนมัติ (ทุก 30 วินาที/ก่อนล็อกหน้าจอ) — เฉพาะเมื่อแก้แล้วยังไม่บันทึก
+  const baseline = useMemo(() => JSON.stringify(p.initial?.answers ?? defaultAnswers(p.form.kind)), [p.initial, p.form.kind]);
+  const dirty = JSON.stringify(answers) !== baseline;
+  const autosave = useAutosave(`assess:${p.enrollmentId}:${p.form.id}:${p.round}:${p.period ?? ""}`, { answers, date, channel, paperLocation }, !p.readOnly && dirty);
+  const [draftOffer, setDraftOffer] = useState<{ updatedAt: number; data: unknown } | null>(null);
+  useEffect(() => {
+    if (p.readOnly) return;
+    autosave.load().then((d) => {
+      if (!d) return;
+      if (JSON.stringify((d.data as { answers: unknown }).answers) !== baseline) setDraftOffer(d);
+      else void autosave.clear();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = useCallback(() => start(async () => {
     setMsg(null);
     const r = await saveAssessmentAction({ enrollmentId: p.enrollmentId, formId: p.form.id, round: p.round, period: p.period, assessedDate: date, answers, channel, paperLocation: channel === "paper" ? paperLocation : null }, p.initial?.version);
     if (!r.ok) return setMsg({ tone: "danger", text: r.error });
+    void autosave.clear();
     setMsg({ tone: r.data!.alerts.length ? "warn" : "ok", text: `บันทึกแล้ว${r.data!.level ? ` — ${r.data!.level}` : ""}${r.data!.alerts.length ? ` · แจ้งสถานพยาบาลแล้ว: ${r.data!.alerts.join(" / ")}` : ""}` });
     router.refresh();
-  }), [answers, date, channel, paperLocation, p, router]);
+  }), [answers, date, channel, paperLocation, p, router, autosave]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,6 +73,16 @@ export function AssessmentForm(p: Props) {
 
   return (
     <div className="space-y-4 pb-24">
+      {draftOffer && (
+        <DraftOffer
+          savedAt={draftOffer.updatedAt}
+          onRestore={() => {
+            const d = draftOffer.data as { answers: unknown; date: string; channel: "paper" | "system"; paperLocation: string };
+            setAnswers(d.answers); setDate(d.date); setChannel(d.channel); setPaperLocation(d.paperLocation ?? ""); setDraftOffer(null);
+          }}
+          onDiscard={() => { void autosave.clear(); setDraftOffer(null); }}
+        />
+      )}
       {p.form.description && <p className="text-muted">{p.form.description}</p>}
       <div className="flex flex-wrap items-end gap-4">
         <div><span className="label">วันที่ประเมิน</span><ThaiDateInput value={date} onChange={setDate} max={p.today} /></div>
@@ -90,6 +117,7 @@ export function AssessmentForm(p: Props) {
             {result.total != null && <span className="font-display text-2xl font-bold text-navy">{result.total}</span>}
             {result.level && <span className={TONE[result.tone ?? ""] ?? "tag-muted"}>{result.level}</span>}
             {result.errors.length > 0 && <span className="text-sm text-muted">{result.errors.join(" · ")}</span>}
+            <DraftSavedHint savedAt={dirty ? autosave.savedAt : null} />
           </div>
           <a href={p.backHref} className="btn-ghost">กลับ</a>
           {!p.readOnly && <button className="btn-primary" disabled={pending} onClick={save}><Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "บันทึก (Ctrl+S)"}</button>}

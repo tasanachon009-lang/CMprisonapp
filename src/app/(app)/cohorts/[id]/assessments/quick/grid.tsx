@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useAutosave } from "@/components/use-autosave";
+import { DraftOffer, DraftSavedHint } from "@/components/draft-offer";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Save } from "lucide-react";
@@ -30,6 +32,16 @@ export function AssessmentGrid({ cohortId, formId, round, today, kind, items, sc
   const [pending, start] = useTransition();
   const refs = useRef<Record<string, HTMLInputElement | null>>({});
   const allowed = new Set(scoring.options.map((o) => String(o.value)));
+  // ร่างอัตโนมัติ (ทุก 30 วินาที/ก่อนล็อกหน้าจอ) — เฉพาะเมื่อมีช่องที่แก้แล้วยังไม่บันทึก
+  const initialGrid = useMemo(() => JSON.stringify(Object.fromEntries(people.map((p) => [p.enrollmentId, Object.fromEntries(Object.entries(existing[p.enrollmentId] ?? {}).map(([k, v]) => [k, String(v)]))]))), [people, existing]);
+  const norm = (g: Record<number, Record<string, string>>) => JSON.stringify(Object.fromEntries(Object.entries(g).map(([k, row]) => [k, Object.fromEntries(Object.entries(row).filter(([, v]) => v !== ""))])));
+  const dirty = norm(grid) !== norm(JSON.parse(initialGrid));
+  const autosave = useAutosave(`assess-grid:${cohortId}:${formId}:${round}`, { grid, date }, dirty);
+  const [draftOffer, setDraftOffer] = useState<{ updatedAt: number; data: unknown } | null>(null);
+  useEffect(() => {
+    autosave.load().then((d) => { if (d) setDraftOffer(d); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const parse = (row: Record<string, string>) => Object.fromEntries(Object.entries(row).filter(([, v]) => v !== "").map(([k, v]) => [k, Number(v)]));
   const focus = (pi: number, ii: number) => refs.current[`${people[pi]?.enrollmentId}:${items[ii]?.no}`]?.focus();
@@ -62,6 +74,7 @@ export function AssessmentGrid({ cohortId, formId, round, today, kind, items, sc
     const r = await saveAssessmentBatchAction(formId, round, date, rows, fromKit, { channel, location: channel === "paper" ? location : null });
     if (!r.ok) return setMsg({ tone: "danger", text: r.error });
     setRowErr(Object.fromEntries(r.data!.errors.map((x) => [x.enrollmentId, x.error])));
+    if (!r.data!.errors.length) void autosave.clear();
     setMsg({ tone: r.data!.errors.length ? "warn" : "ok", text: `บันทึกแล้ว ${r.data!.saved} คน${r.data!.errors.length ? ` · ไม่ผ่าน ${r.data!.errors.length} คน (ดูข้อความสีแดงท้ายแถว)` : ""}` });
     router.refresh();
   });
@@ -80,6 +93,7 @@ export function AssessmentGrid({ cohortId, formId, round, today, kind, items, sc
         <label className="flex items-center gap-2 pb-3"><input type="checkbox" className="h-5 w-5" checked={fromKit} onChange={(e) => setFromKit(e.target.checked)} /> กรอกย้อนหลังจากชุดกระดาษฉุกเฉิน</label>
         <Link href={`/cohorts/${cohortId}/assessments`} className="btn-ghost ml-auto">กลับ</Link>
       </div>
+      {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={() => { const d = draftOffer.data as { grid: typeof grid; date: string }; setGrid(d.grid); setDate(d.date); setDraftOffer(null); }} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
       <Alert tone="info">ค่าที่ใส่ได้: {scoring.options.map((o) => `${o.value} = ${o.label}`).join(" · ")} — Enter = ข้อถัดไป · ลูกศรขึ้น/ลง = เปลี่ยนคน · วางจาก Excel ได้ทั้งแผ่น · ข้อที่มี (−) ระบบกลับคะแนนให้เอง</Alert>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="panel overflow-x-auto">
@@ -132,7 +146,7 @@ export function AssessmentGrid({ cohortId, formId, round, today, kind, items, sc
         </table>
       </div>
       <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-line bg-cream/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl justify-end"><button className="btn-primary" onClick={save} disabled={pending}><Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "บันทึกทุกแถวที่กรอก"}</button></div>
+        <div className="mx-auto flex max-w-7xl items-center justify-end gap-3"><DraftSavedHint savedAt={dirty ? autosave.savedAt : null} /><button className="btn-primary" onClick={save} disabled={pending}><Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "บันทึกทุกแถวที่กรอก"}</button></div>
       </div>
     </div>
   );

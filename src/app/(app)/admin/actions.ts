@@ -13,6 +13,7 @@ import { DEFAULT_ROLES_BY_PROFESSION, PERMISSIONS, SCOPABLE, type Permission } f
 import { setRoles, requestDual, approveDual, rejectDual, executeAdminChange, activeAdminIds, MAX_ADMINS, type DualAction } from "@/lib/services/admin";
 import { getSetting, setSetting } from "@/lib/bootstrap";
 import { notify } from "@/lib/notify";
+import { CONSENT_LIMITS } from "@/lib/consent-text";
 import { runBackup, restoreFromBackup, runRestoreTest } from "@/lib/backup/runner";
 import { isValidISODate } from "@/lib/thai-date";
 import { RuleError } from "@/lib/services/registry";
@@ -285,6 +286,36 @@ export async function saveBackupDirs(externalDir: string, removableDir: string):
   }
 }
 
+// ───────── แบบฟอร์มยินยอม PDPA (สเปก 22B) ─────────
+/** บันทึกข้อความแบบฟอร์มยินยอม — reset = กลับเป็นข้อความเริ่มต้น */
+export async function saveConsentText(input: { title: string; paragraphs: string[] } | { reset: true }): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("settings.manage");
+    const db = getDb();
+    const before = { title: getSetting<string | null>(db, "pdpa.consentTitle", null), paragraphs: getSetting<string[] | null>(db, "pdpa.consentText", null) };
+    if ("reset" in input) {
+      setSetting(db, "pdpa.consentTitle", null, auth.user.id);
+      setSetting(db, "pdpa.consentText", null, auth.user.id);
+      writeAudit(db, { userId: auth.user.id, action: "settings.change", entity: "consent_text", before, after: { reset: true }, ip: await clientIp() });
+      revalidatePath("/admin/consent");
+      return { ok: true, message: "กลับเป็นข้อความเริ่มต้นแล้ว" };
+    }
+    const title = input.title.trim();
+    const paragraphs = input.paragraphs.map((p) => p.trim()).filter(Boolean);
+    if (!title) return { ok: false, error: "กรุณาใส่ชื่อแบบฟอร์ม" };
+    if (title.length > CONSENT_LIMITS.titleMax) return { ok: false, error: `ชื่อแบบฟอร์มยาวเกิน ${CONSENT_LIMITS.titleMax} ตัวอักษร` };
+    if (!paragraphs.length) return { ok: false, error: "กรุณาใส่ข้อความอย่างน้อย 1 ย่อหน้า" };
+    if (paragraphs.length > CONSENT_LIMITS.paragraphs) return { ok: false, error: `ใส่ได้ไม่เกิน ${CONSENT_LIMITS.paragraphs} ย่อหน้า` };
+    if (paragraphs.some((p) => p.length > CONSENT_LIMITS.paragraphMax)) return { ok: false, error: `แต่ละย่อหน้ายาวไม่เกิน ${CONSENT_LIMITS.paragraphMax} ตัวอักษร — แบ่งเป็นหลายย่อหน้า` };
+    setSetting(db, "pdpa.consentTitle", title, auth.user.id);
+    setSetting(db, "pdpa.consentText", paragraphs, auth.user.id);
+    writeAudit(db, { userId: auth.user.id, action: "settings.change", entity: "consent_text", before, after: { title, paragraphs }, ip: await clientIp() });
+    revalidatePath("/admin/consent");
+    return { ok: true, message: "บันทึกแล้ว — แบบฟอร์มที่พิมพ์ครั้งต่อไปจะใช้ข้อความนี้" };
+  } catch (e) {
+    return toError(e);
+  }
+}
 // ───────── ตั้งค่า ─────────
 export async function saveSettings(values: Record<string, unknown>): Promise<ActionResult> {
   try {

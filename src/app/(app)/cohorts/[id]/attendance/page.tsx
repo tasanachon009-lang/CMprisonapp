@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { getCohort, cohortSessions } from "@/lib/queries/cohorts";
 import { formatThaiDate, todayISO } from "@/lib/thai-date";
 import { userNameMap } from "@/lib/queries/names";
+import { Stat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +22,18 @@ export default async function CohortAttendancePage({ params }: PageProps<"/cohor
   const byDate = new Map<string, typeof sessions>();
   for (const s of sessions) byDate.set(s.date, [...(byDate.get(s.date) ?? []), s]);
   const canEdit = auth.can("attendance.edit");
+  // "ครั้งที่ x/y" และชั่วโมงตามตารางที่ผ่านไปแล้วเทียบเป้าหมาย (สเปก 9)
+  const order = new Map(sessions.map((s, i) => [s.id, i + 1]));
+  const checked = sessions.filter((s) => s.attendanceCheckedAt).length;
+  const hoursDone = sessions.filter((s) => s.date < today || s.attendanceCheckedAt).reduce((a, s) => a + s.hours, 0);
 
   return (
     <div className="space-y-4">
+      <section className="card grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <Stat value={`${checked}/${sessions.length}`} label="เช็คชื่อแล้ว (ครั้ง)" />
+        <Stat value={`${hoursDone}/${row.course.totalHours}`} label="ชั่วโมงที่ผ่านไปแล้ว เทียบเป้าหมายหลักสูตร" />
+        <Stat value={sessions.filter((s) => !s.attendanceCheckedAt && s.date < today).length} label="เลยกำหนด ยังไม่เช็ค" />
+      </section>
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Link href={`/cohorts/${row.cohort.id}/attendance/quick`} className="btn-secondary"><Keyboard size={20} aria-hidden /> โหมดกรอกเร็ว (เช็คชื่อย้อนหลัง)</Link>
@@ -39,6 +49,7 @@ export default async function CohortAttendancePage({ params }: PageProps<"/cohor
                 return (
                   <li key={s.id} className="flex flex-wrap items-center gap-3 py-2">
                     <span className="w-28 font-display font-semibold text-navy">{s.startTime}–{s.endTime}</span>
+                    <span className="tag-muted">ครั้งที่ {order.get(s.id)}/{sessions.length}</span>
                     <Link href={`/sessions/${s.id}`} className="flex-1 font-medium hover:underline">{s.title}</Link>
                     {status === "done" && <span className="tag-ok">เช็คแล้ว · {names.get(s.attendanceCheckedBy ?? 0) ?? ""}</span>}
                     {status === "overdue" && <span className="tag-danger">เลยกำหนด ยังไม่เช็ค</span>}

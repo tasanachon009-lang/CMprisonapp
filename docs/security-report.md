@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 5/10/2569 08:57:30
+- วันเวลา: 5/10/2569 11:15:04
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 153/153 ข้อ**
+- ผล: **ผ่าน 157/157 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -128,6 +128,10 @@
 | ✅ ผ่าน | admin → /admin/forms | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | executive → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/consent | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /incomplete | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |

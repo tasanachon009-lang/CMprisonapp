@@ -36,6 +36,7 @@ export default async function RosterPage({ params, searchParams }: PageProps<"/c
       consentRefused: r.enrollment.consentRefused,
       pct: s?.pct ?? null,
       sessions: s ? `${s.present}/${s.counted}` : "-",
+      hours: s ? s.presentHours : null,
       below: !!s?.belowThreshold,
       otherCourses: r.otherCourses,
       isReturnee: r.isReturnee,
@@ -65,7 +66,7 @@ export default async function RosterPage({ params, searchParams }: PageProps<"/c
           )}
         </div>
       </div>
-      <RosterTable rows={rows} cohortId={cohort.id} canEdit={auth.can("registry.edit")} passPct={course.passAttendancePct} defaultDoneDate={cohort.endDate < todayISO() ? cohort.endDate : todayISO()} />
+      <RosterTable rows={rows} cohortId={cohort.id} canEdit={auth.can("registry.edit")} passPct={course.passAttendancePct} targetHours={course.totalHours} defaultDoneDate={cohort.endDate < todayISO() ? cohort.endDate : todayISO()} />
     </div>
   );
 }

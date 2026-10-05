@@ -4,7 +4,7 @@ import { Printer } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { sessionAccess } from "@/lib/auth/access";
 import { getDb } from "@/lib/db";
-import { getCohort } from "@/lib/queries/cohorts";
+import { getCohort, cohortSessions } from "@/lib/queries/cohorts";
 import { sessionRoster, attendanceVersion } from "@/lib/services/attendance";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { activeStaff, STAFF_ROLE_LABEL } from "@/lib/services/schedule";
@@ -30,6 +30,9 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
   const access = sessionAccess(auth, session.id, session.cohortId);
   if (!access.canView) redirect("/forbidden");
   const { cohort, course } = getCohort(db, session.cohortId)!;
+  // "ครั้งที่ x/y" ของรุ่น (เฉพาะคาบที่เช็คชื่อ)
+  const allSessions = cohortSessions(db, cohort.id).filter((s) => s.takesAttendance);
+  const nth = allSessions.findIndex((s) => s.id === session.id) + 1;
   const names = userNameMap(db);
   const version = attendanceVersion(rows.map((r) => r.record));
   const staff = activeStaff(db, [session.id]).sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0));
@@ -45,7 +48,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
       ] : [{ href: "/", label: "หน้าแรก" }, { label: session.title }]} />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-muted">{course.shortName} {cohortLabel(cohort)} · วันที่ {session.dayNo ?? "-"} ของหลักสูตร</p>
+          <p className="text-muted">{course.shortName} {cohortLabel(cohort)} · วันที่ {session.dayNo ?? "-"} ของหลักสูตร{nth > 0 ? ` · ครั้งที่ ${nth}/${allSessions.length}` : ""}</p>
           <h1 className="text-3xl">{session.title}</h1>
           <p className="text-muted">{formatThaiDate(session.date, "full")} · {session.startTime}–{session.endTime} น. ({session.hours} ชม.){session.location ? ` · ${session.location}` : ""}</p>
           <p className="mt-1">วิทยากร: {staff.length ? staff.map((x) => `${x.userId ? names.get(x.userId) : `${x.externalName} (ภายนอก)`}${x.role ? ` – ${STAFF_ROLE_LABEL[x.role]}` : ""}`).join(", ") : <span className="text-muted">ยังไม่ระบุ</span>}</p>

@@ -38,7 +38,7 @@ export default async function QuickAttendancePage({ params, searchParams }: Page
         time: `${r.session.startTime}–${r.session.endTime}`,
         version: attendanceVersion(r.rows.map((x) => x.record)),
         members: r.rows.map((x) => x.enrollmentId),
-        values: Object.fromEntries(r.rows.filter((x) => x.record).map((x) => [x.enrollmentId, { status: x.record!.status, correctionsType: x.record!.correctionsType }])),
+        values: Object.fromEntries(r.rows.filter((x) => x.record).map((x) => [x.enrollmentId, { status: x.record!.status, correctionsType: x.record!.correctionsType, note: x.record!.note }])),
       }))}
       people={[...people.values()]}
     />

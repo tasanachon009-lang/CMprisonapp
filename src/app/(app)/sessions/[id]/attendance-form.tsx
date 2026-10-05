@@ -9,6 +9,8 @@ import { UndoToast } from "@/components/undo-toast";
 import { ATTENDANCE_LABEL, CORRECTIONS_TYPES, type AttendanceStatus } from "@/lib/rules/attendance-rules";
 import { saveAttendanceAction } from "../actions";
 import { BehaviorNoteButton } from "@/components/behavior-note";
+import { useAutosave } from "@/components/use-autosave";
+import { DraftOffer, DraftSavedHint } from "@/components/draft-offer";
 
 type Row = {
   enrollmentId: number; incarcerationId: number; name: string; inmateNo: string; zone: string | null; thumb: string | null;
@@ -33,6 +35,27 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
   const [toast, setToast] = useState<{ prev: Row[] } | null>(null);
   const [pending, start] = useTransition();
   const anySaved = initial.some((r) => r.saved);
+  // ร่างอัตโนมัติ: เก็บเฉพาะเมื่อแก้แล้วยังไม่บันทึก (ล็อกหน้าจอ/ไม่ใช่ฉัน แล้วกลับมาทำต่อได้)
+  const pick = (rs: Row[]) => rs.map((r) => ({ id: r.enrollmentId, s: r.status, c: r.correctionsType, n: r.note ?? null }));
+  const dirty = JSON.stringify(pick(rows)) !== JSON.stringify(pick(initial));
+  const autosave = useAutosave(`attendance:${sessionId}`, { version, rows: pick(rows) }, !readOnly && dirty);
+  const [draftOffer, setDraftOffer] = useState<{ updatedAt: number; data: unknown } | null>(null);
+  useEffect(() => {
+    if (readOnly) return;
+    autosave.load().then((d) => {
+      if (!d) return;
+      const data = d.data as { rows: ReturnType<typeof pick> };
+      if (JSON.stringify(data.rows) !== JSON.stringify(pick(initial))) setDraftOffer(d);
+      else void autosave.clear();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+  const restore = () => {
+    const data = draftOffer!.data as { rows: ReturnType<typeof pick> };
+    const m = new Map(data.rows.map((x) => [x.id, x]));
+    setRows((rs) => rs.map((r) => { const x = m.get(r.enrollmentId); return x ? { ...r, status: x.s, correctionsType: x.c, note: x.n } : r; }));
+    setDraftOffer(null);
+  };
 
   useEffect(() => {
     setRows(initial);
@@ -53,16 +76,19 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
         setError(null);
         const missing = data.find((r) => r.status === "corrections" && !r.correctionsType);
         if (missing) return setError(`กรุณาระบุประเภทเหตุราชทัณฑ์ของ ${missing.name}`);
+        const noReason = data.find((r) => r.status === "corrections" && r.correctionsType === "other" && !r.note?.trim());
+        if (noReason) return setError(`"เบิกตัวอื่นๆ" ต้องระบุเหตุในหมายเหตุ — ${noReason.name}`);
         const r = await saveAttendanceAction(
           sessionId,
           data.map((x) => ({ enrollmentId: x.enrollmentId, status: x.status, correctionsType: x.correctionsType, note: x.note })),
           version,
         );
         if (!r.ok) return setError(r.error);
+        void autosave.clear();
         setToast(prev ? { prev } : null);
         router.refresh();
       }),
-    [sessionId, version, router],
+    [sessionId, version, router, autosave],
   );
 
   // Ctrl+S บันทึก
@@ -88,6 +114,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
           <button className="btn-ghost btn-sm ml-auto" onClick={() => setRows((rs) => rs.map((r) => ({ ...r, status: "present", correctionsType: null })))}>ตั้งทุกคนเป็น &quot;มา&quot;</button>
         )}
       </div>
+      {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={restore} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
       {!anySaved && !readOnly && <Alert tone="info">ทุกคนถูกตั้งเป็น &quot;มา&quot; ไว้แล้ว — แก้เฉพาะคนที่ไม่มา แล้วกด &quot;บันทึก&quot; (Ctrl+S)</Alert>}
       {error && <Alert tone="danger">{error}</Alert>}
 
@@ -125,7 +152,8 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
             )}
             {r.status !== "present" && (
               <input
-                className="input w-full sm:w-56" placeholder="หมายเหตุ (ถ้ามี)" value={r.note ?? ""} disabled={readOnly}
+                className={`input w-full sm:w-56 ${r.correctionsType === "other" && r.status === "corrections" && !r.note?.trim() ? "input-error" : ""}`}
+                placeholder={r.status === "corrections" && r.correctionsType === "other" ? "ระบุเหตุที่เบิกตัว (จำเป็น)" : "หมายเหตุ (ถ้ามี)"} value={r.note ?? ""} disabled={readOnly}
                 onChange={(e) => set(r.enrollmentId, { note: e.target.value })} aria-label={`หมายเหตุของ ${r.name}`}
               />
             )}
@@ -136,6 +164,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
       {!readOnly && (
         <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-line bg-cream/95 px-4 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-end gap-3">
+            <span className="mr-auto"><DraftSavedHint savedAt={dirty ? autosave.savedAt : null} /></span>
             <span className="text-sm text-muted">เหตุราชทัณฑ์ไม่นับเป็นขาด และไม่หัก % การเข้าร่วม</span>
             <button className="btn-primary" disabled={pending} onClick={() => doSave(rows, anySaved ? initial : null)}>
               <Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "บันทึกการเช็คชื่อ"}

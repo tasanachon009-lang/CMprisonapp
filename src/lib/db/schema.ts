@@ -828,6 +828,52 @@ export const budgetOverrunAcks = sqliteTable("budget_overrun_acks", {
   createdAt: ts("created_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
 });
 
+// ───────────────────────── LINE และรายงานประจำสัปดาห์ (สเปก 12, 18.2) ─────────────────────────
+
+/** ประวัติการส่ง LINE (Broadcast) — ข้อความไม่มีข้อมูลผู้ต้องขัง · dry_run = โหมดทดลอง (ไม่มี token / ฐานข้อมูลปลอม) */
+export const lineMessages = sqliteTable(
+  "line_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** daily | weekly_schedule | change | test | weekly_report */
+    kind: text("kind").notNull(),
+    /** วันที่ของตารางที่ส่ง (daily/change) หรือวันจันทร์ของสัปดาห์ */
+    targetDate: text("target_date"),
+    text: text("text").notNull(),
+    /** แฮชของตาราง ใช้ตรวจว่ามีการแก้ตารางหลังส่ง */
+    contentHash: text("content_hash"),
+    /** sent | dry_run | failed */
+    status: text("status").notNull(),
+    httpStatus: integer("http_status"),
+    error: text("error"),
+    sentBy: integer("sent_by"),
+    createdAt: ts("created_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
+  },
+  (t) => [index("line_messages_kind_idx").on(t.kind, t.targetDate)],
+);
+
+/** รายงานประจำสัปดาห์ (สเปก 18.2) — ร่างอัตโนมัติศุกร์ 15.00 · แก้ข้อความได้ · อนุมัติแล้วยอดคงที่ */
+export const weeklyReports = sqliteTable(
+  "weekly_reports",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** วันจันทร์ของสัปดาห์ (YYYY-MM-DD) */
+    weekStart: text("week_start").notNull(),
+    /** draft | approved */
+    status: text("status").notNull().default("draft"),
+    /** ตัวเลข/รายการที่ระบบรวบรวม ณ เวลาที่สร้างหรืออนุมัติ */
+    data: text("data", { mode: "json" }).notNull(),
+    /** ข้อความที่แก้ได้: ปัญหา/ข้อเสนอแนะ แผนสัปดาห์หน้า หมายเหตุ */
+    issues: text("issues"),
+    nextPlan: text("next_plan"),
+    note: text("note"),
+    approvedBy: integer("approved_by"),
+    approvedAt: ts("approved_at"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("weekly_reports_week_unique").on(t.weekStart).where(sql`deleted_at IS NULL`)],
+);
+
 /** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) — วันละ 1 คน (กลุ่ม A) · บันทึกแทนวิทยากรภายนอก */
 export const dutyOfficers = sqliteTable(
   "duty_officers",

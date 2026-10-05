@@ -54,7 +54,7 @@ export default async function HomePage() {
 
       {isAssistantOnly && (
         <section className="card">
-          <h2 className="flex items-center gap-2 text-xl"><ClipboardCheck aria-hidden /> คาบของฉันวันนี้</h2>
+          <h2 className="flex flex-wrap items-center gap-2 text-xl"><ClipboardCheck aria-hidden /> คาบของฉันวันนี้ <Link href="/print/my-schedule" target="_blank" className="ml-auto text-sm font-normal text-navy underline">พิมพ์ตารางสัปดาห์นี้</Link></h2>
           <div className="mt-4 space-y-2">
             {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <EmptyState title="วันนี้ไม่มีคาบที่คุณรับผิดชอบ" />}
           </div>
@@ -98,7 +98,7 @@ function MainCards({ today, mineToday, mineTomorrow }: { today: string; userId: 
         </div>
       </section>
       <section className="card">
-        <h2 className="flex items-center gap-2 text-xl"><CalendarDays aria-hidden /> ตารางของฉัน</h2>
+        <h2 className="flex flex-wrap items-center gap-2 text-xl"><CalendarDays aria-hidden /> ตารางของฉัน <Link href="/print/my-schedule" target="_blank" className="ml-auto text-sm font-normal text-navy underline">พิมพ์ตารางสัปดาห์นี้</Link></h2>
         <h3 className="mt-3 font-semibold">วันนี้</h3>
         <div className="mt-2 space-y-2">
           {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่คุณรับผิดชอบ</p>}

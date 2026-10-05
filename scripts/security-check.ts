@@ -304,6 +304,25 @@ async function main() {
           manageOk && spendOk && fn(bsrc, "confirmOverrunAction").includes('requireAction("budget.approve")') && triggers === 3,
           `trigger ${triggers}/3 · ตรวจจากโค้ด server action`);
       }
+      // กลุ่ม 7: LINE + รายงานประจำสัปดาห์
+      {
+        const lAdmin = await get("/admin/line", C.admin), lFin = await get("/admin/line", C.finance), lRehab = await get("/admin/line", C.rehab);
+        // ตัวอย่างข้อความ LINE ต้องไม่มีชื่อ/เลขประจำตัวผู้ต้องขังของรุ่นที่มีคาบในวันทำการถัดไป
+        const someone = db.select({ f: schema.persons.firstName, l: schema.persons.lastName, no: schema.incarcerations.inmateNo }).from(schema.enrollments)
+          .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId)).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId))
+          .innerJoin(schema.cohorts, eq(schema.cohorts.id, schema.enrollments.cohortId)).where(eq(schema.cohorts.status, "active")).get();
+        const leak = someone ? lAdmin.text.includes(`${someone.f} ${someone.l}`) || lAdmin.text.includes(someone.no) : false;
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "LINE: เฉพาะผู้ดูแลตั้งค่า/ส่งทดสอบ · ตัวอย่างข้อความไม่มีชื่อ/เลขประจำตัวผู้ต้องขัง · ไม่แสดง token",
+          allowed(lAdmin) && lAdmin.text.includes("ตัวอย่างข้อความที่จะส่ง") && !leak && !allowed(lFin) && !allowed(lRehab) && !lAdmin.text.includes("Bearer"),
+          `admin ${lAdmin.status} · fin ${lFin.status} · rehab ${lRehab.status} · leak ${leak}`);
+        const sendSrc = fs.readFileSync("src/lib/line/send.ts", "utf8");
+        const urls = Array.from(new Set(sendSrc.match(/https?:\/\/[a-z0-9.-]+/gi) ?? []));
+        check("7. เครือข่ายขาออก", "เชื่อมต่อออกเฉพาะ api.line.me (โค้ดส่ง LINE ไม่มีปลายทางอื่น) · ไม่มี token = โหมดทดลอง · ข้อมูลปลอม = ไม่ส่งจริง",
+          urls.length === 1 && urls[0] === "https://api.line.me" && sendSrc.includes("app.isDemoData") && sendSrc.includes("looksLikeInmateData"), urls.join(", "));
+        const wAsst = await get("/reports/weekly", C.assistant), wExec = await get("/reports/weekly", C.executive), wAdmin = await get("/reports/weekly", C.admin);
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "รายงานประจำสัปดาห์: หัวหน้าสร้าง/อนุมัติได้ · ผู้บริหารดูได้ (ไม่มีปุ่มสร้าง) · ผู้ช่วยเข้าไม่ได้",
+          wAdmin.text.includes("สร้าง/อัปเดตร่าง") && allowed(wExec) && !wExec.text.includes("สร้าง/อัปเดตร่าง") && !allowed(wAsst), `admin ${wAdmin.status} · exec ${wExec.status} · asst ${wAsst.status}`);
+      }
       const delFin = await get("/admin/delegations", C.finance);
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);
     }

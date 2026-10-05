@@ -4,6 +4,8 @@ import { addDays, nowInTZ, weekdayOf } from "./thai-date";
 import { runBackup, runRestoreTest, backupTargets, isDirReachable } from "./backup/runner";
 import { notify } from "./notify";
 import { config } from "./config";
+import { getSetting } from "./bootstrap";
+import { changeSlots } from "./line/jobs";
 
 /**
  * งานตั้งเวลา (เวลาไทยเสมอ) — ถ้าเครื่องปิดตอนถึงเวลา จะทำรอบล่าสุดที่พลาดทันทีเมื่อเปิดเครื่อง
@@ -12,6 +14,7 @@ import { config } from "./config";
 type Job = { name: string; slots: (date: string) => string[] /* HH:MM */; run: () => Promise<string> };
 
 const isWeekday = (d: string) => ![0, 6].includes(weekdayOf(d));
+const changeSlotsCache = changeSlots();
 
 const JOBS: Job[] = [
   {
@@ -51,6 +54,41 @@ const JOBS: Job[] = [
       const rows = overdueReports(db, nowInTZ().date);
       if (rows.length) notify(db, { role: "admin", severity: "warning", kind: "report_overdue", message: `มีคาบที่เลยวันแล้วยังไม่บันทึกผล ${rows.length} คาบ (${new Set(rows.map((r) => r.cohortId)).size} รุ่น) — ตามผู้รับผิดชอบประจำวัน/ผู้สอน`, link: "/" });
       return `ค้าง ${rows.length} คาบ`;
+    },
+  },
+  {
+    // สเปก 12: วันทำการ ส่งตารางวันทำการถัดไปทาง LINE (เวลาตั้งค่าได้) · ศุกร์ส่งตารางสัปดาห์หน้าเพิ่ม
+    name: "line.daily",
+    slots: (d) => {
+      if (!isWeekday(d)) return [];
+      const db = getDb();
+      if (db.select().from(schema.holidays).where(eq(schema.holidays.date, d)).get()) return [];
+      return [getSetting<string>(db, "line.sendTime", "16:00")];
+    },
+    run: async () => {
+      const { runDaily } = await import("./line/jobs");
+      return runDaily(getDb());
+    },
+  },
+  {
+    // สเปก 12: แก้ตารางหลังส่ง → แจ้งเปลี่ยนแปลงอัตโนมัติ
+    name: "line.changes",
+    slots: () => changeSlotsCache,
+    run: async () => {
+      const { runChanges } = await import("./line/jobs");
+      return runChanges(getDb());
+    },
+  },
+  {
+    // สเปก 18.2: ศุกร์ 15.00 สร้างร่างรายงานประจำสัปดาห์ แจ้งผู้ดูแลให้ตรวจแก้และอนุมัติ
+    name: "weekly.report",
+    slots: (d) => (weekdayOf(d) === 5 ? ["15:00"] : []),
+    run: async () => {
+      const { upsertDraft, mondayOf } = await import("./services/weekly-report");
+      const db = getDb();
+      const r = upsertDraft(db, mondayOf(nowInTZ().date));
+      notify(db, { role: "admin", severity: "info", kind: "weekly_report", message: "ร่างรายงานประจำสัปดาห์พร้อมแล้ว — ตรวจแก้แล้วกดอนุมัติ", link: `/reports/weekly/${r.id}` });
+      return `ร่าง #${r.id}`;
     },
   },
   {

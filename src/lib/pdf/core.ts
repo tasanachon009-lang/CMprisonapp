@@ -13,7 +13,7 @@ import { shapeThai } from "./thai-shape";
 export const MM = 72 / 25.4;
 export const A4 = { w: 210, h: 297 };
 
-const FONT_DIR = path.join(process.cwd(), "public", "fonts");
+const FONT_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "fonts");
 const fontFile = (bold: boolean) => path.join(FONT_DIR, bold ? "THSarabunNew Bold.ttf" : "THSarabunNew.ttf");
 
 export type Pdf = { doc: PDFDocument; regular: PDFFont; bold: PDFFont };
@@ -107,7 +107,7 @@ export function tick(page: PDFPage, x: number, y: number, w: number, h: number) 
 /** ฝังหน้าแรกของ PDF ต้นฉบับเป็นพื้นหลัง (แคชไบต์ไฟล์ไว้) */
 const bgCache = new Map<string, Uint8Array>();
 export async function drawBackground(pdf: Pdf, page: PDFPage, file: string) {
-  const abs = path.join(process.cwd(), file);
+  const abs = path.join(/*turbopackIgnore: true*/ process.cwd(), file);
   if (!bgCache.has(abs)) {
     if (!fs.existsSync(abs)) throw new RuleError(`ไม่พบไฟล์แบบฟอร์มต้นฉบับ ${file}`);
     bgCache.set(abs, new Uint8Array(fs.readFileSync(abs)));

@@ -54,6 +54,8 @@ export const PERMISSIONS = {
   "budget.view": "ดูงบประมาณ",
   "budget.manage": "จัดสรรงบ / ตั้งงบของรุ่น",
   "budget.spend": "บันทึกใช้จ่ายจริง / คืนเงินเหลือ",
+  "reports.weekly": "แก้และอนุมัติรายงานประจำสัปดาห์",
+  "line.manage": "ตั้งค่า/ส่งทดสอบ LINE",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

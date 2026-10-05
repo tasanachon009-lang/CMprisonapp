@@ -25,6 +25,9 @@ import { todayISO, addDays } from "../src/lib/thai-date";
 import { setDutyOfficer } from "../src/lib/services/duty";
 import { createBatch, approveBatch } from "../src/lib/services/pay";
 import { saveAllocation, saveLine, applyCourseTemplate, copyLinesFrom, recordExpense, recordRefund } from "../src/lib/services/budget";
+import { upsertDraft, approveWeekly, mondayOf } from "../src/lib/services/weekly-report";
+import { dayText, hashText, nextWorkingDay } from "../src/lib/line/messages";
+import { sendLine } from "../src/lib/line/send";
 
 if (config.envLabel === "production") {
   console.error("❌ ห้ามรัน seed ข้อมูลปลอมบนเครื่องใช้จริง (APP_ENV=production)");
@@ -385,7 +388,16 @@ async function main() {
   // ปีงบ 2570 รุ่นที่ 2 — วางแผนไว้ มีร่างลงทะเบียนล่วงหน้า
   const next = createCohort(db, { courseId: b12.id, startDate: "2027-01-11", targetCount: 45, location: "ห้องอบรม 2" }, headId);
   copyLinesFrom(db, next.id, cur.id, p70Id, { userId: headId }); // งบรุ่นที่ 2/2570 คัดลอกจากรุ่นที่ 1
-  fillCohort(next.id, 40, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
+  // ขั้น 3 กลุ่ม 7: รายงานประจำสัปดาห์ (สัปดาห์ก่อนอนุมัติแล้ว · สัปดาห์นี้เป็นร่าง) + ประวัติ LINE โหมดทดลอง (ข้อมูลปลอม)
+  {
+    const lastMonday = addDays(mondayOf(today), -7);
+    const w1 = upsertDraft(db, lastMonday, headId);
+    approveWeekly(db, w1.id, { userId: headId });
+    upsertDraft(db, mondayOf(today), headId);
+    const target = nextWorkingDay(db, today);
+    const t = dayText(db, target);
+    await sendLine(db, "daily", t.text, { targetDate: target, contentHash: hashText(t.text), sentBy: headId });
+  }  fillCohort(next.id, 40, { yy: 69, admitted: "2026-06-01", enrolled: today, status: "draft" });
 
   // ── ข้อมูลขั้นที่ 2 (ปลอม) ──
   console.log("ใส่ข้อมูลขั้นที่ 2: แบบประเมิน ติดตาม บสต. บันทึก ...");

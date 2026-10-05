@@ -23,4 +23,6 @@ export const config = {
   /** โหมดฝึกหัด/สาธิต ใช้ข้อมูลปลอม */
   isTraining: process.env.APP_ENV === "training",
   timeZone: "Asia/Bangkok",
+  /** LINE Messaging API — ใส่ใน .env ที่เครื่องทำงานเท่านั้น (ห้ามส่งในแชต/ห้ามเข้า Git) · ไม่มี = โหมดทดลอง */
+  lineToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "",
 };

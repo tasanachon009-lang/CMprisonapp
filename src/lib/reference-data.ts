@@ -276,6 +276,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "docs.payerName": "",
   "docs.voucherCorner": "เอกสารหมายเลข ๑",
   "docs.showKtbForm": true,
+  // สเปก 18.2: รายงานประจำสัปดาห์ (บันทึกข้อความ) เรียนถึง
+  "docs.weeklyTo": "ผู้อำนวยการสถานพยาบาล",
   // สเปก 13.2/17: แม่แบบงบของหลักสูตร — ใส่จำนวนคน → คำนวณทั้งหมด · var: people = จำนวนคน, speakers = ceil(คน/perSpeaker)
   // ⚠️ ค่าตัวอย่างจากคู่มือ (3 วัน: วิทยากร 600 × 15 ชม. ต่อ 50 คน, วัสดุ 159 บาท/คน) — แก้ได้ทุกปี
   "budget.templates": {
@@ -289,6 +291,12 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
       { item: "materials.stationery", unitSatang: 2000, factors: [{ var: "people", unit: "คน" }] },
     ] },
   },
+  // สเปก 12: LINE (ค่าเริ่มต้นปิด — เปิดที่ ตั้งค่า → LINE เมื่อใส่ token ในเครื่องทำงานแล้ว)
+  "line.enabled": false,
+  "line.sendTime": "16:00",
+  "line.weeklyOnFriday": true,
+  "line.weeklyReportSummary": false,
+  "line.quotaWarnPct": 80,
   // สเปก 22: ปรับตำแหน่งการพิมพ์ทั้งหน้า (มม.) ต่อแบบฟอร์ม
   "print.offsets": { ktb: { dx: 0, dy: 0 }, voucher: { dx: 0, dy: 0 }, report: { dx: 0, dy: 0 } },
   "docs.ktbTemplate": {

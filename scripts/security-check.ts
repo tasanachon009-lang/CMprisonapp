@@ -147,6 +147,9 @@ async function main() {
     ["/admin/forms", { admin: true, rehab: false, executive: false }],
     ["/instructors", { rehab: true, finance: true, executive: false, assistant: false, warden: false }],
     ["/instructors/new", { rehab: true, finance: true, executive: false }],
+    ["/calendar", { rehab: true, finance: true, executive: true, assistant: true, warden: false }],
+    ["/calendar?view=month", { rehab: true, warden: false }],
+    ["/print/calendar", { rehab: true, finance: true, warden: false }],
     ["/admin/rates", { admin: true, finance: true, rehab: false, executive: false }],
     ["/admin/topics", { admin: true, rehab: false, finance: false }],
     ["/print/instructor-form", { rehab: true, finance: true, executive: false }],
@@ -217,7 +220,7 @@ async function main() {
   // สเปก 11.4: จัดวิทยากรได้เฉพาะผู้มีสิทธิ์ schedule.edit (ผู้บริหาร/การเงิน ดูได้อย่างเดียว)
   const schedRehab = await get(`/cohorts/${cohort.id}/schedule`, C.rehab);
   const schedExec = await get(`/cohorts/${cohort.id}/schedule`, C.executive);
-  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ตารางกิจกรรม: เจ้าหน้าที่หลักมีปุ่มเพิ่มวิทยากร / ผู้บริหารดูอย่างเดียว", schedRehab.text.includes("เพิ่ม/เอาออก") && allowed(schedExec) && schedExec.text.includes("ดูอย่างเดียว") && !schedExec.text.includes("เพิ่ม/เอาออก"), `rehab HTTP ${schedRehab.status} · exec HTTP ${schedExec.status}`);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ตารางกิจกรรม: เจ้าหน้าที่หลักแก้คาบ/เพิ่มคาบ/เปลี่ยนวิทยากรได้ / ผู้บริหารดูอย่างเดียว", schedRehab.text.includes("เพิ่มคาบ") && schedRehab.text.includes("แก้คาบ / วิทยากร") && allowed(schedExec) && schedExec.text.includes("ดูอย่างเดียว") && !schedExec.text.includes("เพิ่มคาบ") && !schedExec.text.includes("เปลี่ยนวิทยากรเป็นช่วง"), `rehab HTTP ${schedRehab.status} · exec HTTP ${schedExec.status}`);
   // สเปก 10.1: แบบพิมพ์เปล่ามีรหัสแบบ (จับคู่กระดาษกับคน/แบบ/รอบ)
   const blank = await get(`/print/blank-forms/${cohort.id}?form=KNOW&round=pre`, C.rehab);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน)", blank.status === 200 && /KNOW-v\d+-ก่อน-E\d+/.test(blank.text), `HTTP ${blank.status}`);

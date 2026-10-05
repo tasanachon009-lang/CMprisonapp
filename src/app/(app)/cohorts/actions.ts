@@ -35,6 +35,7 @@ const CreateSchema = z.object({
   targetCount: z.coerce.number().int().min(0).max(500).optional(),
   location: z.string().max(200).optional(),
   note: z.string().max(2000).optional(),
+  copyFromCohortId: z.coerce.number().int().positive().optional(),
 });
 
 export async function createCohortAction(input: z.input<typeof CreateSchema>): Promise<ActionResult<{ id: number }>> {

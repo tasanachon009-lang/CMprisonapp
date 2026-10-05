@@ -7,12 +7,13 @@ import { Alert } from "@/components/ui";
 import { formatThaiDate } from "@/lib/thai-date";
 import { createCohortAction, previewCohortDates } from "../actions";
 
-export function NewCohortForm({ courseId, suggestedNumber, fiscalYear, locations }: { courseId: number; courseCode: string; suggestedNumber: number; fiscalYear: number; locations: string[] }) {
+export function NewCohortForm({ courseId, suggestedNumber, fiscalYear, locations, sources = [] }: { courseId: number; courseCode: string; suggestedNumber: number; fiscalYear: number; locations: string[]; sources?: Array<{ id: number; label: string }> }) {
   const router = useRouter();
   const [startDate, setStartDate] = useState("");
   const [number, setNumber] = useState(String(suggestedNumber));
   const [target, setTarget] = useState("40");
   const [location, setLocation] = useState(locations[0] ?? "");
+  const [copyFrom, setCopyFrom] = useState("");
   const [preview, setPreview] = useState<{ days: string[]; endLabel: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -26,7 +27,7 @@ export function NewCohortForm({ courseId, suggestedNumber, fiscalYear, locations
     e.preventDefault();
     setError(null);
     start(async () => {
-      const r = await createCohortAction({ courseId, number: Number(number), startDate, targetCount: Number(target) || undefined, location });
+      const r = await createCohortAction({ courseId, number: Number(number), startDate, targetCount: Number(target) || undefined, location, copyFromCohortId: copyFrom ? Number(copyFrom) : undefined });
       if (r.ok) router.push(`/cohorts/${r.data!.id}`);
       else setError(r.error);
     });
@@ -52,6 +53,14 @@ export function NewCohortForm({ courseId, suggestedNumber, fiscalYear, locations
           <label className="label" htmlFor="loc">สถานที่หลัก</label>
           <input id="loc" className="input" list="locations" value={location} onChange={(e) => setLocation(e.target.value)} />
           <datalist id="locations">{locations.map((l) => <option key={l} value={l} />)}</datalist>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor="copy">ตารางกิจกรรม</label>
+          <select id="copy" className="input" value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)}>
+            <option value="">สร้างจากแม่แบบหลักสูตร</option>
+            {sources.map((s) => <option key={s.id} value={s.id}>คัดลอกจาก {s.label} — หัวข้อ เวลา สถานที่ และวิทยากร</option>)}
+          </select>
+          <p className="hint">คัดลอก: วันที่ n ของรุ่นเดิม → วันอบรมที่ n ของรุ่นใหม่ (ข้ามวันหยุดให้เอง) ไม่คัดลอกคาบที่ยกเลิกและคาบชดเชย</p>
         </div>
       </div>
 

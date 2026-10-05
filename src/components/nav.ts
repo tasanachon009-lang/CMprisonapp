@@ -7,6 +7,7 @@ export type NavItem = { href: string; label: string; icon: string; any?: Permiss
 export const NAV: NavItem[] = [
   { href: "/", label: "หน้าแรก", icon: "home" },
   { href: "/courses", label: "หลักสูตร", icon: "book", any: ["course.view"] },
+  { href: "/calendar", label: "ปฏิทินรวม", icon: "calendar", any: ["schedule.view"] },
   { href: "/persons", label: "ค้นหาบุคคล", icon: "search", any: ["registry.view"] },
   { href: "/release", label: "ออกจากเรือนจำ", icon: "door", any: ["release.view"] },
   { href: "/bst", label: "บสต./ติดตาม", icon: "clipboard", any: ["bst.view"] },

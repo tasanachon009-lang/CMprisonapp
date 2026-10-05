@@ -28,15 +28,15 @@ export function maxStaffOf(db: DB, s: Pick<Session, "maxStaff"> & { topicId?: nu
 }
 
 const normName = (x: string) => x.trim().replace(/\s+/g, " ");
-const overlaps = (a: { startTime: string; endTime: string }, b: { startTime: string; endTime: string }) => a.startTime < b.endTime && b.startTime < a.endTime;
+export const overlaps = (a: { startTime: string; endTime: string }, b: { startTime: string; endTime: string }) => a.startTime < b.endTime && b.startTime < a.endTime;
 
-function getSession(db: DB, id: number) {
+export function getSession(db: DB, id: number) {
   const s = db.select().from(schema.cohortSessions).where(and(eq(schema.cohortSessions.id, id), isNull(schema.cohortSessions.deletedAt))).get();
   if (!s) throw new RuleError("ไม่พบคาบนี้");
   return s;
 }
 
-function assertEditable(db: DB, s: Session) {
+export function assertEditable(db: DB, s: Session) {
   const c = db.select({ status: schema.cohorts.status }).from(schema.cohorts).where(eq(schema.cohorts.id, s.cohortId)).get();
   if (c?.status === "closed") throw new RuleError("รุ่นนี้ปิดแล้ว แก้ตารางไม่ได้");
   if (s.lockedAt) throw new RuleError("คาบนี้ล็อกแล้ว (อนุมัติค่าตอบแทนแล้ว) — ถ้าต้องแก้ ให้ผู้ดูแลปลดล็อกก่อน");

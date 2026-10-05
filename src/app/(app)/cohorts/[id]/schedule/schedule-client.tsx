@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Plus, X, AlertTriangle, Pencil } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
-import { addStaffAction, removeStaffAction, setStaffRoleAction } from "./actions";
+import { addStaffAction, removeStaffAction, setStaffRoleAction, updateSessionAction, cancelSessionAction } from "./actions";
+import { ThaiDateInput } from "@/components/thai-date-input";
 
 export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[] };
 type ExternalOpt = { id: number; name: string; org: string | null; ready: boolean };
-type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string };
+type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string; date?: string; location?: string | null; topicId?: number | null; checked?: boolean };
+export type TopicOpt = { id: number; name: string; standardHours: number | null };
 
 const ROLE: Record<string, string> = { lead: "หลัก", co: "ร่วม" };
 
@@ -31,9 +33,11 @@ export function StaffNames({ staff }: { staff: StaffView[] }) {
 }
 
 /** กดการ์ดคาบ → แก้รายชื่อวิทยากร (เพิ่ม/เอาออก/บทบาท) */
-export function SessionStaffEditor({ cohortId, session, staff, options, externals = [], max, editable, lockedReason }: {
+export function SessionStaffEditor({ cohortId, session, staff, options, externals = [], max, editable, lockedReason, topics = [], locations = [], label }: {
   cohortId: number; session: SessionView; staff: StaffView[]; options: Array<{ id: number; name: string }>; externals?: ExternalOpt[]; max: number | null; editable: boolean; lockedReason: string | null;
+  topics?: TopicOpt[]; locations?: string[]; label?: string;
 }) {
+  const [tab, setTab] = useState<"staff" | "details">("staff");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"internal" | "external">("internal");
@@ -75,12 +79,20 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
 
   return (
     <>
-      <button type="button" onClick={() => { setOpen(true); setMsg(null); setConflictAsk(false); }} className="btn-ghost btn-sm mt-2" aria-label={`แก้วิทยากรคาบ ${session.title}`}>
-        <Pencil size={16} aria-hidden /> {editable ? "วิทยากร" : "ดูวิทยากร"}
+      <button type="button" onClick={() => { setOpen(true); setMsg(null); setConflictAsk(false); setTab("staff"); }} className="btn-ghost btn-sm mt-2" aria-label={`แก้วิทยากรคาบ ${session.title}`}>
+        <Pencil size={16} aria-hidden /> {label ?? (editable ? "แก้คาบ / วิทยากร" : "ดูวิทยากร")}
       </button>
-      <Modal open={open} onClose={() => setOpen(false)} title={`วิทยากร: ${session.title}`}>
+      <Modal open={open} onClose={() => setOpen(false)} title={session.title}>
         {/* สร้างเนื้อหาเฉพาะตอนเปิด — หน้าตารางมีหลายสิบคาบ */}
-        {open && <>
+        {open && editable && session.date && (
+          <div className="mb-3 flex gap-2" role="tablist">
+            {([["staff", "วิทยากร"], ["details", "รายละเอียดคาบ (วัน เวลา สถานที่)"]] as const).map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${tab === k ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>{l}</button>
+            ))}
+          </div>
+        )}
+        {open && tab === "details" && session.date && <SessionDetailsForm cohortId={cohortId} session={session} topics={topics} locations={locations} onDone={() => { setOpen(false); router.refresh(); }} />}
+        {open && tab === "staff" && <>
         <p className="text-sm text-muted">{session.startTime}–{session.endTime} · {session.hours} ชม.{session.category ? ` · ${session.category}` : ""} · {max == null ? "ทั้งทีม (ไม่จำกัดจำนวน)" : `สูงสุด ${max} คน`}</p>
         {lockedReason && <div className="mt-3"><Alert tone="info">{lockedReason}</Alert></div>}
         <ul className="mt-3 space-y-2">
@@ -136,9 +148,55 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
         )}
         {msg && <div className="mt-3"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
         {conflictAsk && <button className="btn-danger mt-2" disabled={pending} onClick={() => add(true)}>ยืนยันเพิ่ม (ทราบแล้วว่าชนเวลา)</button>}
-        <p className="hint mt-4">ค่าตอบแทนและการแบ่งเงินตามจำนวนวิทยากรจะคำนวณในขั้นที่ 3</p>
+        <p className="hint mt-4">ค่าตอบแทนและการแบ่งเงินตามจำนวนวิทยากรคำนวณในหน้าค่าตอบแทน (กลุ่มถัดไปของขั้น 3)</p>
         </>}
       </Modal>
     </>
+  );
+}
+
+/** แก้วัน เวลา ชั่วโมง สถานที่ หัวข้อ ของคาบ — ทับซ้อนต้องยืนยัน · ยกเลิกคาบพร้อมเหตุผล */
+function SessionDetailsForm({ cohortId, session, topics, locations, onDone }: { cohortId: number; session: SessionView; topics: TopicOpt[]; locations: string[]; onDone: () => void }) {
+  const [f, setF] = useState({ date: session.date!, startTime: session.startTime, endTime: session.endTime, hours: String(session.hours), location: session.location ?? "", topicId: session.topicId ? String(session.topicId) : "" });
+  const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
+  const [ask, setAsk] = useState(false);
+  const [reason, setReason] = useState("");
+  const [pending, start] = useTransition();
+  const save = (ack = false) => start(async () => {
+    const r = await updateSessionAction(cohortId, session.id, { date: f.date, startTime: f.startTime, endTime: f.endTime, hours: Number(f.hours), location: f.location || null, topicId: f.topicId ? Number(f.topicId) : null }, ack);
+    if (!r.ok) { setAsk(r.code === "conflict"); return setMsg({ tone: r.code === "conflict" ? "warn" : "danger", text: r.error }); }
+    onDone();
+  });
+  const cancel = () => start(async () => {
+    const r = await cancelSessionAction(cohortId, session.id, reason);
+    if (!r.ok) return setMsg({ tone: "danger", text: r.error });
+    onDone();
+  });
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div><span className="label">วันที่</span><ThaiDateInput value={f.date} onChange={(v) => setF({ ...f, date: v })} /></div>
+        <label><span className="label">หัวข้อ</span><select className="input" value={f.topicId} onChange={(e) => setF({ ...f, topicId: e.target.value })}><option value="">— ไม่ผูกหัวข้อ —</option>{topics.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+        <label><span className="label">เริ่ม</span><input className="input" type="time" value={f.startTime} onChange={(e) => setF({ ...f, startTime: e.target.value })} /></label>
+        <label><span className="label">สิ้นสุด</span><input className="input" type="time" value={f.endTime} onChange={(e) => setF({ ...f, endTime: e.target.value })} /></label>
+        <label><span className="label">ชั่วโมงที่นับ</span><input className="input" inputMode="decimal" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
+        <label><span className="label">สถานที่</span><input className="input" list={`loc-${session.id}`} value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} /><datalist id={`loc-${session.id}`}>{locations.map((l) => <option key={l} value={l} />)}</datalist></label>
+      </div>
+      {session.checked && <p className="hint">คาบนี้เช็คชื่อแล้ว — แก้เวลา/สถานที่ได้ แต่ย้ายวันไม่ได้</p>}
+      {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      <div className="flex flex-wrap gap-2">
+        <button className="btn-primary" disabled={pending} onClick={() => save(false)}>บันทึก</button>
+        {ask && <button className="btn-danger" disabled={pending} onClick={() => save(true)}>ยืนยัน (ทราบแล้วว่าทับซ้อน)</button>}
+      </div>
+      {!session.checked && (
+        <details className="rounded-2xl border border-line p-3">
+          <summary className="cursor-pointer font-semibold text-danger">ยกเลิกคาบนี้</summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input className="input flex-1" placeholder="เหตุผล เช่น วิทยากรติดภารกิจ" value={reason} onChange={(e) => setReason(e.target.value)} />
+            <button className="btn-danger" disabled={pending || !reason.trim()} onClick={cancel}>ยืนยันยกเลิก</button>
+          </div>
+        </details>
+      )}
+    </div>
   );
 }

@@ -29,11 +29,20 @@
 | การอบรม | enrollments (รวม PDPA consent + intake), attendance, release_events (เก็บผลที่ระบบทำไว้ย้อนกลับได้), import_batches |
 | ระบบ | backup_runs, restore_tests, job_runs (งานตั้งเวลา + ทำย้อนหลังเมื่อเปิดเครื่อง) |
 
+## ตารางและคอลัมน์ที่เพิ่มในขั้นที่ 2
+| กลุ่ม | ตาราง/คอลัมน์ | หมายเหตุ |
+|---|---|---|
+| แบบประเมิน | assessment_forms, assessment_form_versions, assessment_results | เกณฑ์/ข้อความแช่แข็งเป็นเวอร์ชัน (ผลเก่าผูก `version_id` เดิม) · ผล 1 แถวต่อ `(enrollment, form, round, period)` · `channel` (paper/system) + `paper_location` (migration 0006) |
+| สถานพยาบาล | medical_notes | ข้อมูลอ่อนไหว — เห็นเฉพาะสิทธิ์สุขภาพ |
+| บสต./รท.101 | bst_tasks, external_ids, followups | **แยกระบบด้วย `system`**: `bst` = ลงทะเบียน→คัดกรอง→บำบัด→จำหน่าย→ติดตาม 1–4 · `rt101` = งานเดียว `record` เมื่อครบหลักสูตร (migration 0004 แปลงข้อมูลเดิม) · followups นับจากวันจำหน่าย |
+| จดหมายเวร | shift_messages, shift_message_acks | ผู้รับ: `next_shift` / `all` / `user` / `cohort` (`recipient_cohort_id`, migration 0003) |
+| พฤติกรรม | behavior_notes | ผูกการต้องโทษ (+ การลงทะเบียน ถ้ามี) |
+| ตาราง/วิทยากร | `session_staff.role` (lead/co), unique คนซ้ำในคาบ · `cohort_sessions.max_staff` | migration 0005 — 1 คาบมีวิทยากรได้หลายคน (สเปก 11.4) |
+| สิทธิ์ | `permission_grants.scope = 'cohort:N'` | มอบหมายรายรุ่นได้เฉพาะ: เช็คชื่อคาบของตน, ญาติ/ผู้ติดต่อ, ดู/บันทึก บสต.-ติดตาม, บันทึกพฤติกรรม |
 ## ขั้นถัดไป (เพิ่มด้วย migration โดยผูกกับตารางข้างบน ไม่รื้อของเดิม)
 | ขั้น | ตารางที่จะเพิ่ม | ผูกกับ |
 |---|---|---|
-| 2 | assessment_forms, assessment_form_versions (เกณฑ์แปลผลแช่แข็ง), assessment_results, medical_notes, bst_tasks, followups, shift_messages, behavior_notes | enrollments / incarcerations / persons |
-| 3 | activity_topics, instructors (ภายใน = users), rates (อัตราแช่แข็ง ณ วันสอน), session_payments, payment_batches, budget_allocations, budget_lines, expenses, line_messages, delegations | cohort_sessions / session_staff / cohorts |
+| 3 | activity_topics (กำหนด `max_staff`/วิธีแบ่งค่าตอบแทน), instructors (ภายใน = users), rates (อัตราแช่แข็ง ณ วันสอน), session_payments, payment_batches, budget_allocations, budget_lines, expenses, line_messages, delegations | cohort_sessions / session_staff / cohorts |
 | 4 | pre3 project checklist, health_referrals, document_templates | cohorts / enrollments |
 | 5 | house_positions, teams, house_tools, discipline_records, progress_book_entries | enrollments |
 | 6 | targets, fiscal_year_closures, duty_logs | courses / cohorts |

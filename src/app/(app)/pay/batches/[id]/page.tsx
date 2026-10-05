@@ -27,7 +27,6 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
   const c = db.select({ c: schema.cohorts, course: schema.courses }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.cohorts.id, b.cohortId)).get()!;
   const names = userNameMap(db);
   const total = v.totals.reduce((a, x) => a + x.grossSatang, 0);
-  const tax = v.totals.reduce((a, x) => a + x.taxSatang, 0);
   const via = auth.viaDelegation("pay.approve");
   const viaRow = b.approvedViaDelegationId ? db.select().from(schema.delegations).where(eq(schema.delegations.id, b.approvedViaDelegationId)).get() : null;
   return (
@@ -52,9 +51,8 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
       )}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="card"><p className="text-sm text-muted">รวมก่อนหักภาษี</p><p className="text-2xl font-semibold">{baht(total)}</p></div>
-        <div className="card"><p className="text-sm text-muted">ภาษี ณ ที่จ่าย{v.tax.enabled ? ` ${v.tax.pct}% (ภายนอก)` : " (ปิดอยู่)"}</p><p className="text-2xl font-semibold">{baht(tax)}</p></div>
-        <div className="card"><p className="text-sm text-muted">สุทธิ</p><p className="text-2xl font-semibold">{baht(total - tax)}</p></div>
+        <div className="card"><p className="text-sm text-muted">รวมค่าตอบแทน</p><p className="text-2xl font-semibold">{baht(total)}</p></div>
+        <div className="card"><p className="text-sm text-muted">จำนวนวิทยากร</p><p className="text-2xl font-semibold">{v.totals.length} คน</p></div>
       </div>
 
       {v.lines.length === 0 ? <EmptyState title="ไม่มีรายการที่เบิกได้ในช่วงนี้">ตรวจว่าปิดคาบแล้ว หัวข้อตั้งเป็นเบิกได้ และกำหนดอัตราไว้</EmptyState> : (
@@ -62,12 +60,12 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
           <section className="card overflow-x-auto">
             <h2 className="text-xl">สรุปรายคน</h2>
             <table className="mt-2 w-full text-sm">
-              <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">คาบ</th><th className="text-right">ชม.</th><th className="text-right">ก่อนหักภาษี</th><th className="text-right">ภาษี</th><th className="text-right">สุทธิ</th></tr></thead>
+              <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">คาบ</th><th className="text-right">ชม.</th><th className="text-right">ยอดเงิน</th></tr></thead>
               <tbody>
                 {v.totals.map((t) => (
                   <tr key={t.key} className="border-t border-line">
                     <td className="py-2">{t.name}</td><td><span className={t.kind === "external" ? "tag-orange" : "tag-navy"}>{t.kind === "external" ? "ภายนอก" : "ภายใน"}</span></td>
-                    <td className="text-right">{t.sessions}</td><td className="text-right">{t.hours}</td><td className="text-right">{baht(t.grossSatang)}</td><td className="text-right">{baht(t.taxSatang)}</td><td className="text-right font-semibold">{baht(t.netSatang)}</td>
+                    <td className="text-right">{t.sessions}</td><td className="text-right">{t.hours}</td><td className="text-right font-semibold">{baht(t.grossSatang)}</td>
                   </tr>
                 ))}
               </tbody>

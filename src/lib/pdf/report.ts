@@ -53,7 +53,7 @@ function table(pdf: Pdf, cols: Col[], rows: Row[], o: { offset: { dx: number; dy
 }
 
 /** budget = งบค่าวิทยากรของรุ่นจากหน้างบ (ยอดเดียวกัน) · approved = ค่าวิทยากรที่อนุมัติแล้วทุกรอบของรุ่น */
-export type SummaryCtx = { project: string; orgName: string; unitName: string; total: number; tax: { enabled: boolean; pct: number }; batch: { dateFrom: string; dateTo: string }; budget?: { budget: number; approved: number; hasBudget: boolean } | null };
+export type SummaryCtx = { project: string; orgName: string; unitName: string; total: number; batch: { dateFrom: string; dateTo: string }; budget?: { budget: number; approved: number; hasBudget: boolean } | null };
 
 export async function drawSummary(pdf: Pdf, people: Payee[], c: SummaryCtx, offset = { dx: 0, dy: 0 }) {
   const cols: Col[] = [{ title: "ลำดับ", w: 12, align: "center" }, { title: "ชื่อ-สกุล", w: 50 }, { title: "ใน/นอก", w: 15, align: "center" }, { title: "คาบ", w: 11, align: "center" }, { title: "ชั่วโมง", w: 14, align: "center" }, { title: "จำนวนเงิน (บาท)", w: 25, align: "right" }, { title: "ลายมือชื่อผู้รับเงิน", w: W - 127 }];
@@ -82,11 +82,6 @@ export async function drawSummary(pdf: Pdf, people: Payee[], c: SummaryCtx, offs
     footer: (page, y) => {
       let fy = y + 8;
       text(pdf, page, `รวมทั้งสิ้น (${bahtText(c.total)})`, { x: M.left, y: fy, size: 16, maxWidth: W });
-      if (c.tax.enabled) {
-        fy += 7;
-        const tax = people.reduce((a, p) => a + p.taxSatang, 0), net = people.reduce((a, p) => a + p.netSatang, 0);
-        text(pdf, page, `หักภาษี ณ ที่จ่าย (วิทยากรภายนอก ${c.tax.pct}%) รวม ${money(tax)} บาท · จ่ายสุทธิ ${money(net)} บาท`, { x: M.left, y: fy, size: 15, maxWidth: W });
-      }
       fy += 9;
       const bg = c.budget?.hasBudget ? c.budget : null;
       for (const [label, value] of [["งบที่ได้รับ (ค่าตอบแทนวิทยากร)", bg ? money(bg.budget) : "............................"], ["เบิกครั้งนี้", money(c.total)], ["คงเหลือ", bg ? money(bg.budget - bg.approved) : "............................"]]) {

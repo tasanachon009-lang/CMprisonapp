@@ -28,7 +28,7 @@ export function voucherCapacity(): VoucherCapacity {
   };
 }
 
-export type VoucherCtx = { orgName: string; project: string; corner: string; payerName: string; date: string | null; tax: { enabled: boolean; pct: number } };
+export type VoucherCtx = { orgName: string; project: string; corner: string; payerName: string; date: string | null };
 
 export async function drawVoucher(pdf: Pdf, p: Payee, ctx: VoucherCtx, offset = { dx: 0, dy: 0 }) {
   const rows = voucherRows(p.lines);
@@ -109,10 +109,6 @@ export async function drawVoucher(pdf: Pdf, p: Payee, ctx: VoucherCtx, offset = 
     if (pg.carryOut != null) row("ยอดยกไป", pg.carryOut, { right: true });
     if (pg.isLast) {
       row("รวมเป็นเงิน", p.grossSatang, { bold: true, right: true });
-      if (ctx.tax.enabled && p.taxSatang > 0) {
-        row(`หัก ภาษี ณ ที่จ่าย ${ctx.tax.pct}%`, p.taxSatang, { right: true });
-        row("คงเหลือรับสุทธิ", p.netSatang, { bold: true, right: true });
-      }
       const w = layout.words;
       const wy = y + w.gap;
       text(pdf, page, w.label, { x: w.x, y: wy, size: layout.size });

@@ -48,10 +48,10 @@ export async function GET(req: Request, ctx: RouteContext<"/api/pay-docs/[id]">)
     const blankIfOdd = (n: number) => { if (duplex && n % 2 === 1) pdf.doc.addPage(); };
     const total = people.reduce((a, p) => a + p.grossSatang, 0);
     // งบที่ได้รับ/คงเหลือ: ยอดเดียวกับหน้างบของรุ่น (สเปก 13 — ตรงกันทุกที่)
-    if (parts.has("summary")) blankIfOdd(await drawSummary(pdf, people, { ...c, total, tax: v.tax, budget: compensationBudget(db, c.batch.cohortId) }, off.report));
+    if (parts.has("summary")) blankIfOdd(await drawSummary(pdf, people, { ...c, total, budget: compensationBudget(db, c.batch.cohortId) }, off.report));
     if (parts.has("vouchers")) {
       for (const p of people) {
-        blankIfOdd(await drawVoucher(pdf, p, { orgName: c.orgName, project: c.project, corner: c.corner, payerName: payer, date, tax: v.tax }, off.voucher));
+        blankIfOdd(await drawVoucher(pdf, p, { orgName: c.orgName, project: c.project, corner: c.corner, payerName: payer, date }, off.voucher));
         if (showKtb) blankIfOdd((await drawKtb(pdf, p, { orgName: c.orgName, headTitle: c.headTitle, date }, off.ktb), 1));
       }
     }

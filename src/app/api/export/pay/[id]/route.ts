@@ -27,8 +27,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/pay/[id]
   const s = wb.addWorksheet("สรุปใหญ่");
   s.columns = [
     { header: "ลำดับ", key: "no", width: 7 }, { header: "ชื่อ-สกุล", key: "name", width: 30 }, { header: "ภายใน/ภายนอก", key: "kind", width: 14 },
-    { header: "จำนวนคาบ", key: "sessions", width: 10 }, { header: "จำนวนชั่วโมง", key: "hours", width: 12 }, { header: "จำนวนเงิน (บาท)", key: "gross", width: 16 },
-    { header: "ภาษี ณ ที่จ่าย", key: "tax", width: 14 }, { header: "สุทธิ", key: "net", width: 14 },
+    { header: "จำนวนคาบ", key: "sessions", width: 10 }, { header: "จำนวนชั่วโมง", key: "hours", width: 12 }, { header: "จำนวนเงิน (บาท)", key: "gross", width: 16 }
   ];
   s.getRow(1).font = { bold: true };
   let n = 0;
@@ -36,11 +35,11 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/pay/[id]
     const list = people.filter((p) => p.kind === kind);
     if (!list.length) continue;
     s.addRow({ name: kind === "internal" ? "วิทยากรภายใน" : "วิทยากรภายนอก" }).font = { bold: true };
-    for (const p of list) s.addRow({ no: ++n, name: p.fullName, kind: kind === "internal" ? "ภายใน" : "ภายนอก", sessions: p.sessions, hours: p.hours, gross: p.grossSatang / 100, tax: p.taxSatang / 100, net: p.netSatang / 100 });
+    for (const p of list) s.addRow({ no: ++n, name: p.fullName, kind: kind === "internal" ? "ภายใน" : "ภายนอก", sessions: p.sessions, hours: p.hours, gross: p.grossSatang / 100 });
     s.addRow({ name: `รวม${kind === "internal" ? "ภายใน" : "ภายนอก"}`, gross: list.reduce((a, p) => a + p.grossSatang, 0) / 100 }).font = { bold: true };
   }
-  s.addRow({ name: "รวมทั้งสิ้น", gross: people.reduce((a, p) => a + p.grossSatang, 0) / 100, tax: people.reduce((a, p) => a + p.taxSatang, 0) / 100, net: people.reduce((a, p) => a + p.netSatang, 0) / 100 }).font = { bold: true };
-  for (const col of ["gross", "tax", "net"]) s.getColumn(col).numFmt = "#,##0.00";
+  s.addRow({ name: "รวมทั้งสิ้น", gross: people.reduce((a, p) => a + p.grossSatang, 0) / 100 }).font = { bold: true };
+  for (const col of ["gross"]) s.getColumn(col).numFmt = "#,##0.00";
 
   const d = wb.addWorksheet("รายละเอียดรายคาบ");
   d.columns = [

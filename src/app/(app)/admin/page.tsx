@@ -22,7 +22,7 @@ export default async function AdminHome() {
     { href: "/admin/backup", icon: HardDrive, title: "สำรอง/กู้คืนข้อมูล", desc: "สถานะ สำรองทันที สำรองลงดิสก์ถอดเก็บ ทดสอบกู้คืน", perm: "backup.manage" as const },
     { href: "/admin/audit", icon: History, title: "ประวัติการใช้งาน", desc: "ค้นตามผู้ใช้ ผู้ต้องขัง ช่วงวันที่", perm: "audit.view" as const },
     { href: "/admin/forms", icon: FileText, title: "คลังแบบประเมิน", desc: "ข้อคำถาม เฉลย เกณฑ์แปลผล (บันทึกเป็นเวอร์ชัน)", perm: "forms.manage" as const },
-    { href: "/admin/rates", icon: Coins, title: "อัตราค่าตอบแทน", desc: "บาท/ชม. เพดานต่อวัน จำนวนวิทยากรที่เบิกได้ ภาษีหัก ณ ที่จ่าย", perm: "rates.manage" as const },
+    { href: "/admin/rates", icon: Coins, title: "อัตราค่าตอบแทน", desc: "บาท/ชม. เพดานต่อวัน จำนวนวิทยากรที่เบิกได้", perm: "rates.manage" as const },
     { href: "/admin/topics", icon: BookOpen, title: "คลังหัวข้อ", desc: "ชั่วโมงมาตรฐาน ผู้รับผิดชอบ การเบิก อัตรา วิธีแบ่งค่าตอบแทน", perm: "topics.manage" as const },
     { href: "/admin/print-offsets", icon: Move, title: "ปรับตำแหน่งการพิมพ์", desc: "เลื่อนทั้งหน้า ±มม. ของใบสำคัญรับเงิน แบบ KTB และสรุป เผื่อเครื่องพิมพ์เยื้อง · พิมพ์ใบทดสอบ", perm: "settings.manage" as const },
     { href: "/admin/consent", icon: FileSignature, title: "แบบฟอร์มยินยอม PDPA", desc: "แก้ข้อความหนังสือยินยอม ดูตัวอย่างก่อนพิมพ์", perm: "settings.manage" as const },

@@ -18,7 +18,7 @@ const p: Payee = { ...base, lines, grossSatang: lines.reduce((a, l) => a + l.amo
 p.taxSatang = Math.round(p.grossSatang * 0.03); p.netSatang = p.grossSatang - p.taxSatang;
 async function main() {
 const pdf = await createPdf();
-const n = await drawVoucher(pdf, p, { orgName: "เรือนจำกลางเชียงใหม่", project: "ปรับเปลี่ยนพฤติกรรม 12 วัน รุ่นที่ 1/2570", corner: "เอกสารหมายเลข ๑", payerName: "นางตัวอย่าง จ่ายเงิน", date: null, tax: { enabled: true, pct: 3 } });
+const n = await drawVoucher(pdf, p, { orgName: "เรือนจำกลางเชียงใหม่", project: "ปรับเปลี่ยนพฤติกรรม 12 วัน รุ่นที่ 1/2570", corner: "เอกสารหมายเลข ๑", payerName: "นางตัวอย่าง จ่ายเงิน", date: null });
 await drawKtb(pdf, p, { orgName: "เรือนจำกลางตัวอย่างมีชื่อยาว", headTitle: "ผู้บัญชาการเรือนจำกลางตัวอย่างมีชื่อยาว", date: "2026-10-19" });
 fs.mkdirSync("public/dev-preview", { recursive: true });
 fs.writeFileSync("public/dev-preview/sample.pdf", await pdf.doc.save());

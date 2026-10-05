@@ -30,19 +30,17 @@ export async function saveRateAction(id: number | null, input: z.input<typeof Ra
 
 const PaySettingsZ = z.object({
   maxPayableByType: z.record(z.string(), z.number().int().min(0).max(20)),
-  withholdingTax: z.object({ enabled: z.boolean(), pct: z.number().min(0).max(15) }),
 });
 
-/** จำนวนวิทยากรที่เบิกได้ตามลักษณะกิจกรรม + ภาษีหัก ณ ที่จ่าย */
+/** จำนวนวิทยากรที่เบิกได้ตามลักษณะกิจกรรม (หน่วยงานไม่หักภาษี ณ ที่จ่าย) */
 export async function savePaySettingsAction(input: z.input<typeof PaySettingsZ>): Promise<ActionResult> {
   try {
     const auth = await requireAction("rates.manage");
     const p = PaySettingsZ.safeParse(input);
-    if (!p.success) return { ok: false, error: "ค่าที่ตั้งไม่ถูกต้อง — จำนวนคน 0–20, ภาษี 0–15%" };
+    if (!p.success) return { ok: false, error: "ค่าที่ตั้งไม่ถูกต้อง — จำนวนคน 0–20" };
     const db = getDb();
-    const before = { max: getSetting(db, "pay.maxPayableByType", null), tax: getSetting(db, "pay.withholdingTax", null) };
+    const before = { max: getSetting(db, "pay.maxPayableByType", null) };
     setSetting(db, "pay.maxPayableByType", p.data.maxPayableByType, auth.user.id);
-    setSetting(db, "pay.withholdingTax", p.data.withholdingTax, auth.user.id);
     writeAudit(db, { userId: auth.user.id, action: "settings.change", entity: "pay_settings", before, after: p.data, ip: await clientIp() });
     revalidatePath("/admin/rates");
     return { ok: true };

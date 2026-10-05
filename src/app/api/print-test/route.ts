@@ -33,8 +33,8 @@ export async function GET(req: Request) {
   const org = getSetting<string>(db, "org.name", "");
   const pdf = await createPdf();
   if (form === "ktb") await drawKtb(pdf, SAMPLE, { orgName: org, headTitle: getSetting<string>(db, "org.headTitle", ""), date: todayISO() }, off);
-  else if (form === "voucher") await drawVoucher(pdf, SAMPLE, { orgName: org, project: "หลักสูตรตัวอย่าง รุ่นที่ 1/2570", corner: getSetting<string>(db, "docs.voucherCorner", ""), payerName: "", date: todayISO(), tax: { enabled: false, pct: 0 } }, off);
-  else await drawSummary(pdf, [SAMPLE], { project: "หลักสูตรตัวอย่าง", orgName: org, unitName: "", total: SAMPLE.grossSatang, tax: { enabled: false, pct: 0 }, batch: { dateFrom: todayISO(), dateTo: todayISO() } }, off);
+  else if (form === "voucher") await drawVoucher(pdf, SAMPLE, { orgName: org, project: "หลักสูตรตัวอย่าง รุ่นที่ 1/2570", corner: getSetting<string>(db, "docs.voucherCorner", ""), payerName: "", date: todayISO() }, off);
+  else await drawSummary(pdf, [SAMPLE], { project: "หลักสูตรตัวอย่าง", orgName: org, unitName: "", total: SAMPLE.grossSatang, batch: { dateFrom: todayISO(), dateTo: todayISO() } }, off);
   // เครื่องหมายเล็ง: วาดในหน้าเดียวกัน (เลื่อนตามค่าปรับด้วย) — กระดาษที่พิมพ์ออกมาต้องวัดได้ 20 มม. จากขอบซ้าย/บน
   const page = pdf.doc.getPage(0);
   for (const [x, y] of [[20, 20], [190, 20], [20, 277], [190, 277]]) {

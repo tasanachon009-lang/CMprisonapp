@@ -64,10 +64,9 @@ export function RatesEditor({ rates, fy }: { rates: Rate[]; fy: number }) {
   );
 }
 
-export function PaySettingsForm({ maxPayableByType, withholdingTax }: { maxPayableByType: Record<string, number>; withholdingTax: { enabled: boolean; pct: number } }) {
+export function PaySettingsForm({ maxPayableByType }: { maxPayableByType: Record<string, number> }) {
   const router = useRouter();
   const [max, setMax] = useState(maxPayableByType);
-  const [tax, setTax] = useState(withholdingTax);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
   return (
@@ -79,12 +78,8 @@ export function PaySettingsForm({ maxPayableByType, withholdingTax }: { maxPayab
           <label key={k}><span className="label">{l} (คน)</span><input className="input" inputMode="numeric" value={String(max[k] ?? 1)} onChange={(e) => setMax({ ...max, [k]: Number(e.target.value.replace(/\D/g, "")) || 0 })} /></label>
         ))}
       </div>
-      <div className="flex flex-wrap items-end gap-4">
-        <label className="flex items-center gap-2 pb-3"><input type="checkbox" className="h-5 w-5" checked={tax.enabled} onChange={(e) => setTax({ ...tax, enabled: e.target.checked })} /> หักภาษี ณ ที่จ่าย (วิทยากรภายนอก)</label>
-        {tax.enabled && <label className="w-32"><span className="label">อัตรา (%)</span><input className="input" inputMode="decimal" value={String(tax.pct)} onChange={(e) => setTax({ ...tax, pct: Number(e.target.value.replace(/[^\d.]/g, "")) || 0 })} /></label>}
-      </div>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-      <button className="btn-primary" disabled={pending} onClick={() => start(async () => { const r = await savePaySettingsAction({ maxPayableByType: max, withholdingTax: tax }); setMsg(r.ok ? { tone: "ok", text: "บันทึกแล้ว" } : { tone: "danger", text: r.error }); if (r.ok) router.refresh(); })}><Save size={18} aria-hidden /> บันทึก</button>
+      <button className="btn-primary" disabled={pending} onClick={() => start(async () => { const r = await savePaySettingsAction({ maxPayableByType: max }); setMsg(r.ok ? { tone: "ok", text: "บันทึกแล้ว" } : { tone: "danger", text: r.error }); if (r.ok) router.refresh(); })}><Save size={18} aria-hidden /> บันทึก</button>
     </section>
   );
 }

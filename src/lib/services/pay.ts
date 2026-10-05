@@ -72,9 +72,9 @@ export function liveLines(db: DB, f: PayFilter) {
   return computeLines(payInputs(db, f));
 }
 
-export function taxSetting(db: DB) {
-  const t = getSetting<{ enabled: boolean; pct: number }>(db, "pay.withholdingTax", { enabled: false, pct: 3 });
-  return { enabled: !!t?.enabled, pct: Number(t?.pct ?? 0) };
+/** หน่วยงานไม่หักภาษี ณ ที่จ่าย (เจ้าของยืนยัน 5 ต.ค. 2569) — ยอดสุทธิ = ยอดรวมเสมอ */
+export function taxSetting(_db?: DB) {
+  return { enabled: false, pct: 0 };
 }
 
 /** ยอดของแต่ละคนในคาบเดียว (แสดงในหน้าแก้คาบก่อนบันทึก — สเปก 11.4) — คาบที่ยังไม่ปิดคิดตามตาราง · คาบที่อนุมัติแล้วใช้ยอดที่เก็บไว้ */

@@ -20,7 +20,7 @@ const payee = (n: number, extra: Partial<Payee> = {}): Payee => ({
   lines: Array.from({ length: n }, (_, i) => ({ sessionId: i, cohortId: 1, staffId: i, key: "i1", name: "", kind: "external" as const, userId: null, instructorId: 1, date: "2026-10-01", startTime: "09:00", title: i % 5 === 0 ? "การจัดการอารมณ์ (โกรธ รับรู้ความเครียด ลดความเครียด) และการฟื้นฟูสัมพันธภาพในครอบครัว" : "ทักษะการปฏิเสธ", hours: 2, factor: 1, splitMethod: "full" as const, rateId: 1, perHourSatang: 60000, grossSatang: 120000, capCutSatang: 0, amountSatang: 120000, payable: true, note: null })),
   ...extra,
 });
-const vctx = { orgName: "เรือนจำกลางเชียงใหม่", project: "ปรับเปลี่ยนพฤติกรรม 12 วัน รุ่นที่ 1/2570", corner: "เอกสารหมายเลข ๑", payerName: "", date: "2026-10-19" as string | null, tax: { enabled: true, pct: 3 } };
+const vctx = { orgName: "เรือนจำกลางเชียงใหม่", project: "ปรับเปลี่ยนพฤติกรรม 12 วัน รุ่นที่ 1/2570", corner: "เอกสารหมายเลข ๑", payerName: "", date: "2026-10-19" as string | null };
 
 describe("แบบฟอร์มการเงิน PDF (pdf-lib วางตามพิกัด — สเปก 22)", () => {
   it("ใบสำคัญรับเงิน: หน้าเดียวเมื่อรายการน้อย · หลายหน้าเมื่อรายการมาก (ยอดยกไป/ยกมา) · PDF เปิดได้", async () => {
@@ -48,7 +48,7 @@ describe("แบบฟอร์มการเงิน PDF (pdf-lib วาง�
   it("สรุปใหญ่หลายหน้าเมื่อคนมาก · ค่าปรับตำแหน่งถูกจำกัด ±15 มม.", async () => {
     const pdf = await createPdf();
     const people = Array.from({ length: 40 }, (_, i) => ({ ...payee(1), key: `i${i}`, fullName: `วิทยากร ${i}` }));
-    expect(await drawSummary(pdf, people, { project: "x", orgName: "y", unitName: "", total: 40 * 120000, tax: { enabled: false, pct: 0 }, batch: { dateFrom: "2026-10-01", dateTo: "2026-10-19" } })).toBeGreaterThan(1);
+    expect(await drawSummary(pdf, people, { project: "x", orgName: "y", unitName: "", total: 40 * 120000, batch: { dateFrom: "2026-10-01", dateTo: "2026-10-19" } })).toBeGreaterThan(1);
     const db = drizzle(openDatabase(":memory:"), { schema }) as DB;
     runMigrations(db);
     db.insert(schema.users).values({ firstName: "a", lastName: "b", passwordHash: "x" }).run();

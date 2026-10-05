@@ -94,14 +94,14 @@ function Summary({ lines, tax, person, qs, cohortName, courseOf }: { lines: Line
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card"><p className="text-sm text-muted">ภายใน</p><p className="text-2xl font-semibold">{baht(sum(byKind("internal"), "grossSatang"))}</p><p className="text-sm text-muted">{byKind("internal").length} คน</p></div>
-        <div className="card"><p className="text-sm text-muted">ภายนอก{tax.enabled ? ` (ก่อนหักภาษี ${tax.pct}%)` : ""}</p><p className="text-2xl font-semibold">{baht(sum(byKind("external"), "grossSatang"))}</p><p className="text-sm text-muted">{byKind("external").length} คน{tax.enabled ? ` · หักภาษี ${baht(sum(byKind("external"), "taxSatang"))}` : ""}</p></div>
+        <div className="card"><p className="text-sm text-muted">ภายนอก</p><p className="text-2xl font-semibold">{baht(sum(byKind("external"), "grossSatang"))}</p><p className="text-sm text-muted">{byKind("external").length} คน</p></div>
         <div className="card"><p className="text-sm text-muted">รวมทั้งสิ้น</p><p className="text-2xl font-semibold">{baht(sum(totals, "grossSatang"))}</p><p className="text-sm text-muted">อนุมัติแล้ว {baht(sum(approved, "grossSatang"))} · รออนุมัติ {baht(sum(pending, "grossSatang"))}</p></div>
       </div>
 
       <section className="card overflow-x-auto">
         <h2 className="text-xl">รายวิทยากร</h2>
         <table className="mt-2 w-full text-sm">
-          <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">คาบ</th><th className="text-right">ชม.สอน</th><th className="text-right">ชม.เบิกได้</th><th className="text-right">อนุมัติแล้ว</th><th className="text-right">รออนุมัติ</th><th className="text-right">รวม</th>{tax.enabled && <th className="text-right">สุทธิหลังหักภาษี</th>}</tr></thead>
+          <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">คาบ</th><th className="text-right">ชม.สอน</th><th className="text-right">ชม.เบิกได้</th><th className="text-right">อนุมัติแล้ว</th><th className="text-right">รออนุมัติ</th><th className="text-right">รวม</th></tr></thead>
           <tbody>
             {totals.map((t) => (
               <tr key={t.key} className={`border-t border-line ${person === t.key ? "bg-lime-soft" : ""}`}>
@@ -111,7 +111,6 @@ function Summary({ lines, tax, person, qs, cohortName, courseOf }: { lines: Line
                 <td className="text-right">{baht(approved.find((x) => x.key === t.key)?.grossSatang ?? 0)}</td>
                 <td className="text-right">{baht(pending.find((x) => x.key === t.key)?.grossSatang ?? 0)}</td>
                 <td className="text-right font-semibold">{baht(t.grossSatang)}</td>
-                {tax.enabled && <td className="text-right">{baht(t.netSatang)}</td>}
               </tr>
             ))}
           </tbody>

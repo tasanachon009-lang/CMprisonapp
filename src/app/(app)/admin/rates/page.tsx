@@ -22,7 +22,6 @@ export default async function RatesPage() {
       <RatesEditor fy={currentFiscalYear()} rates={rates.map((r) => ({ id: r.id, name: r.name, kind: r.kind as "internal", externalType: r.externalType, perHourBaht: r.perHourSatang / 100, dailyCapBaht: r.dailyCapSatang == null ? null : r.dailyCapSatang / 100, fromFiscalYear: r.fromFiscalYear, active: r.active, isSample: r.isSample, note: r.note }))} />
       <PaySettingsForm
         maxPayableByType={getSetting<Record<string, number>>(db, "pay.maxPayableByType", { lecture: 1, panel: 5, group: 2, practice: 2, other: 1 })}
-        withholdingTax={getSetting(db, "pay.withholdingTax", { enabled: false, pct: 3 })}
       />
     </div>
   );

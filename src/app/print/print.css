@@ -58,26 +58,7 @@
 .sheet .thumb { width: 18mm; height: 22mm; object-fit: cover; display: block; }
 .sheet .thumb-empty { width: 18mm; height: 22mm; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: #777; }
 
-/* เอกสารการเงิน (สเปก 11.5C/D): 1 แผ่นต่อเอกสาร · กรอบรอบหน้า · ความสูงแถวคงที่เพื่อแบ่งหน้าแบบ "ยอดยกไป/ยกมา" */
-.sheet.doc { padding: 12mm; }
-.sheet .frame { border: 1px solid #000; min-height: 269mm; padding: 6mm 8mm; box-sizing: border-box; position: relative; }
-.sheet .corner { position: absolute; top: 3mm; right: 6mm; font-size: 0.9em; }
-.sheet .vtable td, .sheet .vtable th { height: 8mm; }
-.sheet .vtable td.item { line-height: 1.05; }
-.sheet .vtable .money { width: 22mm; text-align: right; white-space: nowrap; }
-.sheet .vtable .st { width: 10mm; text-align: center; white-space: nowrap; }
-.sheet .dots { border-bottom: 1px dotted #000; display: inline-block; min-width: 30mm; padding: 0 2mm; text-align: center; }
-.sheet .sign { margin-top: 10mm; margin-left: 45%; text-align: center; }
-.sheet .boxes { display: inline-flex; vertical-align: middle; }
-.sheet .boxes span { width: 6.5mm; height: 7.5mm; border: 1px solid #000; border-right: none; display: inline-flex; align-items: center; justify-content: center; }
-.sheet .boxes span:last-child { border-right: 1px solid #000; }
-.sheet .boxes span.gap { margin-right: 2mm; border-right: 1px solid #000; }
-.blank-sheet { display: none; }
-
 @media print {
-  .sheet.doc { break-after: page; }
-  .sheet .frame { min-height: 268mm; }
-  .blank-sheet { display: block; break-after: page; height: 1px; }
   .print-root { background: white; }
   .print-root .sheet { margin: 0; box-shadow: none; width: auto; min-height: auto; padding: 0; }
   .sheet .doc-footer { position: fixed; bottom: 0; left: 0; right: 0; }

@@ -278,9 +278,13 @@ async function main() {
         const bundleRehab = await get(`/print/pay-bundle/${appr.id}`, C.rehab);
         const bundleFin = await get(`/print/pay-bundle/${appr.id}`, C.finance);
         const xlsRehab = await get(`/api/export/pay/${appr.id}`, C.rehab);
-        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ชุดเอกสารการเงิน/Excel ค่าตอบแทน: การเงินพิมพ์ได้ (ตรวจยอดผ่าน) / เจ้าหน้าที่หลักเปิดตรงๆ ไม่ได้",
-          bundleFin.status === 200 && bundleFin.text.includes("ใบสำคัญรับเงิน (สำหรับวิทยากร)") && bundleFin.text.includes("ตรวจยอดแล้ว") && !allowed(bundleRehab) && xlsRehab.status === 403,
-          `fin ${bundleFin.status} · rehab ${bundleRehab.status} · xls ${xlsRehab.status}`);
+        const pdfFin = await fetch(`${BASE}/api/pay-docs/${appr.id}?parts=summary`, { headers: { cookie: C.finance } });
+        const pdfRehab = await fetch(`${BASE}/api/pay-docs/${appr.id}`, { headers: { cookie: C.rehab } });
+        const testRehab = await fetch(`${BASE}/api/print-test?form=ktb`, { headers: { cookie: C.rehab } });
+        check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ชุดเอกสารการเงิน PDF/Excel: การเงินเปิดได้ (ตรวจยอดผ่าน) / เจ้าหน้าที่หลักเปิดตรงๆ ไม่ได้ · ใบทดสอบการพิมพ์เฉพาะผู้ดูแล",
+          bundleFin.status === 200 && bundleFin.text.includes("ตรวจยอดแล้ว") && pdfFin.status === 200 && (pdfFin.headers.get("content-type") ?? "").includes("application/pdf")
+            && !allowed(bundleRehab) && xlsRehab.status === 403 && pdfRehab.status === 403 && testRehab.status === 403,
+          `fin ${bundleFin.status}/${pdfFin.status} · rehab ${bundleRehab.status}/${pdfRehab.status} · xls ${xlsRehab.status} · test ${testRehab.status}`);
       }
       const delFin = await get("/admin/delegations", C.finance);
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);

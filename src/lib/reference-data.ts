@@ -257,6 +257,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "docs.payerName": "",
   "docs.voucherCorner": "เอกสารหมายเลข ๑",
   "docs.showKtbForm": true,
+  // สเปก 22: ปรับตำแหน่งการพิมพ์ทั้งหน้า (มม.) ต่อแบบฟอร์ม
+  "print.offsets": { ktb: { dx: 0, dy: 0 }, voucher: { dx: 0, dy: 0 }, report: { dx: 0, dy: 0 } },
   "docs.ktbTemplate": {
     intro: "ขอรับเงินผ่านระบบ KTB Corporate Online โดยได้แนบสำเนาหน้าสมุดบัญชีเงินฝากธนาคารมาเพื่อเป็นหลักฐานด้วยแล้ว",
     companyNote: "(กรณีชื่อบัญชีไม่ตรงกับชื่อบริษัทฯ ห้างหุ้นส่วนจำกัด ร้านค้า ฯลฯ ให้แนบเอกสารที่เกี่ยวข้องที่แสดงว่าเป็นเจ้าของบัญชี)",

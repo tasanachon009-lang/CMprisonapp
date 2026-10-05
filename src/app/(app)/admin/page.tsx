@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq, sql } from "drizzle-orm";
-import { BookOpen, Coins, FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users , UserCheck } from "lucide-react";
+import { BookOpen, Coins, FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users , UserCheck , Move } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { backupHealth } from "@/lib/backup/status";
@@ -24,6 +24,7 @@ export default async function AdminHome() {
     { href: "/admin/forms", icon: FileText, title: "คลังแบบประเมิน", desc: "ข้อคำถาม เฉลย เกณฑ์แปลผล (บันทึกเป็นเวอร์ชัน)", perm: "forms.manage" as const },
     { href: "/admin/rates", icon: Coins, title: "อัตราค่าตอบแทน", desc: "บาท/ชม. เพดานต่อวัน จำนวนวิทยากรที่เบิกได้ ภาษีหัก ณ ที่จ่าย", perm: "rates.manage" as const },
     { href: "/admin/topics", icon: BookOpen, title: "คลังหัวข้อ", desc: "ชั่วโมงมาตรฐาน ผู้รับผิดชอบ การเบิก อัตรา วิธีแบ่งค่าตอบแทน", perm: "topics.manage" as const },
+    { href: "/admin/print-offsets", icon: Move, title: "ปรับตำแหน่งการพิมพ์", desc: "เลื่อนทั้งหน้า ±มม. ของใบสำคัญรับเงิน แบบ KTB และสรุป เผื่อเครื่องพิมพ์เยื้อง · พิมพ์ใบทดสอบ", perm: "settings.manage" as const },
     { href: "/admin/consent", icon: FileSignature, title: "แบบฟอร์มยินยอม PDPA", desc: "แก้ข้อความหนังสือยินยอม ดูตัวอย่างก่อนพิมพ์", perm: "settings.manage" as const },
     { href: "/admin/settings", icon: Settings, title: "ตั้งค่าระบบ", desc: "หน่วยงาน รหัสหน่วยงาน วันหยุด รายการเหตุผล PDPA", perm: "settings.manage" as const },
   ].filter((c) => auth.can(c.perm));

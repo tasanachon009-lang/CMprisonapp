@@ -1,0 +1,45 @@
+{
+  "_note": "พิกัดแบบแจ้งข้อมูลการรับเงินโอน KTB (มม. จากมุมซ้ายบน, y = เส้นฐานของข้อความ) — วัดจาก docs/forms/source/22-ktb-transfer-form.pdf ด้วย pdfjs (ตำแหน่งข้อความ/เส้นจุด/กล่อง) · ฟอนต์ต้นฉบับ TH Sarabun New 16pt · แก้ไฟล์นี้ได้โดยไม่ต้องแก้โค้ด",
+  "background": "docs/forms/source/22-ktb-transfer-form.pdf",
+  "size": 16,
+  "lift": 0.8,
+  "fields": {
+    "day": { "x0": 126.6, "x1": 135.7, "y": 42.4, "align": "center" },
+    "month": { "x0": 143.6, "x1": 163.8, "y": 42.4, "align": "center" },
+    "year": { "x0": 172.8, "x1": 184.6, "y": 42.4, "align": "center" },
+    "name": { "x0": 49.5, "x1": 182.7, "y": 61.3, "align": "left", "pad": 3 },
+    "houseNo": { "x0": 44.1, "x1": 62.4, "y": 76.0, "align": "center" },
+    "soi": { "x0": 68.9, "x1": 96.3, "y": 76.0, "align": "center" },
+    "road": { "x0": 103.2, "x1": 128.8, "y": 76.0, "align": "center" },
+    "subdistrict": { "x0": 146.7, "x1": 183.3, "y": 76.0, "align": "center" },
+    "district": { "x0": 42.1, "x1": 77.8, "y": 83.4, "align": "center" },
+    "province": { "x0": 88.0, "x1": 127.4, "y": 83.4, "align": "center" },
+    "postcode": { "x0": 147.0, "x1": 184.5, "y": 83.4, "align": "center" },
+    "personBank": { "x0": 127.4, "x1": 183.2, "y": 114.8, "align": "center" },
+    "personBranch": { "x0": 58.7, "x1": 84.3, "y": 122.1, "align": "center" },
+    "personType": { "x0": 96.5, "x1": 120.3, "y": 122.1, "align": "center" },
+    "personAccName": { "x0": 132.1, "x1": 183.3, "y": 122.1, "align": "center" },
+    "personAccNo": { "x0": 58.7, "x1": 102.6, "y": 129.5, "align": "center" },
+    "companyBank": { "x0": 152.2, "x1": 183.3, "y": 138.9, "align": "center" },
+    "companyBranch": { "x0": 58.7, "x1": 84.3, "y": 146.3, "align": "center" },
+    "companyType": { "x0": 96.5, "x1": 120.3, "y": 146.3, "align": "center" },
+    "companyAccName": { "x0": 132.1, "x1": 183.3, "y": 146.3, "align": "center" },
+    "companyAccNo": { "x0": 58.6, "x1": 102.4, "y": 153.6, "align": "center" },
+    "smsPhone": { "x0": 139.2, "x1": 183.0, "y": 198.2, "align": "center" },
+    "email": { "x0": 133.6, "x1": 182.4, "y": 207.6, "align": "center" },
+    "signName": { "x0": 110.1, "x1": 159.2, "y": 233.9, "align": "center" }
+  },
+  "idBoxes": { "x": 104.77, "y": 64.42, "w": 5.29, "h": 5.03, "count": 13, "baseline": 68.6 },
+  "checks": {
+    "person": { "x": 42.86, "y": 111.27, "w": 5.29, "h": 5.03 },
+    "company": { "x": 42.86, "y": 134.07, "w": 5.29, "h": 5.03 },
+    "sms": { "x": 41.54, "y": 193.69, "w": 5.29, "h": 5.03 },
+    "email": { "x": 41.54, "y": 203.22, "w": 5.29, "h": 5.03 }
+  },
+  "_masksNote": "ข้อความที่ต้นฉบับพิมพ์ตายตัว — ถ้าค่าในตั้งค่าหน่วยงานต่างจากต้นฉบับ ปิดทับด้วยสีขาวแล้วพิมพ์ใหม่",
+  "masks": {
+    "headTitle": { "template": "ผู้บัญชาการเรือนจำกลางเชียงใหม่", "rect": [36.0, 44.2, 50.6, 5.6], "x": 36.5, "y": 49.7, "maxWidth": 140 },
+    "orgSentence": { "template": "เรือนจำกลางเชียงใหม่", "rect": [25.0, 176.2, 72.6, 6.4], "x": 25.4, "y": 181.4, "maxWidth": 72.4, "text": "และเมื่อ{org}โอนเงินผ่านระบบ" }
+  },
+  "hiddenNote": "ต้นฉบับมีข้อความซ่อน (สีขาว) ที่มุมขวาบน/ท้ายหน้า ไม่แสดงเมื่อพิมพ์ — ไม่ต้องทำอะไร"
+}

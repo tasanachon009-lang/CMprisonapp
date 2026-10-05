@@ -18,7 +18,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["better-sqlite3", "@node-rs/argon2", "sharp", "exceljs"],
+  serverExternalPackages: ["better-sqlite3", "@node-rs/argon2", "sharp", "exceljs", "pdf-lib", "@pdf-lib/fontkit"],
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
   },

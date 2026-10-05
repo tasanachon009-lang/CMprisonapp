@@ -12,8 +12,9 @@ export const NAV: NavItem[] = [
   { href: "/bst", label: "บสต./ติดตาม", icon: "clipboard", any: ["bst.view"] },
   { href: "/rt101", label: "รท.101", icon: "check", any: ["bst.view"] },
   { href: "/assigned", label: "งานที่ได้รับมอบหมาย", icon: "users", scoped: true },
+  { href: "/instructors", label: "วิทยากร", icon: "users", any: ["instructors.view"] },
   { href: "/inbox", label: "จดหมายเวร", icon: "mail", any: ["shift.use"] },
   { href: "/import", label: "นำเข้า Excel", icon: "upload", any: ["registry.import"] },
   { href: "/roster", label: "นับยอด", icon: "list", any: ["roster.view", "registry.view"] },
-  { href: "/admin", label: "ตั้งค่า", icon: "settings", any: ["settings.manage", "users.manage", "backup.manage", "audit.view"] },
+  { href: "/admin", label: "ตั้งค่า", icon: "settings", any: ["settings.manage", "users.manage", "backup.manage", "audit.view", "rates.manage", "topics.manage"] },
 ];

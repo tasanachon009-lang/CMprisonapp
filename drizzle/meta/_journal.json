@@ -50,6 +50,13 @@
       "when": 1791131449877,
       "tag": "0006_assessment_channel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791178056773,
+      "tag": "0007_step3_master",
+      "breakpoints": true
     }
   ]
 }

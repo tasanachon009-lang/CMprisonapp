@@ -72,10 +72,15 @@ export function createCohort(
       .where(eq(schema.courseTemplateSessions.courseId, course.id))
       .orderBy(asc(schema.courseTemplateSessions.dayNo), asc(schema.courseTemplateSessions.sortOrder))
       .all();
+    // ผู้รับผิดชอบประจำตามคลังหัวข้อ (สเปก 11.3): รายบุคคล = default_staff · ทั้งทีม = เจ้าหน้าที่หลักทุกคน (เอาออกได้)
+    const topics = new Map(tx.select().from(schema.activityTopics).where(and(eq(schema.activityTopics.courseId, course.id), isNull(schema.activityTopics.deletedAt))).all().map((x) => [x.id, x]));
+    const teamIds = tx.select({ id: schema.users.id }).from(schema.userRoles).innerJoin(schema.users, eq(schema.users.id, schema.userRoles.userId))
+      .where(and(eq(schema.userRoles.role, "rehab"), eq(schema.users.status, "active"), isNull(schema.users.deletedAt))).all().map((r) => r.id);
     for (const t of template) {
       const date = days[t.dayNo - 1];
       if (!date) continue;
-      tx.insert(schema.cohortSessions)
+      const topic = t.topicId ? topics.get(t.topicId) : undefined;
+      const sess = tx.insert(schema.cohortSessions)
         .values({
           cohortId: cohort.id,
           date,
@@ -87,10 +92,20 @@ export function createCohort(
           hours: t.hours,
           takesAttendance: t.takesAttendance,
           location: input.location ?? null,
+          topicId: t.topicId ?? null,
           createdBy: userId,
           updatedBy: userId,
         })
-        .run();
+        .returning()
+        .get();
+      if (topic) {
+        const staff = topic.staffingType === "team"
+          ? teamIds.map((id) => ({ userId: id, instructorId: null as number | null }))
+          : ((topic.defaultStaff as Array<{ userId?: number; instructorId?: number }> | null) ?? []).map((x) => ({ userId: x.userId ?? null, instructorId: x.instructorId ?? null }));
+        for (const st of staff) {
+          tx.insert(schema.sessionStaff).values({ sessionId: sess.id, userId: st.userId, instructorId: st.instructorId, createdBy: userId, updatedBy: userId }).onConflictDoNothing().run();
+        }
+      }
     }
     writeAudit(tx, { userId, action: "create", entity: "cohort", entityId: cohort.id, after: cohort });
     return cohort;

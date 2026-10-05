@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 5/10/2569 11:15:04
+- วันเวลา: 5/10/2569 12:42:42
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 157/157 ข้อ**
+- ผล: **ผ่าน 177/177 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -128,6 +128,24 @@
 | ✅ ผ่าน | admin → /admin/forms | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | executive → /admin/forms | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /instructors | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /instructors | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /instructors | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /instructors | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /instructors | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /instructors/new | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /instructors/new | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /instructors/new | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/rates | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /admin/rates | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/rates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/rates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/topics | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/topics | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /admin/topics | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/instructor-form | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /print/instructor-form | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/instructor-form | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | admin → /admin/consent | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | executive → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -148,6 +166,8 @@
 | ✅ ผ่าน | เปิด OTP ในตั้งค่า → ผู้ดูแลที่ยังไม่ยืนยันถูกพาไปหน้า OTP | → /otp/setup |
 | ✅ ผ่าน | ตารางกิจกรรม: เจ้าหน้าที่หลักมีปุ่มเพิ่มวิทยากร / ผู้บริหารดูอย่างเดียว | rehab HTTP 200 · exec HTTP 200 |
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
+| ✅ ผ่าน | ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง | HTTP 200 |
+| ✅ ผ่าน | ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |
 

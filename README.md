@@ -228,4 +228,5 @@ npm run security-check   # ตรวจความปลอดภัยอั�
 - เปลี่ยนโครงสร้างฐานข้อมูล: แก้ `src/lib/db/schema.ts` → `npm run db:generate` → commit ไฟล์ใน `drizzle/` (ห้ามแก้ฐานข้อมูลด้วยมือ)
 - เทคโนโลยี: Next.js (App Router) + TypeScript + Tailwind CSS + SQLite (better-sqlite3 + Drizzle ORM, WAL mode)
 - สเปกทั้งหมด: `docs/SPEC.md` · การตัดสินใจระหว่างพัฒนา: `docs/decisions.md` · ต้นฉบับแบบประเมิน: `docs/forms/` · โครงสร้างข้อมูล: `docs/data-model.md`
+- ข้อมูลที่อยู่ไทย (ตำบล/อำเภอ/จังหวัด/รหัสไปรษณีย์) ใน `src/lib/data/thai-address.json`: จาก [kongvut/thai-province-data](https://github.com/kongvut/thai-province-data) — MIT License, Copyright (c) 2025 Kongvut Sangkla · สร้างใหม่ด้วย `node scripts/build-thai-address.mjs <โฟลเดอร์ไฟล์ต้นฉบับ>`
 - รูปภาพตกแต่ง: ตอนนี้ใช้ภาพวาด SVG ของระบบเอง (ไม่มีลิขสิทธิ์ผู้อื่น) — ถ้าเพิ่มภาพจาก Unsplash/Pexels ให้ระบุแหล่งที่มาที่นี่

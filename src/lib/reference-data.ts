@@ -101,6 +101,44 @@ export const B12_TEMPLATE = B12_TOPICS.flatMap(([am, amCat, pm, pmCat], i) => {
   ];
 });
 
+// ───────── ขั้น 3: อัตรา คลังหัวข้อ (สเปก 11.1–11.3) ─────────
+
+/** อัตราตัวอย่าง — ⚠️ ต้องแก้เป็นอัตราจริงของหน่วยงาน (ติดป้าย "ตัวอย่าง" จนกว่าจะแก้) */
+export const SAMPLE_RATES = [
+  { key: "internal", name: "วิทยากรภายใน (ตัวอย่าง)", kind: "internal", externalType: null, perHourSatang: 0, dailyCapSatang: null },
+  { key: "gov", name: "วิทยากรภายนอก ภาครัฐ (ตัวอย่าง)", kind: "external", externalType: "gov", perHourSatang: 60000, dailyCapSatang: null },
+  { key: "private", name: "วิทยากรภายนอก ภาคเอกชน (ตัวอย่าง)", kind: "external", externalType: "private", perHourSatang: 120000, dailyCapSatang: null },
+] as const;
+
+export const ACTIVITY_TYPE_LABEL: Record<string, string> = { lecture: "บรรยาย", panel: "อภิปราย/สัมมนา", group: "แบ่งกลุ่ม/ฝึกปฏิบัติ", practice: "ฝึกปฏิบัติ", other: "อื่นๆ" };
+export const EXTERNAL_TYPE_LABEL: Record<string, string> = { gov: "ราชการ", private: "เอกชน", volunteer: "อาสาสมัคร", civil: "ภาคประชาสังคม" };
+
+type TopicSeed = { name: string; category?: string; hours?: number; activityType?: string; staffingType?: "individual" | "team"; maxStaff?: number; payable?: boolean };
+const team = (name: string, category?: string, hours?: number): TopicSeed => ({ name, category, hours, activityType: "other", staffingType: "team", payable: false });
+
+/** หัวข้อเริ่มต้นจากคู่มือ — ⚠️ ผู้ดูแลตรวจแก้ในหน้า "คลังหัวข้อ" (12 วันยังเป็นร่างเดียวกับแม่แบบตาราง) */
+export const TOPIC_SEEDS: Record<string, TopicSeed[]> = {
+  B12: [
+    team("ประชุมเช้า", G4, 0.5),
+    team("เขียนบันทึกประจำวัน", G2, 1.5),
+    ...Array.from(new Map(B12_TOPICS.flatMap(([am, amCat, pm, pmCat]) => [[am, amCat], [pm, pmCat]] as Array<[string, string]>)).entries()).map(([name, category]): TopicSeed =>
+      /ประเมิน/.test(name) ? team(name, category)
+        : /MET/.test(name) ? { name, category, activityType: "group", maxStaff: 2 }
+          : { name, category, activityType: "lecture", maxStaff: 2 }),
+  ],
+  PRE3: [
+    "ทบทวนสถานภาพ", "เป้าหมายและคุณค่าชีวิต", "หลีกเลี่ยงการเสพซ้ำ-สิ่งยึดเหนี่ยว", "การหาเหตุผลในการกลับไปเสพซ้ำ",
+    "ทักษะการปฏิเสธ", "อารมณ์ทางลบ", "การจัดการอารมณ์ (โกรธ รับรู้ความเครียด ลดความเครียด)", "การฟื้นฟูสัมพันธภาพ",
+    "การสร้างความไว้วางใจ", "การเคารพคุณค่าในตนเอง", "การส่งต่อข้อมูลสุขภาพ", "ปัจฉิมนิเทศ",
+  ].map((name, i): TopicSeed => (i === 11 ? team(name) : { name, activityType: "group", maxStaff: 2 })),
+  FAST: [
+    team("Morning Brief"), team("Staff Meeting"), team("กลุ่มประชุมเช้า"),
+    ...["วงจรการใช้ยาและหยุดความคิด", "การเปลี่ยนแปลงของร่างกาย", "ตัวกระตุ้น", "ความคิด-อารมณ์-พฤติกรรม", "ความรับผิดชอบและงาน",
+      "การป้องกันการเสพซ้ำ", "ความไว้วางใจ", "ทักษะการสื่อสาร", "การปฏิเสธ", "แรงจูงใจใฝ่สัมฤทธิ์", "การแก้ปัญหา", "การตั้งเป้าหมาย"]
+      .map((name): TopicSeed => ({ name, category: "การเรียนรู้แบบมีส่วนร่วม", activityType: "group", maxStaff: 2 })),
+    { name: "กิจกรรมครอบครัว", category: "ครอบครัว", activityType: "group", maxStaff: 2 },
+  ],
+};
 export const LOOKUPS: Record<string, Array<[code: string, label: string]>> = {
   release_reason: [
     ["completed_sentence", "พ้นโทษ"],
@@ -193,6 +231,10 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "security.adminOtp": false,
   // สเปก 11.4: วิทยากรสูงสุดต่อคาบเมื่อหัวข้อไม่ได้กำหนด (ขั้น 3 กำหนดรายหัวข้อในคลังหัวข้อ; 0 = ไม่จำกัด)
   "schedule.defaultMaxStaff": 2,
+  // สเปก 11.1: จำนวนวิทยากรที่เบิกได้ตามลักษณะกิจกรรม — ⚠️ ค่าตัวอย่างตามแนวระเบียบค่าใช้จ่ายฝึกอบรม ให้การเงินตรวจ
+  "pay.maxPayableByType": { lecture: 1, panel: 5, group: 2, practice: 2, other: 1 },
+  // สเปก 11.5A: หักภาษี ณ ที่จ่าย (วิทยากรภายนอก)
+  "pay.withholdingTax": { enabled: false, pct: 3 },
   /** ติดตามหลังบำบัด: เดือนที่ (ตั้งค่าได้) */
   "followup.months": [1, 3, 6, 12],
   /** กำหนดลง บสต./รท.101 (วันนับจากวันลงทะเบียน/วันจบ) */

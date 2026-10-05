@@ -50,14 +50,15 @@ export function staffNamesBySession(db: DB, sessionIds: number[]): Map<number, s
   const out = new Map<number, string[]>();
   if (!sessionIds.length) return out;
   const rows = db
-    .select({ sessionId: schema.sessionStaff.sessionId, role: schema.sessionStaff.role, ext: schema.sessionStaff.externalName, f: schema.users.firstName, l: schema.users.lastName })
+    .select({ sessionId: schema.sessionStaff.sessionId, role: schema.sessionStaff.role, ext: schema.sessionStaff.externalName, f: schema.users.firstName, l: schema.users.lastName, if: schema.instructors.firstName, il: schema.instructors.lastName })
     .from(schema.sessionStaff)
     .leftJoin(schema.users, eq(schema.users.id, schema.sessionStaff.userId))
+    .leftJoin(schema.instructors, eq(schema.instructors.id, schema.sessionStaff.instructorId))
     .where(and(inArray(schema.sessionStaff.sessionId, sessionIds), isNull(schema.sessionStaff.deletedAt)))
     .orderBy(asc(schema.sessionStaff.id))
     .all()
     .sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0));
-  for (const r of rows) out.set(r.sessionId, [...(out.get(r.sessionId) ?? []), r.f ? `${r.f} ${r.l}` : `${r.ext} (ภายนอก)`]);
+  for (const r of rows) out.set(r.sessionId, [...(out.get(r.sessionId) ?? []), r.f ? `${r.f} ${r.l}` : `${r.if ? `${r.if} ${r.il ?? ""}`.trim() : r.ext} (ภายนอก)`]);
   return out;
 }
 

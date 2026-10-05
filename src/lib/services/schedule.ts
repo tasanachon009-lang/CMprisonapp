@@ -13,12 +13,17 @@ import { cohortLabel } from "./cohorts";
 export const STAFF_ROLE_LABEL: Record<string, string> = { lead: "วิทยากรหลัก", co: "วิทยากรร่วม" };
 
 type Session = typeof schema.cohortSessions.$inferSelect;
-export type StaffInput = { userId?: number | null; externalName?: string | null; role?: "lead" | "co" | null };
+export type StaffInput = { userId?: number | null; instructorId?: number | null; externalName?: string | null; role?: "lead" | "co" | null };
 export type Conflict = { sessionId: number; cohortId: number; label: string; title: string; date: string; startTime: string; endTime: string };
 
-/** จำนวนวิทยากรสูงสุดของคาบ — Infinity = ทั้งทีม (ไม่จำกัด) */
-export function maxStaffOf(db: DB, s: Pick<Session, "maxStaff">) {
-  const n = s.maxStaff ?? getSetting<number>(db, "schedule.defaultMaxStaff", 2);
+/** จำนวนวิทยากรสูงสุดของคาบ — ลำดับ: ค่าเฉพาะคาบ → หัวข้อ (ทั้งทีม = ไม่จำกัด) → ค่าตั้ง · Infinity = ไม่จำกัด */
+export function maxStaffOf(db: DB, s: Pick<Session, "maxStaff"> & { topicId?: number | null }) {
+  let n = s.maxStaff;
+  if (n == null && s.topicId) {
+    const t = db.select({ staffingType: schema.activityTopics.staffingType, maxStaff: schema.activityTopics.maxStaff }).from(schema.activityTopics).where(eq(schema.activityTopics.id, s.topicId)).get();
+    if (t) n = t.staffingType === "team" ? 0 : t.maxStaff;
+  }
+  n ??= getSetting<number>(db, "schedule.defaultMaxStaff", 2);
   return n === 0 ? Infinity : n;
 }
 
@@ -42,7 +47,9 @@ function assertEditable(db: DB, s: Session) {
 export function findConflicts(db: DB, s: Pick<Session, "id" | "date" | "startTime" | "endTime">, who: StaffInput): Conflict[] {
   const whoCond = who.userId
     ? eq(schema.sessionStaff.userId, who.userId)
-    : who.externalName
+    : who.instructorId
+      ? eq(schema.sessionStaff.instructorId, who.instructorId)
+      : who.externalName
       ? sql`lower(trim(${schema.sessionStaff.externalName})) = ${normName(who.externalName).toLowerCase()}`
       : null;
   if (!whoCond) return [];
@@ -75,7 +82,13 @@ export function addStaff(db: DB, sessionId: number, input: StaffInput, actor: { 
   const s = getSession(db, sessionId);
   assertEditable(db, s);
   const externalName = input.externalName ? normName(input.externalName) : null;
-  if (!input.userId === !externalName) throw new RuleError("กรุณาเลือกเจ้าหน้าที่ หรือพิมพ์ชื่อวิทยากรภายนอก (อย่างใดอย่างหนึ่ง)");
+  // วิทยากรภายในในทะเบียน = ใช้บัญชีผู้ใช้ (คนเดียวกัน)
+  if (input.instructorId) {
+    const ins = db.select().from(schema.instructors).where(and(eq(schema.instructors.id, input.instructorId), isNull(schema.instructors.deletedAt))).get();
+    if (!ins || !ins.active) throw new RuleError("ไม่พบวิทยากรในทะเบียน หรือถูกตั้งเป็นไม่ใช้งาน");
+    if (ins.userId) input = { ...input, userId: ins.userId, instructorId: null };
+  }
+  if ([input.userId, input.instructorId, externalName].filter(Boolean).length !== 1) throw new RuleError("กรุณาเลือกเจ้าหน้าที่ หรือเลือกวิทยากรภายนอกจากทะเบียน (อย่างใดอย่างหนึ่ง)");
   if (externalName && externalName.length > 200) throw new RuleError("ชื่อวิทยากรยาวเกินไป");
   if (input.role && !["lead", "co"].includes(input.role)) throw new RuleError("บทบาทไม่ถูกต้อง");
   if (input.userId) {
@@ -83,20 +96,20 @@ export function addStaff(db: DB, sessionId: number, input: StaffInput, actor: { 
     if (!u || u.status !== "active" || u.deletedAt) throw new RuleError("ไม่พบเจ้าหน้าที่ หรือบัญชีถูกระงับ");
   }
   const current = activeStaff(db, [sessionId]);
-  if (current.some((x) => (input.userId ? x.userId === input.userId : x.externalName && normName(x.externalName).toLowerCase() === externalName!.toLowerCase()))) {
+  if (current.some((x) => (input.userId ? x.userId === input.userId : input.instructorId ? x.instructorId === input.instructorId : x.externalName && normName(x.externalName).toLowerCase() === externalName!.toLowerCase()))) {
     throw new RuleError("คนนี้อยู่ในคาบนี้แล้ว");
   }
   const max = maxStaffOf(db, s);
   if (current.length >= max) throw new RuleError(`คาบนี้มีวิทยากรได้สูงสุด ${max} คน — เอาคนเดิมออกก่อน หรือให้ผู้ดูแลปรับจำนวนสูงสุดของหัวข้อ`, undefined, "max_staff");
-  const conflicts = findConflicts(db, s, { userId: input.userId, externalName });
+  const conflicts = findConflicts(db, s, { userId: input.userId, instructorId: input.instructorId, externalName });
   if (conflicts.length && !opts.acknowledgeConflict) {
     const c = conflicts[0];
     throw new RuleError(`สอนซ้อนเวลา: มีคาบ "${c.title}" (${c.label}) เวลา ${c.startTime}–${c.endTime} วันเดียวกันอยู่แล้ว${conflicts.length > 1 ? ` และอีก ${conflicts.length - 1} คาบ` : ""} — ตรวจตารางก่อน หรือกด "ยืนยันเพิ่ม" ถ้าตั้งใจ`, undefined, "conflict");
   }
-  const row = db.insert(schema.sessionStaff).values({ sessionId, userId: input.userId ?? null, externalName, role: input.role ?? null, createdBy: actor.userId, updatedBy: actor.userId }).returning().get();
+  const row = db.insert(schema.sessionStaff).values({ sessionId, userId: input.userId ?? null, instructorId: input.instructorId ?? null, externalName, role: input.role ?? null, createdBy: actor.userId, updatedBy: actor.userId }).returning().get();
   writeAudit(db, {
     userId: actor.userId, action: "create", entity: "session_staff", entityId: row.id,
-    after: { sessionId, userId: input.userId ?? null, externalName, role: input.role ?? null },
+    after: { sessionId, userId: input.userId ?? null, instructorId: input.instructorId ?? null, externalName, role: input.role ?? null },
     note: conflicts.length ? `ยืนยันเพิ่มทั้งที่ชนเวลา ${conflicts.length} คาบ` : null, ip: actor.ip,
   });
   return { row, conflicts };
@@ -128,7 +141,7 @@ export function scheduleIssues(db: DB, sessions: Session[]) {
     if (s.status === "cancelled") continue;
     const mine = staff.filter((x) => x.sessionId === s.id);
     const max = maxStaffOf(db, s);
-    const conflicts = mine.map((x) => ({ staffId: x.id, with: findConflicts(db, s, { userId: x.userId, externalName: x.externalName }) })).filter((x) => x.with.length);
+    const conflicts = mine.map((x) => ({ staffId: x.id, with: findConflicts(db, s, { userId: x.userId, instructorId: x.instructorId, externalName: x.externalName }) })).filter((x) => x.with.length);
     out.set(s.id, { noStaff: mine.length === 0, overMax: mine.length > max ? max : null, conflicts });
   }
   return { staff, issues: out };

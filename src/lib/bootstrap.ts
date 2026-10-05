@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
-import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS } from "./reference-data";
+import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 
 /**
@@ -48,7 +48,48 @@ export function bootstrapReferenceData(db: DB) {
         }
       }
     }
+    seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * ขั้น 3: อัตราตัวอย่าง (ครั้งแรกเท่านั้น) + คลังหัวข้อจากคู่มือ (หลักสูตรที่ยังไม่มีหัวข้อ)
+ * และผูกแม่แบบตาราง/คาบที่ยังไม่มีหัวข้อ เข้ากับหัวข้อที่ชื่อตรงกัน
+ */
+function seedRatesAndTopics(tx: Pick<DB, "select" | "insert" | "update">) {
+  const hasRates = tx.select({ id: schema.rates.id }).from(schema.rates).get();
+  if (!hasRates) {
+    for (const r of SAMPLE_RATES) {
+      tx.insert(schema.rates).values({ name: r.name, kind: r.kind, externalType: r.externalType, perHourSatang: r.perHourSatang, dailyCapSatang: r.dailyCapSatang, fromFiscalYear: 2569, isSample: true, note: "อัตราตัวอย่าง — แก้เป็นอัตราจริง" }).run();
+    }
+  }
+  const rateOf = (kind: string, ext: string | null) => tx.select().from(schema.rates).where(and(eq(schema.rates.kind, kind), ext ? eq(schema.rates.externalType, ext) : eq(schema.rates.kind, kind))).get()?.id ?? null;
+  const internal = rateOf("internal", null), gov = rateOf("external", "gov"), priv = rateOf("external", "private");
+  for (const course of tx.select().from(schema.courses).all()) {
+    const seeds = TOPIC_SEEDS[course.code];
+    if (!seeds) continue;
+    const has = tx.select({ id: schema.activityTopics.id }).from(schema.activityTopics).where(eq(schema.activityTopics.courseId, course.id)).get();
+    if (!has) {
+      seeds.forEach((t, i) => {
+        tx.insert(schema.activityTopics).values({
+          courseId: course.id, name: t.name, category: t.category ?? null, standardHours: t.hours ?? null, activityType: t.activityType ?? "lecture",
+          color: course.color, staffingType: t.staffingType ?? "individual", maxStaff: t.staffingType === "team" ? null : t.maxStaff ?? 2,
+          payable: t.payable ?? true, internalRateId: internal, externalRates: { gov, private: priv, "*": gov }, splitMethod: "full", sortOrder: (i + 1) * 10,
+        }).onConflictDoNothing().run();
+      });
+    }
+    const topics = tx.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, course.id)).all();
+    const byName = new Map(topics.map((t) => [t.name, t.id]));
+    for (const ts of tx.select().from(schema.courseTemplateSessions).where(and(eq(schema.courseTemplateSessions.courseId, course.id), isNull(schema.courseTemplateSessions.topicId))).all()) {
+      const id = byName.get(ts.title);
+      if (id) tx.update(schema.courseTemplateSessions).set({ topicId: id }).where(eq(schema.courseTemplateSessions.id, ts.id)).run();
+    }
+    const cohortIds = tx.select({ id: schema.cohorts.id }).from(schema.cohorts).where(eq(schema.cohorts.courseId, course.id)).all().map((c) => c.id);
+    for (const cs of cohortIds.length ? tx.select().from(schema.cohortSessions).where(and(inArray(schema.cohortSessions.cohortId, cohortIds), isNull(schema.cohortSessions.topicId))).all() : []) {
+      const id = byName.get(cs.title);
+      if (id) tx.update(schema.cohortSessions).set({ topicId: id }).where(eq(schema.cohortSessions.id, cs.id)).run();
+    }
+  }
 }
 
 /** หมายเหตุของเวอร์ชันที่ระบบสร้าง — ใช้รู้ว่าเวอร์ชันล่าสุดยังเป็นค่าเริ่มต้น (ผู้ดูแลยังไม่ได้แก้) */

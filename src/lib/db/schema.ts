@@ -425,6 +425,7 @@ export const courseTemplateSessions = sqliteTable(
     /** นับเป็นคาบเช็คชื่อหรือไม่ (เช่น พักกลางวันไม่นับ) */
     takesAttendance: integer("takes_attendance", { mode: "boolean" }).notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(100),
+    topicId: integer("topic_id").references((): AnySQLiteColumn => activityTopics.id),
   },
   (t) => [index("cts_course_idx").on(t.courseId, t.dayNo)],
 );
@@ -477,8 +478,10 @@ export const cohortSessions = sqliteTable(
     attendanceCheckedBy: integer("attendance_checked_by"),
     /** ล็อกหลังอนุมัติค่าตอบแทน (ขั้น 3) */
     lockedAt: ts("locked_at"),
-    /** จำนวนวิทยากรสูงสุดของคาบ (สเปก 11.4): null = ค่าเริ่มต้นจากตั้งค่า, 0 = ทั้งทีม (ไม่จำกัด) — ขั้น 3 กำหนดจากคลังหัวข้อ */
+    /** จำนวนวิทยากรสูงสุดของคาบ (สเปก 11.4): null = ตามหัวข้อ/ค่าตั้ง, 0 = ทั้งทีม (ไม่จำกัด) */
     maxStaff: integer("max_staff"),
+    /** หัวข้อในคลังหัวข้อ (สเปก 11.3) — ใช้หาอัตรา/วิธีแบ่ง/จำนวนสูงสุด */
+    topicId: integer("topic_id").references((): AnySQLiteColumn => activityTopics.id),
     ...tracking(),
   },
   (t) => [index("cohort_sessions_idx").on(t.cohortId, t.date), index("cohort_sessions_date_idx").on(t.date)],
@@ -495,15 +498,123 @@ export const sessionStaff = sqliteTable(
     externalName: text("external_name"),
     /** lead = วิทยากรหลัก | co = วิทยากรร่วม | null = ไม่ระบุ */
     role: text("role"),
+    /** ทะเบียนวิทยากร (สเปก 11.2) — ภายนอกผูกที่นี่ · ภายในใช้ user_id */
+    instructorId: integer("instructor_id").references((): AnySQLiteColumn => instructors.id),
+    /** สัดส่วนเมื่อหัวข้อแบ่งแบบ "กำหนดสัดส่วน" (ขั้น 3 ค่าตอบแทน) */
+    shareRatio: real("share_ratio"),
     ...tracking(),
   },
   (t) => [
     index("session_staff_session_idx").on(t.sessionId),
+    uniqueIndex("session_staff_instructor_unique").on(t.sessionId, t.instructorId).where(sql`deleted_at IS NULL AND instructor_id IS NOT NULL`),
     index("session_staff_user_idx").on(t.userId),
     // คนเดียวกันอยู่ในคาบเดียวกันซ้ำไม่ได้
     uniqueIndex("session_staff_user_unique").on(t.sessionId, t.userId).where(sql`deleted_at IS NULL AND user_id IS NOT NULL`),
     uniqueIndex("session_staff_external_unique").on(t.sessionId, t.externalName).where(sql`deleted_at IS NULL AND external_name IS NOT NULL`),
   ],
+);
+
+// ───────────────────────── ขั้น 3: อัตรา วิทยากร คลังหัวข้อ (สเปก 11.1–11.3, 11.5A–B) ─────────────────────────
+
+/** อัตราค่าตอบแทน (ตั้งปีละครั้ง) — เงินเก็บเป็นสตางค์ */
+export const rates = sqliteTable("rates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  /** internal | external — ภายนอกแยกตามประเภทได้ด้วย external_type */
+  kind: text("kind").notNull(),
+  /** gov | private | volunteer | civil (เฉพาะภายนอก, null = ใช้ได้ทุกประเภท) */
+  externalType: text("external_type"),
+  perHourSatang: integer("per_hour_satang").notNull(),
+  /** เพดานต่อวันต่อคน (null = ไม่จำกัด) */
+  dailyCapSatang: integer("daily_cap_satang"),
+  fromFiscalYear: integer("from_fiscal_year").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  /** อัตราตัวอย่างที่ระบบใส่ให้ (ต้องแก้เป็นอัตราจริง) */
+  isSample: integer("is_sample", { mode: "boolean" }).notNull().default(false),
+  note: text("note"),
+  ...tracking(),
+});
+
+/** ทะเบียนวิทยากร (ภายใน = ผูก user · ภายนอก = ข้อมูลในนี้) — เลขบัตร/ที่อยู่/บัญชี เป็นข้อมูลอ่อนไหว */
+export const instructors = sqliteTable(
+  "instructors",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** internal | external */
+    kind: text("kind").notNull(),
+    userId: integer("user_id").references(() => users.id),
+    /** gov | private | volunteer | civil */
+    externalType: text("external_type"),
+    prefix: text("prefix"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    position: text("position"),
+    organization: text("organization"),
+    phone: text("phone"),
+    email: text("email"),
+    nationalId: text("national_id"),
+    addrHouseNo: text("addr_house_no"),
+    addrMoo: text("addr_moo"),
+    addrSoi: text("addr_soi"),
+    addrRoad: text("addr_road"),
+    addrSubdistrictId: integer("addr_subdistrict_id"),
+    addrSubdistrict: text("addr_subdistrict"),
+    addrDistrict: text("addr_district"),
+    addrProvince: text("addr_province"),
+    addrPostcode: text("addr_postcode"),
+    /** person | company */
+    payeeType: text("payee_type").notNull().default("person"),
+    companyName: text("company_name"),
+    bank: text("bank"),
+    bankBranch: text("bank_branch"),
+    /** savings | current | fixed */
+    accountType: text("account_type"),
+    accountName: text("account_name"),
+    accountNo: text("account_no"),
+    /** sms | email | both */
+    notifyChannel: text("notify_channel"),
+    bankBookReceived: integer("bank_book_received", { mode: "boolean" }).notNull().default(false),
+    bankBookReceivedDate: text("bank_book_received_date"),
+    expertise: text("expertise"),
+    note: text("note"),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    ...tracking(),
+  },
+  (t) => [
+    uniqueIndex("instructors_user_unique").on(t.userId).where(sql`deleted_at IS NULL AND user_id IS NOT NULL`),
+    index("instructors_name_idx").on(t.firstName, t.lastName),
+  ],
+);
+
+/** คลังหัวข้อ (ตั้งครั้งเดียวต่อหลักสูตร) */
+export const activityTopics = sqliteTable(
+  "activity_topics",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    courseId: integer("course_id").notNull().references(() => courses.id),
+    name: text("name").notNull(),
+    category: text("category"),
+    standardHours: real("standard_hours"),
+    /** lecture | panel | group | practice | other (ใช้ตรวจจำนวนวิทยากรที่เบิกได้) */
+    activityType: text("activity_type").notNull().default("lecture"),
+    color: text("color"),
+    /** individual | team */
+    staffingType: text("staffing_type").notNull().default("individual"),
+    /** จำนวนวิทยากรสูงสุด (รายบุคคล) — ทั้งทีมไม่จำกัด */
+    maxStaff: integer("max_staff"),
+    payable: integer("payable", { mode: "boolean" }).notNull().default(true),
+    internalRateId: integer("internal_rate_id").references(() => rates.id),
+    /** อัตราภายนอกตามประเภท {gov: rateId, private: rateId, ...} หรือ {"*": rateId} */
+    externalRates: text("external_rates", { mode: "json" }),
+    /** full = คนละเต็ม | equal = หารเท่ากัน | ratio = กำหนดสัดส่วน */
+    splitMethod: text("split_method").notNull().default("full"),
+    /** ผู้รับผิดชอบประจำ (เติมให้ทุกรุ่นอัตโนมัติ): [{userId} | {instructorId}] */
+    defaultStaff: text("default_staff", { mode: "json" }),
+    sortOrder: integer("sort_order").notNull().default(100),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("activity_topics_unique").on(t.courseId, t.name).where(sql`deleted_at IS NULL`)],
 );
 
 // ───────────────────────── การลงทะเบียน การเช็คชื่อ ─────────────────────────

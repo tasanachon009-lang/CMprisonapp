@@ -9,6 +9,7 @@ import { addStaff, removeStaff, setStaffRole } from "@/lib/services/schedule";
 
 const StaffSchema = z.object({
   userId: z.number().int().positive().nullable().optional(),
+  instructorId: z.number().int().positive().nullable().optional(),
   externalName: z.string().max(200).nullable().optional(),
   role: z.enum(["lead", "co"]).nullable().optional(),
 });

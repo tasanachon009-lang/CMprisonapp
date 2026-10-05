@@ -7,7 +7,8 @@ import { Modal } from "@/components/modal";
 import { Alert } from "@/components/ui";
 import { addStaffAction, removeStaffAction, setStaffRoleAction } from "./actions";
 
-export type StaffView = { id: number; userId: number | null; name: string; external: boolean; role: string | null; conflicts: string[] };
+export type StaffView = { id: number; userId: number | null; instructorId?: number | null; unregistered?: boolean; name: string; external: boolean; role: string | null; conflicts: string[] };
+type ExternalOpt = { id: number; name: string; org: string | null; ready: boolean };
 type SessionView = { id: number; title: string; startTime: string; endTime: string; hours: number; category: string | null; status: string };
 
 const ROLE: Record<string, string> = { lead: "หลัก", co: "ร่วม" };
@@ -30,14 +31,15 @@ export function StaffNames({ staff }: { staff: StaffView[] }) {
 }
 
 /** กดการ์ดคาบ → แก้รายชื่อวิทยากร (เพิ่ม/เอาออก/บทบาท) */
-export function SessionStaffEditor({ cohortId, session, staff, options, max, editable, lockedReason }: {
-  cohortId: number; session: SessionView; staff: StaffView[]; options: Array<{ id: number; name: string }>; max: number | null; editable: boolean; lockedReason: string | null;
+export function SessionStaffEditor({ cohortId, session, staff, options, externals = [], max, editable, lockedReason }: {
+  cohortId: number; session: SessionView; staff: StaffView[]; options: Array<{ id: number; name: string }>; externals?: ExternalOpt[]; max: number | null; editable: boolean; lockedReason: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"internal" | "external">("internal");
   const [userId, setUserId] = useState("");
   const [extName, setExtName] = useState("");
+  const [extId, setExtId] = useState("");
   const [role, setRole] = useState<"" | "lead" | "co">("");
   const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
   const [conflictAsk, setConflictAsk] = useState(false);
@@ -45,9 +47,11 @@ export function SessionStaffEditor({ cohortId, session, staff, options, max, edi
   const full = max != null && staff.length >= max;
   const taken = new Set(staff.map((x) => x.userId));
   const available = options.filter((o) => !taken.has(o.id));
+  const takenExt = new Set(staff.map((x) => x.instructorId));
+  const availableExt = externals.filter((o) => !takenExt.has(o.id));
 
   const add = (ack = false) => start(async () => {
-    const input = kind === "internal" ? { userId: userId ? Number(userId) : null } : { externalName: extName };
+    const input = kind === "internal" ? { userId: userId ? Number(userId) : null } : extId ? { instructorId: Number(extId) } : { externalName: extName };
     const r = await addStaffAction(cohortId, session.id, { ...input, role: role || null }, ack);
     if (!r.ok) {
       setConflictAsk(r.code === "conflict");
@@ -55,7 +59,7 @@ export function SessionStaffEditor({ cohortId, session, staff, options, max, edi
     }
     setConflictAsk(false);
     setMsg({ tone: "ok", text: r.message ?? "เพิ่มแล้ว" });
-    setUserId(""); setExtName(""); setRole("");
+    setUserId(""); setExtName(""); setExtId(""); setRole("");
     router.refresh();
   });
   const remove = (id: number) => start(async () => {
@@ -85,6 +89,7 @@ export function SessionStaffEditor({ cohortId, session, staff, options, max, edi
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{x.name}</span>
                 <span className={x.external ? "tag-orange" : "tag-navy"}>{x.external ? "ภายนอก" : "ภายใน"}</span>
+                {x.unregistered && <span className="tag-warn" title="ยังไม่อยู่ในทะเบียนวิทยากร — เบิกเงินไม่ได้">ยังไม่อยู่ในทะเบียน</span>}
                 {editable ? (
                   <select className="input min-h-11 w-40 py-1" value={x.role ?? ""} disabled={pending} onChange={(e) => changeRole(x.id, e.target.value)} aria-label={`บทบาทของ ${x.name}`}>
                     <option value="">ไม่ระบุบทบาท</option><option value="lead">วิทยากรหลัก</option><option value="co">วิทยากรร่วม</option>
@@ -113,12 +118,19 @@ export function SessionStaffEditor({ cohortId, session, staff, options, max, edi
                   {available.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                 </select>
               ) : (
-                <input className="input" placeholder="ชื่อ-สกุลวิทยากรภายนอก" value={extName} onChange={(e) => setExtName(e.target.value)} aria-label="ชื่อวิทยากรภายนอก" />
+                <div className="space-y-2">
+                  <select className="input" value={extId} onChange={(e) => { setExtId(e.target.value); if (e.target.value) setExtName(""); }} aria-label="เลือกวิทยากรภายนอกจากทะเบียน">
+                    <option value="">— เลือกจากทะเบียนวิทยากร —</option>
+                    {availableExt.map((o) => <option key={o.id} value={o.id}>{o.name}{o.org ? ` · ${o.org}` : ""}{o.ready ? "" : " (ข้อมูลเบิกจ่ายไม่ครบ)"}</option>)}
+                  </select>
+                  {!extId && <input className="input" placeholder="หรือพิมพ์ชื่อ (ยังไม่อยู่ในทะเบียน — ต้องเพิ่มในทะเบียนก่อนเบิกเงิน)" value={extName} onChange={(e) => setExtName(e.target.value)} aria-label="ชื่อวิทยากรภายนอก" />}
+                  <a href="/instructors/new" target="_blank" className="text-sm text-navy underline">+ เพิ่มวิทยากรใหม่ในทะเบียน (แท็บใหม่ แล้วกลับมาโหลดหน้านี้)</a>
+                </div>
               )}
               <select className="input" value={role} onChange={(e) => setRole(e.target.value as "")} aria-label="บทบาท">
                 <option value="">บทบาท: ไม่ระบุ</option><option value="lead">วิทยากรหลัก</option><option value="co">วิทยากรร่วม</option>
               </select>
-              <button className="btn-primary" disabled={pending || (kind === "internal" ? !userId : !extName.trim())} onClick={() => add(false)}><Plus size={20} aria-hidden /> เพิ่มวิทยากร</button>
+              <button className="btn-primary" disabled={pending || (kind === "internal" ? !userId : !extId && !extName.trim())} onClick={() => add(false)}><Plus size={20} aria-hidden /> เพิ่มวิทยากร</button>
             </div>
           )
         )}

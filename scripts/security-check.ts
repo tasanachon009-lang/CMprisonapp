@@ -145,6 +145,11 @@ async function main() {
     ["/rt101", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
     ["/print/bst?s=rt101", { rehab: true, executive: false, assistant: false }],
     ["/admin/forms", { admin: true, rehab: false, executive: false }],
+    ["/instructors", { rehab: true, finance: true, executive: false, assistant: false, warden: false }],
+    ["/instructors/new", { rehab: true, finance: true, executive: false }],
+    ["/admin/rates", { admin: true, finance: true, rehab: false, executive: false }],
+    ["/admin/topics", { admin: true, rehab: false, finance: false }],
+    ["/print/instructor-form", { rehab: true, finance: true, executive: false }],
     ["/admin/consent", { admin: true, rehab: false, executive: false, finance: false }],
     ["/incomplete", { rehab: true, assistant: false, warden: false }],
     [`/print/person/${person.id}`, { rehab: true, executive: false, assistant: false }],
@@ -216,6 +221,18 @@ async function main() {
   // สเปก 10.1: แบบพิมพ์เปล่ามีรหัสแบบ (จับคู่กระดาษกับคน/แบบ/รอบ)
   const blank = await get(`/print/blank-forms/${cohort.id}?form=KNOW&round=pre`, C.rehab);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน)", blank.status === 200 && /KNOW-v\d+-ก่อน-E\d+/.test(blank.text), `HTTP ${blank.status}`);
+  // สเปก 11.5B: เลขบัญชี/เลขบัตรวิทยากร เห็นเต็มเฉพาะการเงิน/ผู้ดูแล
+  {
+    const ins = db.select().from(schema.instructors).all().find((i) => i.accountNo && i.nationalId && !i.deletedAt);
+    if (ins) {
+      const digits = ins.accountNo!;
+      const fmt = digits.length === 10 ? `${digits.slice(0, 3)}-${digits.slice(3, 4)}-${digits.slice(4, 9)}-${digits.slice(9)}` : digits;
+      const asRehab = await get(`/instructors/${ins.id}`, C.rehab);
+      const asFinance = await get(`/instructors/${ins.id}`, C.finance);
+      check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง", allowed(asRehab) && !asRehab.text.includes(fmt) && !asRehab.text.includes(ins.nationalId!), `HTTP ${asRehab.status}`);
+      check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม", allowed(asFinance) && asFinance.text.includes(digits), `HTTP ${asFinance.status}`);
+    }
+  }
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

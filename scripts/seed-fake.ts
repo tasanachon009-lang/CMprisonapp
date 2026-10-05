@@ -194,7 +194,7 @@ async function main() {
             .run();
         }
         tx.update(schema.cohortSessions).set({ attendanceCheckedAt: new Date(), attendanceCheckedBy: pick(rehabStaff), status: "done" }).where(eq(schema.cohortSessions.id, s.id)).run();
-        tx.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).run();
+        tx.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).onConflictDoNothing().run();
       }
     });
   };
@@ -281,9 +281,9 @@ async function main() {
   fillAttendance(cur.id, addDays(today, -1));
   // ผู้รับผิดชอบคาบในอนาคต (ใช้กับหน้าแรก "คาบของฉัน")
   const future = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, cur.id)).all().filter((s) => s.date >= today);
-  for (const s of future) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).run();
+  for (const s of future) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: pick(rehabStaff) }).onConflictDoNothing().run();
   // กลุ่ม B: นักฝึกอบรมสอนบางคาบของรุ่นนี้ · นักสังคมสงเคราะห์ได้รับมอบหมายญาติ/ติดตามเฉพาะรุ่นนี้ (สเปก 2.2-0)
-  for (const s of future.slice(0, 4)) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: userIds[8] }).run();
+  for (const s of future.slice(0, 4)) db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: userIds[8] }).onConflictDoNothing().run();
   // วิทยากรหลายคนต่อคาบ (สเปก 11.4): บางคาบมีวิทยากรร่วม 2 คน และมีวิทยากรภายนอก
   const twoStaff = future.slice(4).filter((s) => s.hours >= 2).slice(0, 6); // ไม่ซ้อนกับคาบที่นักฝึกอบรมสอนอยู่แล้ว
   for (const s of twoStaff) {
@@ -292,9 +292,21 @@ async function main() {
     const second = rehabStaff.find((u) => u !== first?.userId)!;
     db.insert(schema.sessionStaff).values({ sessionId: s.id, userId: second, role: "co" }).onConflictDoNothing().run();
   }
+  // ทะเบียนวิทยากร (ข้อมูลปลอมทั้งหมด): ภายนอกพร้อมเบิก 1 คน / ข้อมูลไม่ครบ 1 คน / ภายในมีข้อมูลบัญชี 2 คน
+  const somsri = db.insert(schema.instructors).values({
+    kind: "external", externalType: "gov", prefix: "นาง", firstName: "สมศรี", lastName: "ใจดี", position: "นักจิตวิทยาชำนาญการ", organization: "โรงพยาบาลตัวอย่าง (ข้อมูลปลอม)",
+    phone: "0812345678", email: "somsri@example.com", nationalId: fakeNationalId(), addrHouseNo: "99/1", addrMoo: "3", addrRoad: "ห้วยแก้ว",
+    addrSubdistrict: "สุเทพ", addrDistrict: "เมืองเชียงใหม่", addrProvince: "เชียงใหม่", addrPostcode: "50200",
+    payeeType: "person", bank: "ธนาคารกรุงไทย", bankBranch: "นิมมานเหมินท์", accountType: "savings", accountName: "นางสมศรี ใจดี", accountNo: "1234567890",
+    notifyChannel: "sms", bankBookReceived: true, bankBookReceivedDate: "2026-09-20", expertise: "การจัดการอารมณ์ การป้องกันการเสพซ้ำ", createdBy: headId,
+  }).returning().get();
+  db.insert(schema.instructors).values({ kind: "external", externalType: "private", prefix: "นาย", firstName: "วิชัย", lastName: "สอนดี", organization: "มูลนิธิตัวอย่าง (ข้อมูลปลอม)", phone: "0898765432", expertise: "ทักษะชีวิต", createdBy: headId }).run();
+  for (const uid of [userIds[2], userIds[6]]) {
+    db.insert(schema.instructors).values({ kind: "internal", userId: uid, nationalId: fakeNationalId(), addrHouseNo: "1", addrSubdistrict: "ช้างเผือก", addrDistrict: "เมืองเชียงใหม่", addrProvince: "เชียงใหม่", addrPostcode: "50300", bank: "ธนาคารออมสิน", bankBranch: "เชียงใหม่", accountType: "savings", accountName: "บัญชีตัวอย่าง", accountNo: String(int(1000000000, 9999999999)), notifyChannel: "email", email: "staff@example.com", bankBookReceived: true, bankBookReceivedDate: "2026-09-01", createdBy: headId }).run();
+  }
   if (twoStaff[0]) {
     db.update(schema.cohortSessions).set({ maxStaff: 3 }).where(eq(schema.cohortSessions.id, twoStaff[0].id)).run();
-    db.insert(schema.sessionStaff).values({ sessionId: twoStaff[0].id, externalName: "อ.สมศรี ใจดี", role: "co" }).run();
+    db.insert(schema.sessionStaff).values({ sessionId: twoStaff[0].id, instructorId: somsri.id, role: "co" }).onConflictDoNothing().run();
   }
   for (const permission of ["contacts.edit", "bst.view", "bst.edit"]) {
     db.insert(schema.permissionGrants).values({ userId: userIds[9], permission, allow: true, scope: `cohort:${cur.id}`, reason: "มอบหมายงานญาติ/ติดตามรุ่นนี้ (ตัวอย่าง)", createdBy: headId }).run();

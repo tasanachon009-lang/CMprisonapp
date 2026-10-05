@@ -4,7 +4,9 @@ import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { getCohort, cohortSessions } from "@/lib/queries/cohorts";
 import { formatThaiDate, todayISO } from "@/lib/thai-date";
-import { userNameMap } from "@/lib/queries/names";
+import { userNameMap, instructorNameMap } from "@/lib/queries/names";
+import { listInstructors } from "@/lib/services/instructors";
+import { listTopics } from "@/lib/services/pay-setup";
 import { scheduleIssues, maxStaffOf } from "@/lib/services/schedule";
 import { Alert } from "@/components/ui";
 import { StaffNames, SessionStaffEditor, type StaffView } from "./schedule-client";
@@ -21,6 +23,10 @@ export default async function SchedulePage({ params }: PageProps<"/cohorts/[id]/
   const sessions = cohortSessions(db, row.cohort.id);
   const { staff, issues } = scheduleIssues(db, sessions);
   const names = userNameMap(db);
+  const insNames = instructorNameMap(db);
+  const topics = new Map(listTopics(db, row.course.id).map((t) => [t.id, t]));
+  // วิทยากรภายนอกในทะเบียนให้เลือก (สเปก 11.2)
+  const externals = auth.can("schedule.edit") ? listInstructors(db).filter((i) => i.kind === "external" && i.active).map((i) => ({ id: i.id, name: i.displayName, org: i.organization, ready: i.readiness.ready })) : [];
   const today = todayISO();
   const days = Array.from(new Set(sessions.map((s) => s.date)));
   const totalHours = sessions.reduce((s, x) => s + x.hours, 0);
@@ -37,7 +43,7 @@ export default async function SchedulePage({ params }: PageProps<"/cohorts/[id]/
       .filter((x) => x.sessionId === sessionId)
       .sort((a, b) => (a.role === "lead" ? -1 : 0) - (b.role === "lead" ? -1 : 0) || a.id - b.id)
       .map((x) => ({
-        id: x.id, userId: x.userId, name: x.userId ? names.get(x.userId) ?? "-" : x.externalName ?? "-", external: !x.userId, role: x.role,
+        id: x.id, userId: x.userId, instructorId: x.instructorId, name: x.userId ? names.get(x.userId) ?? "-" : x.instructorId ? insNames.get(x.instructorId) ?? "-" : x.externalName ?? "-", external: !x.userId, unregistered: !x.userId && !x.instructorId, role: x.role,
         conflicts: (iss?.conflicts.find((c) => c.staffId === x.id)?.with ?? []).map(fmtConflict),
       }));
   };
@@ -73,7 +79,7 @@ export default async function SchedulePage({ params }: PageProps<"/cohorts/[id]/
                 return (
                   <li key={s.id} className={`rounded-xl px-3 py-2 ${s.status === "cancelled" ? "bg-line/40 line-through" : "bg-cream"}`}>
                     <p className="font-display text-sm font-semibold text-navy">{s.startTime}–{s.endTime} · {s.hours} ชม.</p>
-                    <p className="font-medium">{s.title}</p>
+                    <p className="font-medium">{s.title} {s.topicId && topics.get(s.topicId)?.payable && <span title="คาบที่เบิกค่าตอบแทนได้" aria-label="เบิกได้">💰</span>}</p>
                     {s.category && <p className="text-xs text-muted">{s.category}</p>}
                     <div className="mt-1"><StaffNames staff={who} /></div>
                     {iss?.overMax != null && <p className="mt-1 text-sm text-danger">วิทยากรเกินจำนวนสูงสุด ({iss.overMax} คน)</p>}
@@ -83,6 +89,7 @@ export default async function SchedulePage({ params }: PageProps<"/cohorts/[id]/
                         session={{ id: s.id, title: s.title, startTime: s.startTime, endTime: s.endTime, hours: s.hours, category: s.category, status: s.status }}
                         staff={who}
                         options={options}
+                        externals={externals}
                         max={Number.isFinite(max) ? max : null}
                         editable={canEdit && !lockedReason}
                         lockedReason={canEdit ? lockedReason : null}

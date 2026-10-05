@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq, sql } from "drizzle-orm";
-import { FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, Coins, FileSignature, FileText, HardDrive, History, Settings, ShieldCheck, Users } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { backupHealth } from "@/lib/backup/status";
@@ -10,7 +10,7 @@ import { Breadcrumb, PageHeader, Alert } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  const auth = await requirePage("settings.manage", "users.manage", "backup.manage", "audit.view");
+  const auth = await requirePage("settings.manage", "users.manage", "backup.manage", "audit.view", "rates.manage", "topics.manage");
   const db = getDb();
   const health = backupHealth(db);
   const pending = db.select({ n: sql<number>`count(*)` }).from(schema.dualApprovals).where(eq(schema.dualApprovals.status, "pending")).get()?.n ?? 0;
@@ -21,6 +21,8 @@ export default async function AdminHome() {
     { href: "/admin/backup", icon: HardDrive, title: "สำรอง/กู้คืนข้อมูล", desc: "สถานะ สำรองทันที สำรองลงดิสก์ถอดเก็บ ทดสอบกู้คืน", perm: "backup.manage" as const },
     { href: "/admin/audit", icon: History, title: "ประวัติการใช้งาน", desc: "ค้นตามผู้ใช้ ผู้ต้องขัง ช่วงวันที่", perm: "audit.view" as const },
     { href: "/admin/forms", icon: FileText, title: "คลังแบบประเมิน", desc: "ข้อคำถาม เฉลย เกณฑ์แปลผล (บันทึกเป็นเวอร์ชัน)", perm: "forms.manage" as const },
+    { href: "/admin/rates", icon: Coins, title: "อัตราค่าตอบแทน", desc: "บาท/ชม. เพดานต่อวัน จำนวนวิทยากรที่เบิกได้ ภาษีหัก ณ ที่จ่าย", perm: "rates.manage" as const },
+    { href: "/admin/topics", icon: BookOpen, title: "คลังหัวข้อ", desc: "ชั่วโมงมาตรฐาน ผู้รับผิดชอบ การเบิก อัตรา วิธีแบ่งค่าตอบแทน", perm: "topics.manage" as const },
     { href: "/admin/consent", icon: FileSignature, title: "แบบฟอร์มยินยอม PDPA", desc: "แก้ข้อความหนังสือยินยอม ดูตัวอย่างก่อนพิมพ์", perm: "settings.manage" as const },
     { href: "/admin/settings", icon: Settings, title: "ตั้งค่าระบบ", desc: "หน่วยงาน รหัสหน่วยงาน วันหยุด รายการเหตุผล PDPA", perm: "settings.manage" as const },
   ].filter((c) => auth.can(c.perm));

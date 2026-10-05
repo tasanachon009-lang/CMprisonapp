@@ -41,6 +41,12 @@ export const PERMISSIONS = {
   "behavior.edit": "บันทึกพฤติกรรมด่วน",
   "reports.view": "ดู/พิมพ์รายงานรายบุคคล-รายรุ่น",
   "shift.use": "ใช้กล่องจดหมายเวร",
+  // ขั้น 3
+  "instructors.view": "ดูทะเบียนวิทยากร",
+  "instructors.manage": "เพิ่ม/แก้ทะเบียนวิทยากร",
+  "instructors.sensitive": "ดูเลขบัตร/ที่อยู่/เลขบัญชีวิทยากรแบบเต็ม",
+  "rates.manage": "ตั้งอัตราค่าตอบแทน",
+  "topics.manage": "แก้คลังหัวข้อ",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -64,7 +70,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   admin: ALL.filter((p) => p !== "roster.view" && p !== "attendance.edit_own"),
   rehab: [
     "course.view", "registry.view", "registry.edit", "registry.import", "national_id.view_full",
-    "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "schedule.edit", "export.names",
+    "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "schedule.edit", "export.names", "instructors.view", "instructors.manage",
     "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use",
   ],
   medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
@@ -72,7 +78,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   // กลุ่ม B: กล่องจดหมายเวรแบบจำกัด (ส่งได้ · รับเฉพาะที่ระบุถึงตน/รุ่นที่ตนสอน — services/shift.ts)
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
   // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
-  finance: ["course.view", "schedule.view"],
+  // การเงิน: ทะเบียนวิทยากร (รวมข้อมูลเบิกจ่ายแบบเต็ม) และอัตราค่าตอบแทน
+  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage"],
   executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary"],
   warden: ["roster.view"],
 };

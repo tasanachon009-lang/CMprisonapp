@@ -5,6 +5,7 @@ import { getDb, schema } from "@/lib/db";
 import { enrollmentContext } from "@/lib/queries/enrollment";
 import { getForm, formAccess, versionFor } from "@/lib/services/assessments";
 import { ROUND_LABEL } from "@/lib/assessments/compute";
+import { defaultChannel } from "@/lib/assessments/forms";
 import { todayISO, formatThaiDateTime } from "@/lib/thai-date";
 import { userNameMap } from "@/lib/queries/names";
 import { writeAudit } from "@/lib/audit";
@@ -53,7 +54,8 @@ export default async function AssessPage({ params, searchParams }: PageProps<"/e
         round={round}
         period={period}
         today={todayISO()}
-        initial={existing ? { answers: existing.answers, assessedDate: existing.assessedDate, version: existing.version } : null}
+        initial={existing ? { answers: existing.answers, assessedDate: existing.assessedDate, version: existing.version, channel: existing.channel, paperLocation: existing.paperLocation } : null}
+        defaultChannel={defaultChannel(form.code)}
         readOnly={!access.edit}
         backHref={`/enrollments/${ctx.e.id}`}
       />

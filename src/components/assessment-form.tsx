@@ -16,7 +16,9 @@ type Props = {
   round: string;
   period?: string;
   today: string;
-  initial: { answers: unknown; assessedDate: string; version: number } | null;
+  initial: { answers: unknown; assessedDate: string; version: number; channel?: string | null; paperLocation?: string | null } | null;
+  /** ช่องทางเริ่มต้นของแบบนี้ (ผู้ต้องขังตอบเอง = paper) */
+  defaultChannel: "paper" | "system";
   readOnly?: boolean;
   backHref: string;
 };
@@ -27,17 +29,19 @@ export function AssessmentForm(p: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<unknown>(p.initial?.answers ?? defaultAnswers(p.form.kind));
   const [date, setDate] = useState(p.initial?.assessedDate ?? p.today);
+  const [channel, setChannel] = useState<"paper" | "system">((p.initial?.channel as "paper" | "system" | undefined) ?? p.defaultChannel);
+  const [paperLocation, setPaperLocation] = useState(p.initial?.paperLocation ?? "");
   const [msg, setMsg] = useState<{ tone: "ok" | "danger" | "warn"; text: string } | null>(null);
   const [pending, start] = useTransition();
   const result = useMemo(() => computeResult(p.form.kind, p.version.items, p.version.scoring, answers), [answers, p.form.kind, p.version]);
 
   const save = useCallback(() => start(async () => {
     setMsg(null);
-    const r = await saveAssessmentAction({ enrollmentId: p.enrollmentId, formId: p.form.id, round: p.round, period: p.period, assessedDate: date, answers }, p.initial?.version);
+    const r = await saveAssessmentAction({ enrollmentId: p.enrollmentId, formId: p.form.id, round: p.round, period: p.period, assessedDate: date, answers, channel, paperLocation: channel === "paper" ? paperLocation : null }, p.initial?.version);
     if (!r.ok) return setMsg({ tone: "danger", text: r.error });
     setMsg({ tone: r.data!.alerts.length ? "warn" : "ok", text: `บันทึกแล้ว${r.data!.level ? ` — ${r.data!.level}` : ""}${r.data!.alerts.length ? ` · แจ้งสถานพยาบาลแล้ว: ${r.data!.alerts.join(" / ")}` : ""}` });
     router.refresh();
-  }), [answers, date, p, router]);
+  }), [answers, date, channel, paperLocation, p, router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -55,6 +59,19 @@ export function AssessmentForm(p: Props) {
       {p.form.description && <p className="text-muted">{p.form.description}</p>}
       <div className="flex flex-wrap items-end gap-4">
         <div><span className="label">วันที่ประเมิน</span><ThaiDateInput value={date} onChange={setDate} max={p.today} /></div>
+        <fieldset disabled={p.readOnly}>
+          <span className="label">ช่องทาง</span>
+          <div className="flex gap-1" role="radiogroup" aria-label="ช่องทางการกรอก">
+            {([["system", "ทำในระบบ (สัมภาษณ์/ประเมินเอง)"], ["paper", "กรอกจากกระดาษ"]] as const).map(([v, l]) => (
+              <Choice key={v} label={l} active={channel === v} onClick={() => setChannel(v)} />
+            ))}
+          </div>
+        </fieldset>
+        {channel === "paper" && (
+          <label className="min-w-64 flex-1"><span className="label">ที่เก็บกระดาษต้นฉบับ</span>
+            <input className="input" disabled={p.readOnly} value={paperLocation} onChange={(e) => setPaperLocation(e.target.value)} placeholder="เช่น แฟ้มรุ่น 1/2570 ช่อง ก่อนเรียน" maxLength={200} />
+          </label>
+        )}
       </div>
 
       <fieldset disabled={p.readOnly} className="space-y-4">
@@ -109,11 +126,16 @@ function ItemsForm({ items, options, answers, onChange }: { items: Item[]; optio
           <li key={it.no} className="px-4 py-3">
             {header && <p className="mb-2 font-semibold text-navy">{header}</p>}
             <div className="flex flex-wrap items-center gap-3">
-              <p className="min-w-64 flex-1">
-                <b>{it.no}.</b> {it.text} {it.reverse && <span className="tag-muted ml-1" title="ข้อเชิงลบ ระบบกลับคะแนนให้">(−)</span>}
-                {it.help && <span title={it.help} className="ml-1 inline-block cursor-help align-middle text-muted"><HelpCircle size={16} /></span>}
-              </p>
-              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`ข้อ ${it.no}`}>
+              <div className="min-w-64 flex-1">
+                <p><b>{it.label ?? it.no}.</b> {it.text} {it.reverse && <span className="tag-muted ml-1" title="ข้อเชิงลบ ระบบกลับคะแนนให้">(−)</span>}</p>
+                {it.help && (
+                  <details className="mt-1 text-sm">
+                    <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1 text-navy"><HelpCircle size={16} aria-hidden /> คำอธิบายจากคู่มือ</summary>
+                    <p className="rounded-xl bg-cream px-3 py-2 text-ink">{it.help}</p>
+                  </details>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`ข้อ ${it.label ?? it.no}`}>
                 {options.map((o) => <Choice key={o.value} label={o.label} active={answers[String(it.no)] === o.value} onClick={() => onChange({ ...answers, [String(it.no)]: o.value })} />)}
               </div>
             </div>

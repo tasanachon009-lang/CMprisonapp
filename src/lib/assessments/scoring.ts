@@ -5,7 +5,8 @@
 
 export type Tone = "ok" | "warn" | "danger";
 export type Band = { min: number; max: number; label: string; tone: Tone; alert?: { severity: "warning" | "danger"; message: string } };
-export type Item = { no: number; text: string; help?: string; reverse?: boolean; correct?: boolean; weight?: number; group?: string };
+/** no = รหัสคำตอบ (ไม่ซ้ำ) · label = เลขข้อที่แสดงตามแบบฟอร์มจริง เช่น "1.1" (ไม่มี = ใช้ no) */
+export type Item = { no: number; label?: string; text: string; help?: string; reverse?: boolean; correct?: boolean; weight?: number; group?: string };
 export type Option = { value: number; label: string };
 
 export type ItemsScoring = {

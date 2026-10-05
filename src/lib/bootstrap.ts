@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
 import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS } from "./reference-data";
@@ -23,13 +23,16 @@ export function bootstrapReferenceData(db: DB) {
     }
     for (const f of FORM_DEFS) {
       const existing = tx.select().from(schema.assessmentForms).where(eq(schema.assessmentForms.code, f.code)).get();
-      if (existing) continue;
+      if (existing) {
+        upgradeDefaultForm(tx, existing.id, f);
+        continue;
+      }
       const form = tx
         .insert(schema.assessmentForms)
         .values({ code: f.code, name: f.name, shortName: f.shortName, category: f.category, kind: f.kind, sensitive: f.sensitive, rounds: f.rounds, courseCodes: f.courseCodes, description: f.description ?? null, sortOrder: f.sortOrder })
         .returning()
         .get();
-      tx.insert(schema.assessmentFormVersions).values({ formId: form.id, version: 1, items: f.items, scoring: f.scoring, effectiveFrom: "2000-01-01", note: "ค่าเริ่มต้นจากสเปก" }).run();
+      tx.insert(schema.assessmentFormVersions).values({ formId: form.id, version: 1, items: f.items, scoring: f.scoring, effectiveFrom: "2000-01-01", note: defaultNote(f.rev) }).run();
     }
     for (const c of COURSES) {
       const existing = tx.select().from(schema.courses).where(eq(schema.courses.code, c.code)).get();
@@ -46,6 +49,28 @@ export function bootstrapReferenceData(db: DB) {
       }
     }
   });
+}
+
+/** หมายเหตุของเวอร์ชันที่ระบบสร้าง — ใช้รู้ว่าเวอร์ชันล่าสุดยังเป็นค่าเริ่มต้น (ผู้ดูแลยังไม่ได้แก้) */
+const DEFAULT_NOTE = "ค่าเริ่มต้นระบบ";
+const defaultNote = (rev: number) => `${DEFAULT_NOTE} rev ${rev}`;
+function noteRev(note: string | null): number | null {
+  if (note === "ค่าเริ่มต้นจากสเปก") return 1; // เวอร์ชันแรกของขั้น 2
+  const m = note?.match(/^ค่าเริ่มต้นระบบ rev (\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * เนื้อหาค่าเริ่มต้นของแบบประเมินถูกปรับ (rev สูงขึ้น) → สร้างเวอร์ชันใหม่ให้ฐานข้อมูลที่ติดตั้งแล้ว
+ * - ทำเฉพาะเมื่อเวอร์ชันล่าสุดยังเป็นค่าเริ่มต้นของระบบ (ถ้าผู้ดูแลแก้เองแล้ว ไม่ทับ)
+ * - วันเริ่มใช้เท่ากับเวอร์ชันเดิม: เปลี่ยนเฉพาะข้อความ/ป้าย คะแนนเดิมไม่เปลี่ยน ผลเก่ายังผูกกับเวอร์ชันเดิม
+ */
+function upgradeDefaultForm(tx: Pick<DB, "select" | "insert">, formId: number, f: (typeof FORM_DEFS)[number]) {
+  const latest = tx.select().from(schema.assessmentFormVersions).where(eq(schema.assessmentFormVersions.formId, formId)).orderBy(desc(schema.assessmentFormVersions.version)).get();
+  if (!latest) return;
+  const rev = noteRev(latest.note);
+  if (rev == null || rev >= f.rev) return;
+  tx.insert(schema.assessmentFormVersions).values({ formId, version: latest.version + 1, items: f.items, scoring: f.scoring, effectiveFrom: latest.effectiveFrom, note: `${defaultNote(f.rev)} — ข้อความจากแบบฟอร์มจริง` }).run();
 }
 
 export function getSetting<T>(db: DB, key: string, fallback: T): T {

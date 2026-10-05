@@ -5,7 +5,10 @@ import type { Permission } from "@/lib/auth/permissions";
 import { requirePage } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { enrollmentContext, bstOf, medicalNotesOf, behaviorNotesOf } from "@/lib/queries/enrollment";
-import { listForms, resultsOf, formAccess } from "@/lib/services/assessments";
+import { listForms, resultsOf, formAccess, versionFor } from "@/lib/services/assessments";
+import { maxScore, individualPrePost } from "@/lib/assessments/prepost";
+import type { Item } from "@/lib/assessments/scoring";
+import { PrePostChart } from "@/components/prepost-chart";
 import { ROUND_LABEL } from "@/lib/assessments/compute";
 import { STEP_LABEL, TASK_STATUS_LABEL, BST_STEP_ORDER, DONE_BUTTON_LABEL } from "@/lib/services/followup";
 import { ENROLLMENT_STATUS_LABEL } from "@/lib/services/registry";
@@ -40,6 +43,11 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
   const names = userNameMap(db);
   const forms = listForms(db).filter((f) => (f.courseCodes as string[]).includes(course.code)).map((f) => ({ f, access: formAccess(auth.can, f) })).filter((x) => x.access.view);
   const results = resultsOf(db, [e.id], auth.can);
+  const maxOf = new Map(forms.map(({ f }) => {
+    const v = versionFor(db, f.id, today);
+    return [f.id, maxScore(f.kind, v.items as Item[], v.scoring as Record<string, unknown>)] as const;
+  }));
+  const chartRows = individualPrePost(results, e.id, maxOf);
   const canHealth = auth.can("health.view");
   const bst = bstOf(db, e.id);
   const notes = canHealth ? medicalNotesOf(db, e.id) : [];
@@ -114,6 +122,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
             </tbody>
           </table>
         </div>
+        {chartRows.length > 0 && <div className="mt-4 max-w-3xl"><PrePostChart rows={chartRows} individual title="กราฟก่อน-หลัง (การลงทะเบียนครั้งนี้เท่านั้น)" /></div>}
       </section>
       </>}
 

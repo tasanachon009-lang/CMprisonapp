@@ -726,6 +726,10 @@ export const assessmentResults = sqliteTable(
     details: text("details", { mode: "json" }),
     sensitive: integer("sensitive", { mode: "boolean" }).notNull().default(false),
     source: text("source"),
+    /** ช่องทาง (สเปก 10.1): paper = กรอกจากกระดาษที่ผู้ต้องขังตอบ · system = เจ้าหน้าที่ทำในระบบ (สัมภาษณ์/ประเมินเอง) */
+    channel: text("channel"),
+    /** ที่เก็บแผ่นกระดาษต้นฉบับ เช่น "แฟ้มรุ่น 1/2570 ตู้ 2" */
+    paperLocation: text("paper_location"),
     ...tracking(),
   },
   (t) => [

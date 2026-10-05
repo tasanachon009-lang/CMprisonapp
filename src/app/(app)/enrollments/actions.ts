@@ -12,7 +12,7 @@ import { markTask, recordFollowup, completeEnrollments } from "@/lib/services/fo
 import { writeAudit } from "@/lib/audit";
 import { isValidISODate, todayISO } from "@/lib/thai-date";
 
-export async function saveAssessmentAction(input: { enrollmentId: number; formId: number; round: string; period?: string; assessedDate: string; answers: unknown; source?: string }, loadedVersion?: number): Promise<ActionResult<{ id: number; level: string | null; alerts: string[] }>> {
+export async function saveAssessmentAction(input: { enrollmentId: number; formId: number; round: string; period?: string; assessedDate: string; answers: unknown; source?: string; channel?: "paper" | "system"; paperLocation?: string | null }, loadedVersion?: number): Promise<ActionResult<{ id: number; level: string | null; alerts: string[] }>> {
   try {
     const auth = await requireAction();
     if (!isValidISODate(input.assessedDate)) return { ok: false, error: "กรุณาใส่วันที่ประเมิน" };
@@ -26,7 +26,7 @@ export async function saveAssessmentAction(input: { enrollmentId: number; formId
 }
 
 /** โหมดกรอกเร็ว: บันทึกหลายคนพร้อมกัน — แถวที่ผิดจะแจ้งรายแถว แถวที่ถูกบันทึกไปแล้ว */
-export async function saveAssessmentBatchAction(formId: number, round: string, assessedDate: string, rows: Array<{ enrollmentId: number; answers: Record<string, number> }>, fromKit: boolean): Promise<ActionResult<{ saved: number; errors: Array<{ enrollmentId: number; error: string }> }>> {
+export async function saveAssessmentBatchAction(formId: number, round: string, assessedDate: string, rows: Array<{ enrollmentId: number; answers: Record<string, number> }>, fromKit: boolean, paper: { channel: "paper" | "system"; location?: string | null } = { channel: "paper" }): Promise<ActionResult<{ saved: number; errors: Array<{ enrollmentId: number; error: string }> }>> {
   try {
     const auth = await requireAction();
     if (!isValidISODate(assessedDate)) return { ok: false, error: "กรุณาใส่วันที่ประเมิน" };
@@ -37,7 +37,7 @@ export async function saveAssessmentBatchAction(formId: number, round: string, a
     const errors: Array<{ enrollmentId: number; error: string }> = [];
     for (const r of rows) {
       try {
-        saveAssessment(db, { enrollmentId: r.enrollmentId, formId, round, assessedDate, answers: r.answers, source: fromKit ? "กรอกย้อนหลังจากชุดฉุกเฉิน" : "โหมดกรอกเร็ว" }, { userId: auth.user.id, can: auth.can, ip });
+        saveAssessment(db, { enrollmentId: r.enrollmentId, formId, round, assessedDate, answers: r.answers, source: fromKit ? "กรอกย้อนหลังจากชุดฉุกเฉิน" : "โหมดกรอกเร็ว", channel: fromKit ? "paper" : paper.channel, paperLocation: paper.location ?? null }, { userId: auth.user.id, can: auth.can, ip });
         saved++;
       } catch (e) {
         errors.push({ enrollmentId: r.enrollmentId, error: toError(e).error });

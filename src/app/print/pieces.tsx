@@ -13,16 +13,34 @@ export function AttendanceSheetTable({ rows }: { rows: Array<{ name: string; inm
 }
 
 /** แบบประเมินเปล่ามีชื่อพิมพ์ไว้ — กรอกด้วยมือแล้วนำมากรอกเร็วภายหลัง */
-export function BlankForm({ title, person, inmateNo, cohort, kind, items, scoring }: { title: string; person: string; inmateNo: string; cohort: string; kind: string; items: Item[]; scoring: Record<string, unknown> }) {
+/**
+ * แบบประเมินเปล่ามีชื่อ (สเปก 10.1) — รหัสแบบมุมขวาบน ใช้จับคู่กระดาษกับคน/แบบ/รอบตอนกรอกเร็ว
+ * รหัส = รหัสแบบ-เวอร์ชัน-รอบ-เลขลงทะเบียน เช่น KNOW-v2-ก่อน-E123
+ */
+export function BlankForm({ title, person, inmateNo, cohort, kind, items, scoring, code, round }: { title: string; person: string; inmateNo: string; cohort: string; kind: string; items: Item[]; scoring: Record<string, unknown>; code: string; round?: string | null }) {
   const options = (scoring.options as Option[] | undefined) ?? [];
+  let lastGroup = "";
   return (
     <>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <span style={{ border: "1px solid #000", padding: "1px 8px", fontFamily: "monospace", fontSize: "0.85em" }}>รหัสแบบ {code}</span>
+      </div>
       <h2 className="center" style={{ fontSize: "1.15em" }}>{title}</h2>
-      <p>ชื่อ-สกุล <b>{person}</b> &nbsp; เลขประจำตัว <b>{inmateNo}</b> &nbsp; {cohort} &nbsp; รอบ ☐ ก่อน ☐ หลัง &nbsp; วันที่ ....................</p>
+      <p>ชื่อ-สกุล <b>{person}</b> &nbsp; เลขประจำตัว <b>{inmateNo}</b> &nbsp; {cohort} &nbsp; รอบ {round === "pre" ? <b>ก่อนเรียน</b> : round === "post" ? <b>หลังเรียน</b> : "☐ ก่อน ☐ หลัง"} &nbsp; วันที่ ....................</p>
       {kind === "items" && (
         <table style={{ marginTop: 6 }}>
           <thead><tr><th style={{ width: "6%" }}>ข้อ</th><th>ข้อคำถาม</th>{options.map((o) => <th key={o.value} className="center" style={{ width: `${Math.max(6, 40 / options.length)}%` }}>{o.label}</th>)}</tr></thead>
-          <tbody>{items.map((it) => <tr key={it.no}><td className="center">{it.no}</td><td>{it.text}{it.reverse ? " (−)" : ""}</td>{options.map((o) => <td key={o.value} className="center">☐</td>)}</tr>)}</tbody>
+          <tbody>
+            {items.flatMap((it) => {
+              const header = it.group && it.group !== lastGroup ? it.group : null;
+              lastGroup = it.group ?? lastGroup;
+              return [
+                ...(header ? [<tr key={`g${it.no}`}><td colSpan={options.length + 2}><b>{header}</b></td></tr>] : []),
+                // ไม่พิมพ์เครื่องหมาย (−) บนแบบที่ผู้ต้องขังตอบ — ใช้คิดคะแนนในระบบเท่านั้น
+                <tr key={it.no}><td className="center">{it.label ?? it.no}</td><td>{it.text}</td>{options.map((o) => <td key={o.value} className="center">☐</td>)}</tr>,
+              ];
+            })}
+          </tbody>
         </table>
       )}
       {kind === "single" && <p style={{ marginTop: 8 }}>{options.map((o) => `☐ ${o.label}`).join("   ")}</p>}

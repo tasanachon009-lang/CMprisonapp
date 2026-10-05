@@ -139,6 +139,9 @@ async function main() {
     ["/bst", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
     ["/inbox", { rehab: true, assistant: true, finance: false, executive: false, warden: false }],
     ["/assigned", { assistant: false, finance: false }],
+    [`/cohorts/${cohort.id}/assessments/quick?form=TEMP&round=pre`, { rehab: true, executive: false, finance: false, assistant: false }],
+    // PMHQ = ข้อมูลสุขภาพจิต: ผู้ใช้ทดสอบ rehab เป็นพยาบาล (มีสิทธิ์สุขภาพ) จึงเข้าได้ / ผู้บริหาร การเงิน ผู้ช่วย ไม่ได้
+    [`/cohorts/${cohort.id}/assessments/quick?form=PMHQ&round=pre`, { rehab: true, admin: true, executive: false, finance: false, assistant: false }],
     ["/rt101", { rehab: true, executive: false, finance: false, assistant: false, warden: false }],
     ["/print/bst?s=rt101", { rehab: true, executive: false, assistant: false }],
     ["/admin/forms", { admin: true, rehab: false, executive: false }],
@@ -209,6 +212,9 @@ async function main() {
   const schedRehab = await get(`/cohorts/${cohort.id}/schedule`, C.rehab);
   const schedExec = await get(`/cohorts/${cohort.id}/schedule`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ตารางกิจกรรม: เจ้าหน้าที่หลักมีปุ่มเพิ่มวิทยากร / ผู้บริหารดูอย่างเดียว", schedRehab.text.includes("เพิ่ม/เอาออก") && allowed(schedExec) && schedExec.text.includes("ดูอย่างเดียว") && !schedExec.text.includes("เพิ่ม/เอาออก"), `rehab HTTP ${schedRehab.status} · exec HTTP ${schedExec.status}`);
+  // สเปก 10.1: แบบพิมพ์เปล่ามีรหัสแบบ (จับคู่กระดาษกับคน/แบบ/รอบ)
+  const blank = await get(`/print/blank-forms/${cohort.id}?form=KNOW&round=pre`, C.rehab);
+  check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน)", blank.status === 200 && /KNOW-v\d+-ก่อน-E\d+/.test(blank.text), `HTTP ${blank.status}`);
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

@@ -48,7 +48,7 @@ export default async function CohortAssessments({ params }: PageProps<"/cohorts/
         <section className="card">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="mr-auto text-xl">รายคน</h2>
-            {forms.filter((f) => f.kind === "items" && formAccess(auth.can, f).edit).map((f) => (
+            {forms.filter((f) => (f.kind === "items" || f.kind === "single") && formAccess(auth.can, f).edit).map((f) => (
               <span key={f.id} className="inline-flex gap-1">
                 {(f.rounds as string[]).filter((r) => r !== "monthly").map((r) => (
                   <Link key={r} href={`/cohorts/${cohort.id}/assessments/quick?form=${f.code}&round=${r}`} className="btn-ghost btn-sm"><Keyboard size={16} aria-hidden /> {f.shortName} ({r === "pre" ? "ก่อน" : "หลัง"})</Link>

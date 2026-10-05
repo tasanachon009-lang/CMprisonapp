@@ -82,7 +82,8 @@ export default async function EmergencyKit({ searchParams }: PageProps<"/print/e
         if (!p) return null;
         return (
           <div className="sheet" key={`form-${x.enrollmentId}-${x.formId}-${x.round}`}>
-            <BlankForm title={`${f.name} (${x.round === "pre" ? "ก่อนเรียน" : "หลังเรียน"})`} person={`${p.person.prefix ?? ""}${p.person.firstName} ${p.person.lastName}`} inmateNo={p.inc.inmateNo} cohort="" kind={f.kind} items={v.items as Item[]} scoring={v.scoring as Record<string, unknown>} />
+            <BlankForm title={`${f.name} (${x.round === "pre" ? "ก่อนเรียน" : "หลังเรียน"})`} person={`${p.person.prefix ?? ""}${p.person.firstName} ${p.person.lastName}`} inmateNo={p.inc.inmateNo} cohort="" kind={f.kind} items={v.items as Item[]} scoring={v.scoring as Record<string, unknown>}
+              code={[f.code, `v${v.version}`, x.round === "pre" ? "ก่อน" : "หลัง", `E${x.enrollmentId}`].join("-")} round={x.round} />
             <DocFooter text={footer} />
           </div>
         );

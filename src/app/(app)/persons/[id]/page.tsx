@@ -16,6 +16,10 @@ import { BehaviorNoteButton } from "@/components/behavior-note";
 import { behaviorNotesOf } from "@/lib/queries/enrollment";
 import { and, eq, isNull } from "drizzle-orm";
 import { schema } from "@/lib/db";
+import { resultsOf, listForms, versionFor } from "@/lib/services/assessments";
+import { maxScore, individualPrePost } from "@/lib/assessments/prepost";
+import type { Item } from "@/lib/assessments/scoring";
+import { PrePostChart } from "@/components/prepost-chart";
 import { cohortsOfPerson } from "@/lib/auth/access";
 import type { Permission } from "@/lib/auth/permissions";
 
@@ -45,6 +49,13 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
   const contacts = db.select().from(schema.contacts).where(and(eq(schema.contacts.personId, p.id), isNull(schema.contacts.deletedAt))).all();
   const behaviors = current ? behaviorNotesOf(db, current.inc.id) : [];
   const canContacts = auth.canIn("contacts.edit", myCohorts);
+  // กราฟก่อน-หลังรายบุคคล — แยกทีละการลงทะเบียน (ไม่ลากข้ามรอบการต้องโทษ) กรองตามสิทธิ์ (แบบสุขภาพเฉพาะผู้มีสิทธิ์)
+  const allEnr = incarcerations.flatMap((x) => x.enrollments.map((e) => e.e.id));
+  const results = full ? resultsOf(db, allEnr, auth.can) : [];
+  const maxOf = new Map(listForms(db).map((fm) => {
+    const v = versionFor(db, fm.id, today);
+    return [fm.id, maxScore(fm.kind, v.items as Item[], v.scoring as Record<string, unknown>)] as const;
+  }));
   const canBehavior = auth.canIn("behavior.edit", myCohorts);
   const contactsBox = <ContactsEditor personId={p.id} canEdit={canContacts} contacts={contacts.map((c) => ({ id: c.id, kind: c.kind, name: c.name, relation: c.relation, phone: c.phone, address: c.address, note: c.note }))} />;
 
@@ -163,6 +174,14 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
                 </ul>
               ) : <p className="text-muted">ยังไม่ได้เข้าหลักสูตรใด</p>}
             </div>
+            {x.enrollments.map((e) => {
+              const rows = individualPrePost(results, e.e.id, maxOf);
+              return rows.length ? (
+                <div key={`chart-${e.e.id}`} className="max-w-3xl rounded-2xl border border-line p-3">
+                  <PrePostChart rows={rows} individual title={`ผลประเมินก่อน-หลัง: ${e.course.name} ${e.label}`} />
+                </div>
+              ) : null;
+            })}
           </div>
         );
         return x.isCurrent ? (

@@ -3,6 +3,7 @@ import type { DB } from "../db";
 import { schema } from "../db";
 import { computeResult } from "../assessments/compute";
 import type { Item } from "../assessments/scoring";
+import { defaultChannel } from "../assessments/forms";
 import type { Permission } from "../auth/permissions";
 import { writeAudit } from "../audit";
 import { notify } from "../notify";
@@ -44,7 +45,13 @@ export function versionFor(db: DB, formId: number, date: string): VersionRow {
   return v;
 }
 
-export type SaveInput = { enrollmentId: number; formId: number; round: string; period?: string; assessedDate: string; answers: unknown; assessorId?: number | null; source?: string | null };
+export type SaveInput = {
+  enrollmentId: number; formId: number; round: string; period?: string; assessedDate: string; answers: unknown; assessorId?: number | null; source?: string | null;
+  /** paper | system (ไม่ส่ง = ค่าเริ่มต้นของแบบนั้น) */
+  channel?: string | null;
+  /** ที่เก็บกระดาษต้นฉบับ (ใช้เมื่อ channel = paper) */
+  paperLocation?: string | null;
+};
 
 export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number; can: (p: Permission) => boolean; ip?: string | null }, loadedVersion?: number) {
   return db.transaction((tx) => {
@@ -60,6 +67,9 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
     const r = computeResult(form.kind, v.items as Item[], v.scoring as Record<string, unknown>, input.answers);
     // แบบสภาวะกาย/จิต และสมรรถภาพ ยอมให้บันทึกบางส่วนได้ แต่แบบรายข้อต้องครบและอยู่ในช่วง
     if (r.errors.length && form.kind !== "fitness") throw new RuleError(r.errors.join(" · "));
+    const channel = input.channel ?? defaultChannel(form.code);
+    if (channel !== "paper" && channel !== "system") throw new RuleError("ช่องทางการกรอกไม่ถูกต้อง");
+    const paperLocation = channel === "paper" ? input.paperLocation?.trim().slice(0, 200) || null : null;
     const period = input.period ?? "";
     const prev = tx
       .select()
@@ -72,6 +82,7 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
     const values = {
       versionId: v.id, assessedDate: input.assessedDate, assessorId: input.assessorId ?? actor.userId, answers: input.answers as object,
       total: r.total, level: r.level, tone: r.tone, details: r.details, sensitive: form.sensitive, source: input.source ?? null,
+      channel, paperLocation,
     };
     let id: number;
     if (prev) {

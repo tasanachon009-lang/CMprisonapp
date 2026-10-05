@@ -376,7 +376,7 @@ export async function saveLookup(category: string, code: string, label: string, 
 }
 
 const BandZ = z.object({ min: z.number(), max: z.number(), label: z.string().min(1).max(200), tone: z.enum(["ok", "warn", "danger"]), alert: z.object({ severity: z.enum(["warning", "danger"]), message: z.string().max(300) }).optional() });
-const ItemZ = z.object({ no: z.number().int(), text: z.string().min(1).max(1000), help: z.string().max(1000).optional(), reverse: z.boolean().optional(), correct: z.boolean().optional(), weight: z.number().optional(), group: z.string().max(100).optional() });
+const ItemZ = z.object({ no: z.number().int(), label: z.string().max(20).optional(), text: z.string().min(1).max(1000), help: z.string().max(1000).optional(), reverse: z.boolean().optional(), correct: z.boolean().optional(), weight: z.number().optional(), group: z.string().max(100).optional() });
 
 /** คลังแบบประเมิน: บันทึกเป็นเวอร์ชันใหม่ (ผลเก่ายังใช้เกณฑ์เดิมที่แช่แข็งไว้) */
 export async function saveFormVersion(formId: number, items: unknown, bands: unknown, effectiveFrom: string, note: string): Promise<ActionResult<{ version: number }>> {
@@ -401,7 +401,9 @@ export async function saveFormVersion(formId: number, items: unknown, bands: unk
       scoring.bands = sorted;
     }
     const version = latest.version + 1;
-    db.insert(schema.assessmentFormVersions).values({ formId, version, items: pi.data, scoring, effectiveFrom, note: note || null, createdBy: auth.user.id }).run();
+    // หมายเหตุของผู้ดูแลต้องไม่เลียนแบบ "ค่าเริ่มต้นระบบ" (ไม่งั้นการปรับเนื้อหาค่าเริ่มต้นรอบหน้าจะทับงานที่ผู้ดูแลแก้)
+    const safeNote = note.trim() ? (note.trim().startsWith("ค่าเริ่มต้น") ? `แก้โดยผู้ดูแล: ${note.trim()}` : note.trim()) : "แก้โดยผู้ดูแล";
+    db.insert(schema.assessmentFormVersions).values({ formId, version, items: pi.data, scoring, effectiveFrom, note: safeNote, createdBy: auth.user.id }).run();
     writeAudit(db, { userId: auth.user.id, action: "forms.version", entity: "assessment_form", entityId: formId, after: { version, effectiveFrom }, note, ip: await clientIp() });
     revalidatePath("/admin/forms");
     return { ok: true, data: { version } };

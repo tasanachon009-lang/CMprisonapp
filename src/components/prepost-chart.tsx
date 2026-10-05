@@ -7,7 +7,8 @@ export const POST_COLOR = "#3D5590";
 
 export type PrePostRow = { label: string; max: number; pre: number | null; post: number | null; preN: number; postN: number; unit?: string };
 
-export function PrePostChart({ rows, title }: { rows: PrePostRow[]; title?: string }) {
+/** individual = คะแนนของคนเดียว (ไม่ใช่ค่าเฉลี่ย) */
+export function PrePostChart({ rows, title, individual }: { rows: PrePostRow[]; title?: string; individual?: boolean }) {
   const barH = 14, gap = 2, rowH = barH * 2 + gap + 22, labelW = 150, width = 640, plotW = width - labelW - 70;
   const height = rows.length * rowH + 8;
   return (
@@ -29,10 +30,10 @@ export function PrePostChart({ rows, title }: { rows: PrePostRow[]; title?: stri
                 <g key={k}>
                   {/* พื้นที่ชี้ใหญ่กว่าแท่ง สำหรับ tooltip */}
                   <rect x={labelW} y={y + dy - 1} width={plotW} height={barH + 2} fill="transparent">
-                    <title>{`${r.label} ${k === "pre" ? "ก่อนเรียน" : "หลังเรียน"}: ${v == null ? "ยังไม่มีข้อมูล" : `เฉลี่ย ${v} จาก ${r.max}${r.unit ?? ""}`} (n=${n})`}</title>
+                    <title>{`${r.label} ${k === "pre" ? "ก่อนเรียน" : "หลังเรียน"}: ${v == null ? "ยังไม่มีข้อมูล" : individual ? `${v} จาก ${r.max}${r.unit ?? ""}` : `เฉลี่ย ${v} จาก ${r.max}${r.unit ?? ""}`}${individual ? "" : ` (n=${n})`}`}</title>
                   </rect>
                   {v != null && <rect x={labelW + 1} y={y + dy} width={w(v)} height={barH} rx={4} fill={color} pointerEvents="none" />}
-                  <text x={labelW + 1 + w(v) + 6} y={y + dy + barH - 3} fontSize="12" fill="var(--muted)" pointerEvents="none">{v == null ? "—" : `${v}`}</text>
+                  <text x={labelW + 1 + w(v) + 6} y={y + dy + barH - 3} fontSize="12" fill="var(--muted)" pointerEvents="none">{v == null ? "ยังไม่ทำ" : individual ? `${v}/${r.max}` : `${v}`}</text>
                 </g>
               ))}
             </g>

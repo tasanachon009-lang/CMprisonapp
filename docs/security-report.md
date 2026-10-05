@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 4/10/2569 22:35:39
+- วันเวลา: 5/10/2569 08:57:30
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 143/143 ข้อ**
+- ผล: **ผ่าน 153/153 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -108,6 +108,15 @@
 | ✅ ผ่าน | warden → /inbox | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | admin → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /rt101 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -134,6 +143,7 @@
 | ✅ ผ่าน | OTP ปิด → หน้าตั้งค่า OTP พากลับหน้าแรก | → / |
 | ✅ ผ่าน | เปิด OTP ในตั้งค่า → ผู้ดูแลที่ยังไม่ยืนยันถูกพาไปหน้า OTP | → /otp/setup |
 | ✅ ผ่าน | ตารางกิจกรรม: เจ้าหน้าที่หลักมีปุ่มเพิ่มวิทยากร / ผู้บริหารดูอย่างเดียว | rehab HTTP 200 · exec HTTP 200 |
+| ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |
 

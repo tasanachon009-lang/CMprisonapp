@@ -56,7 +56,7 @@ export function AssessmentForm(p: Props) {
     const r = await saveAssessmentAction({ enrollmentId: p.enrollmentId, formId: p.form.id, round: p.round, period: p.period, assessedDate: date, answers, channel, paperLocation: channel === "paper" ? paperLocation : null }, p.initial?.version);
     if (!r.ok) return setMsg({ tone: "danger", text: r.error });
     void autosave.clear();
-    setMsg({ tone: r.data!.alerts.length ? "warn" : "ok", text: `บันทึกแล้ว${r.data!.level ? ` — ${r.data!.level}` : ""}${r.data!.alerts.length ? ` · แจ้งสถานพยาบาลแล้ว: ${r.data!.alerts.join(" / ")}` : ""}` });
+    setMsg({ tone: r.data!.alerts.length ? "warn" : "ok", text: `บันทึกแล้ว${r.data!.level ? ` — ${r.data!.level}` : ""}${r.data!.alerts.length ? ` · แจ้งเตือนผู้เกี่ยวข้องแล้ว: ${r.data!.alerts.join(" / ")}` : ""}` });
     router.refresh();
   }), [answers, date, channel, paperLocation, p, router, autosave]);
 
@@ -116,6 +116,7 @@ export function AssessmentForm(p: Props) {
           <div className="mr-auto flex flex-wrap items-center gap-2">
             {result.total != null && <span className="font-display text-2xl font-bold text-navy">{result.total}</span>}
             {result.level && <span className={TONE[result.tone ?? ""] ?? "tag-muted"}>{result.level}</span>}
+            {typeof result.details.guidance === "string" && <span className="text-sm">แนวทาง: {result.details.guidance}</span>}
             {result.errors.length > 0 && <span className="text-sm text-muted">{result.errors.join(" · ")}</span>}
             <DraftSavedHint savedAt={dirty ? autosave.savedAt : null} />
           </div>

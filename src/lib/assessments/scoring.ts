@@ -4,7 +4,8 @@
  */
 
 export type Tone = "ok" | "warn" | "danger";
-export type Band = { min: number; max: number; label: string; tone: Tone; alert?: { severity: "warning" | "danger"; message: string } };
+/** guidance = แนวทางการจัดการตามระดับ (ตามแบบฟอร์มจริง เช่น Rosenberg) — เก็บใน details ของผล */
+export type Band = { min: number; max: number; label: string; tone: Tone; guidance?: string; alert?: { severity: "warning" | "danger"; message: string } };
 /** no = รหัสคำตอบ (ไม่ซ้ำ) · label = เลขข้อที่แสดงตามแบบฟอร์มจริง เช่น "1.1" (ไม่มี = ใช้ no) */
 export type Item = { no: number; label?: string; text: string; help?: string; reverse?: boolean; correct?: boolean; weight?: number; group?: string };
 export type Option = { value: number; label: string };
@@ -51,7 +52,7 @@ export function scoreItems(items: Item[], s: ItemsScoring, answers: Record<strin
   if (missing) errors.push(`ยังไม่ได้ตอบ ${missing} ข้อ`);
   if (errors.length) return { total: null, level: null, tone: null, details: { missing }, alerts: [], errors };
   const b = band(s.bands, total);
-  return { total, level: b?.label ?? null, tone: b?.tone ?? null, details: {}, alerts: b?.alert ? [b.alert] : [], errors };
+  return { total, level: b?.label ?? null, tone: b?.tone ?? null, details: b?.guidance ? { guidance: b.guidance } : {}, alerts: b?.alert ? [b.alert] : [], errors };
 }
 
 export function scoreSingle(s: SingleScoring, value: number | null | undefined): Result {

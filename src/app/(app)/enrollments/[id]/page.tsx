@@ -118,7 +118,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
                         {r ? (
                           <Link href={`/enrollments/${e.id}/assess/${f.code}?round=${round}`} className="inline-flex flex-wrap items-center gap-1 hover:underline">
                             {r.r.total != null && <b className="font-display text-navy">{r.r.total}</b>}
-                            <span className={TONE[r.r.tone ?? ""] ?? "tag-muted"}>{r.r.level ?? "บันทึกแล้ว"}</span>
+                            <span className={TONE[r.r.tone ?? ""] ?? "tag-muted"} title={typeof (r.r.details as { guidance?: unknown } | null)?.guidance === "string" ? `แนวทาง: ${(r.r.details as { guidance: string }).guidance}` : undefined}>{r.r.level ?? "บันทึกแล้ว"}</span>
                             <span className="text-xs text-muted">{formatThaiDate(r.r.assessedDate)}</span>
                           </Link>
                         ) : access.edit ? (

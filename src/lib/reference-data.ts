@@ -3,6 +3,22 @@
  * ทุกค่าแก้ได้ภายหลังในหน้าตั้งค่า
  */
 
+/** สเปก 17: เกณฑ์คัดเลือกหลักสูตรฟื้นฟูก่อนพ้นโทษ 3 วัน */
+export const PRE3_CRITERIA = {
+  /** ต้องมีเลขบัตรประชาชน (บังคับก่อนยืนยันรับเข้า) */
+  requireNationalId: true,
+  /** ติ๊กยืนยัน: ผู้ต้องขังเด็ดขาด เหลือโทษไม่เกิน 6 เดือนหรือ 1 ปี */
+  confirmations: [{ code: "sentence_remaining", label: "เป็นผู้ต้องขังเด็ดขาด เหลือโทษไม่เกิน 6 เดือนหรือ 1 ปี", required: true }],
+  /** ประวัติยาเสพติด (คัดกรอง V.2) */
+  drugClassLabel: "ประวัติยาเสพติด (คัดกรอง บคก.สธ. V.2)",
+  drugClasses: [{ code: "user", label: "ผู้ใช้" }, { code: "abuser", label: "ผู้เสพ" }, { code: "addict", label: "ผู้ติด" }],
+  exclusions: [{ code: "health", label: "มีปัญหาสุขภาพที่เป็นอุปสรรคต่อการเข้าร่วม" }],
+  /** ป้าย "ควรพิจารณาก่อน": เข้าเกณฑ์พักโทษ/ลดวันต้องโทษ และยังไม่เคยบำบัด */
+  priorityFlags: [{ code: "parole_eligible", label: "เข้าเกณฑ์พักการลงโทษ/ลดวันต้องโทษ" }],
+  /** วิทยากร 1 คนต่อผู้ต้องขัง 50 คน (เตือนเมื่อเกิน) */
+  peoplePerSpeaker: 50,
+};
+
 export const COURSES = [
   {
     code: "B12",
@@ -58,10 +74,10 @@ export const COURSES = [
     requiresBst: false,
     requiresRt101: true, // สเปก 14.2: รท.101 ลงทั้ง 3 หลักสูตร
     requiresFollowup: false,
-    enabled: false, // เปิดในขั้น 4
+    enabled: true, // เปิดในขั้น 4
     color: "#C07A2C",
     sortOrder: 3,
-    intakeCriteria: null,
+    intakeCriteria: PRE3_CRITERIA,
   },
 ] as const;
 
@@ -90,6 +106,26 @@ const B12_TOPICS: Array<[string, string, string, string]> = [
   ["จิตอาสาและการทำงานร่วมกัน", G4, "การวางแผนชีวิตหลังพ้นโทษ", G3],
   ["ทบทวนบทเรียน", G1, "ประเมินหลังเรียนและปัจฉิมนิเทศ", G4],
 ];
+
+/**
+ * แม่แบบตาราง 3 วัน (สเปก 17: 12 กิจกรรม 15 ชม. วันละ 5 ชม.) — ⚠️ ร่างจัดเวลา ตรวจกับคู่มือแล้วแก้ที่ ตั้งค่า > แม่แบบตาราง
+ * กิจกรรม 4 แบ่ง 2 ครั้ง (ชื่อลงท้าย "(1)"/"(2)" ผูกกับหัวข้อเดียวกันในคลังหัวข้อ)
+ */
+export const PRE3_TEMPLATE: Array<{ dayNo: number; startTime: string; endTime: string; title: string; category: string | null; hours: number; sortOrder: number }> = [
+  [1, "09:00", "10:00", "ทบทวนสถานภาพ", 1],
+  [1, "10:00", "11:30", "เป้าหมายและคุณค่าชีวิต", 1.5],
+  [1, "13:00", "14:30", "หลีกเลี่ยงการเสพซ้ำ-สิ่งยึดเหนี่ยว", 1.5],
+  [1, "14:30", "15:30", "การหาเหตุผลในการกลับไปเสพซ้ำ (1)", 1],
+  [2, "09:00", "10:00", "การหาเหตุผลในการกลับไปเสพซ้ำ (2)", 1],
+  [2, "10:00", "11:30", "ทักษะการปฏิเสธ", 1.5],
+  [2, "13:00", "14:00", "อารมณ์ทางลบ", 1],
+  [2, "14:00", "15:30", "การจัดการอารมณ์ (โกรธ รับรู้ความเครียด ลดความเครียด)", 1.5],
+  [3, "09:00", "10:00", "การฟื้นฟูสัมพันธภาพ", 1],
+  [3, "10:00", "11:00", "การสร้างความไว้วางใจ", 1],
+  [3, "11:00", "12:00", "การเคารพคุณค่าในตนเอง", 1],
+  [3, "13:00", "14:00", "การส่งต่อข้อมูลสุขภาพ", 1],
+  [3, "14:00", "15:00", "ปัจฉิมนิเทศ", 1],
+].map(([dayNo, startTime, endTime, title, hours], i) => ({ dayNo: dayNo as number, startTime: startTime as string, endTime: endTime as string, title: title as string, category: null, hours: hours as number, sortOrder: i + 1 }));
 
 export const B12_TEMPLATE = B12_TOPICS.flatMap(([am, amCat, pm, pmCat], i) => {
   const dayNo = i + 1;

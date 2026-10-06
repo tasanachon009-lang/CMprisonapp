@@ -448,6 +448,8 @@ export const cohorts = sqliteTable(
     note: text("note"),
     closedAt: ts("closed_at"),
     closedBy: integer("closed_by"),
+    /** ขั้นตอนโครงการ (สเปก 17) — { [code]: { done, date?, by, at } } ดู PROJECT_STEPS */
+    projectSteps: text("project_steps", { mode: "json" }).$type<Record<string, { done: boolean; date?: string | null; note?: string | null; by: number; at: number }>>(),
     ...tracking(),
   },
   (t) => [

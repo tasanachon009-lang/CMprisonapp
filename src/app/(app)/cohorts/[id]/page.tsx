@@ -11,6 +11,8 @@ import { SessionCardView } from "@/components/session-card";
 import { cohortLabel } from "@/lib/services/cohorts";
 
 import { staffNamesBySession } from "@/lib/queries/home";
+import { projectStepsView, usesProjectSteps } from "@/lib/services/project-steps";
+import { ProjectSteps } from "./project-steps";
 export const dynamic = "force-dynamic";
 
 export default async function CohortOverview({ params }: PageProps<"/cohorts/[id]">) {
@@ -36,6 +38,7 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
   const noPhoto = roster.filter((r) => !r.inc.thumbPath && ["active", "draft"].includes(r.enrollment.status)).length;
   const noConsent = roster.filter((r) => !r.enrollment.consentSigned && r.enrollment.status === "draft").length;
   const toMakeup = [...summary.values()].reduce((s, x) => s + x.needsMakeup, 0);
+  const steps = usesProjectSteps(course.code) ? projectStepsView(cohort.projectSteps) : null;
 
   return (
     <div className="space-y-6">
@@ -61,6 +64,20 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
         <Stat value={counts.dropped} label="ออกก่อนกำหนด" href={`/cohorts/${cohort.id}/roster?status=dropped`} />
         <Stat value={unchecked.length} label="คาบที่ยังไม่เช็คชื่อ" tone={unchecked.length ? "warn" : undefined} href={`/cohorts/${cohort.id}/attendance`} />
       </section>
+
+      {steps && (
+        <section className="card">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl">ขั้นตอนโครงการ</h2>
+            <p className="text-muted">เสร็จ {steps.doneCount}/{steps.total}{steps.next ? ` · ขั้นต่อไป: ${steps.next.label}` : " · ครบทุกขั้นแล้ว"}</p>
+          </div>
+          {course.code === "PRE3" && auth.can("registry.edit") && <p className="mt-1 text-sm"><Link className="underline" href={`/cohorts/${cohort.id}/candidates`}>ดูรายชื่อแนะนำสำหรับคัดเลือก</Link></p>}
+          <div className="mt-3">
+            <ProjectSteps cohortId={cohort.id} today={today} canEdit={auth.can("course.manage") && cohort.status !== "closed"}
+              rows={steps.rows.map((r) => ({ code: r.code, label: r.label, state: r.state, dateLabel: r.state?.done && r.state.date ? formatThaiDate(r.state.date) : null }))} />
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card">

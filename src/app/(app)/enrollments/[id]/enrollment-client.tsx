@@ -98,13 +98,20 @@ export function FollowupForm({ followupId, today }: { followupId: number; today:
   );
 }
 
-export function IntakePanel({ enrollmentId, score, exclusions, criteria, consentSigned, consentDate, today, canEdit }: {
-  enrollmentId: number; score: number | null; exclusions: string[]; criteria: { screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Array<{ code: string; label: string }> } | null;
+type O = { code: string; label: string };
+export function IntakePanel({ enrollmentId, score, exclusions, intake, gaps, criteria, consentSigned, consentDate, today, canEdit }: {
+  enrollmentId: number; score: number | null; exclusions: string[];
+  intake: { confirmations?: string[]; drugClass?: string | null; priorityFlags?: string[] }; gaps: string[];
+  criteria: { screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: O[]; confirmations?: Array<O & { required?: boolean }>; drugClassLabel?: string; drugClasses?: O[]; priorityFlags?: O[] } | null;
   consentSigned: boolean; consentDate: string | null; today: string; canEdit: boolean;
 }) {
   const router = useRouter();
   const [s, setS] = useState(score?.toString() ?? "");
   const [ex, setEx] = useState(exclusions);
+  const [conf, setConf] = useState(intake.confirmations ?? []);
+  const [dc, setDc] = useState(intake.drugClass ?? "");
+  const [pf, setPf] = useState(intake.priorityFlags ?? []);
+  const toggle = (arr: string[], set: (v: string[]) => void, code: string, on: boolean) => set(on ? [...arr, code] : arr.filter((c) => c !== code));
   const [cDate, setCDate] = useState(today);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -125,7 +132,21 @@ export function IntakePanel({ enrollmentId, score, exclusions, criteria, consent
             <label key={x.code} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" disabled={!canEdit} checked={ex.includes(x.code)} onChange={(e) => setEx(e.target.checked ? [...ex, x.code] : ex.filter((c) => c !== x.code))} /> {x.label}</label>
           ))}
         </div>
-        {canEdit && <button className="btn-secondary btn-sm mt-2" disabled={pending} onClick={() => start(async () => { const r = await updateIntakeAction(enrollmentId, n, ex); setMsg(r.ok ? { tone: "ok", text: "บันทึกเกณฑ์รับเข้าแล้ว" } : { tone: "danger", text: r.error }); router.refresh(); })}>บันทึกเกณฑ์รับเข้า</button>}
+        <div className="mt-2 space-y-1">
+          {criteria?.confirmations?.map((x) => (
+            <label key={x.code} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" disabled={!canEdit} checked={conf.includes(x.code)} onChange={(e) => toggle(conf, setConf, x.code, e.target.checked)} /> {x.label}{x.required && <span className="text-danger">*</span>}</label>
+          ))}
+          {criteria?.drugClasses && (
+            <label className="block text-sm"><span className="label text-sm">{criteria.drugClassLabel ?? "ประวัติยาเสพติด"}</span>
+              <select className="input w-auto" disabled={!canEdit} value={dc} onChange={(e) => setDc(e.target.value)}><option value="">— ไม่ระบุ —</option>{criteria.drugClasses.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}</select>
+            </label>
+          )}
+          {criteria?.priorityFlags?.map((x) => (
+            <label key={x.code} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" disabled={!canEdit} checked={pf.includes(x.code)} onChange={(e) => toggle(pf, setPf, x.code, e.target.checked)} /> {x.label}</label>
+          ))}
+        </div>
+        {gaps.length > 0 && <p className="mt-2 text-sm font-semibold text-warn">ยืนยันรับเข้ายังไม่ได้: {gaps.join(", ")}{gaps.some((g) => g.includes("เลขบัตร")) ? " (เพิ่มเลขบัตรที่หน้าบุคคล)" : ""}</p>}
+        {canEdit && <button className="btn-secondary btn-sm mt-2" disabled={pending} onClick={() => start(async () => { const r = await updateIntakeAction(enrollmentId, n, ex, { confirmations: conf, drugClass: dc || null, priorityFlags: pf }); setMsg(r.ok ? { tone: "ok", text: "บันทึกเกณฑ์รับเข้าแล้ว" } : { tone: "danger", text: r.error }); router.refresh(); })}>บันทึกเกณฑ์รับเข้า</button>}
       </div>
       <div>
         <h3 className="font-semibold">หลักฐานความยินยอม (PDPA)</h3>

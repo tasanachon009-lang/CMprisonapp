@@ -12,6 +12,7 @@ import { isValidISODate, formatThaiDate } from "@/lib/thai-date";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { writeAudit } from "@/lib/audit";
 import { closeCohort } from "@/lib/services/close-cohort";
+import { setProjectStep } from "@/lib/services/project-steps";
 
 /** ดูตัวอย่างวันอบรม (คำนวณวันสิ้นสุดข้ามวันหยุด) ก่อนสร้างรุ่น */
 export async function previewCohortDates(courseId: number, startDate: string): Promise<ActionResult<{ days: string[]; endLabel: string }>> {
@@ -88,6 +89,22 @@ export async function recordConsentAction(enrollmentId: number, consentDate: str
       .run();
     writeAudit(db, { userId: auth.user.id, action: "update", entity: "enrollment", entityId: enrollmentId, before: { consentSigned: e.consentSigned }, after: { consentSigned: true, consentDate }, ip: await clientIp() });
     revalidatePath(`/cohorts/${e.cohortId}/roster`);
+    return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+const StepSchema = z.object({ done: z.boolean(), date: z.string().max(10).nullable().optional(), note: z.string().max(500).nullable().optional() });
+
+/** ติ๊กขั้นตอนโครงการของรุ่น (สเปก 17) */
+export async function setProjectStepAction(cohortId: number, code: string, input: z.input<typeof StepSchema>): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("course.manage");
+    const parsed = StepSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่" };
+    setProjectStep(getDb(), Number(cohortId), String(code), parsed.data, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath(`/cohorts/${cohortId}`);
     return { ok: true };
   } catch (e) {
     return toError(e);

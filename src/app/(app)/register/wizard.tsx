@@ -14,7 +14,12 @@ import {
   type HistoryItem, type LookupResult, type PersonDTO, type RegisterPayload,
 } from "./actions";
 
-type Criteria = { screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Array<{ code: string; label: string }> } | null;
+type Opt2 = { code: string; label: string };
+type Criteria = {
+  screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Opt2[];
+  /** สเปก 17 (3 วัน): บังคับเลขบัตร · ติ๊กยืนยัน · ประวัติยาเสพติด V.2 · ป้าย "ควรพิจารณาก่อน" */
+  requireNationalId?: boolean; confirmations?: Array<Opt2 & { required?: boolean }>; drugClassLabel?: string; drugClasses?: Opt2[]; priorityFlags?: Opt2[];
+} | null;
 type Opt = { code: string; label: string };
 
 const STEPS = ["เลขประจำตัว", "ข้อมูลส่วนตัว", "คดี", "ยาเสพติด/ประวัติบำบัด", "เกณฑ์รับเข้า", "ยืนยัน"];
@@ -30,6 +35,7 @@ type Form = {
   priorTreatment: string;
   screeningScore: string;
   exclusions: string[];
+  confirmations: string[]; drugClass: string; priorityFlags: string[];
   consentSigned: boolean; consentDate: string; consentRefused: boolean; consentRefuseReason: string;
 };
 
@@ -38,7 +44,7 @@ const empty = (today: string): Form => ({
   maritalStatus: "", education: "", occupation: "", familySize: "",
   admittedDate: "", offense: "", sentenceYears: "", sentenceMonths: "", sentenceDays: "", sentenceStatus: "เด็ดขาด", zone: "", room: "", prisonerClass: "",
   drugUse: [{ substance: "", ageStarted: "", frequency: "" }], priorTreatment: "",
-  screeningScore: "", exclusions: [], consentSigned: false, consentDate: today, consentRefused: false, consentRefuseReason: "",
+  screeningScore: "", exclusions: [], confirmations: [], drugClass: "", priorityFlags: [], consentSigned: false, consentDate: today, consentRefused: false, consentRefuseReason: "",
 });
 
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
@@ -46,10 +52,12 @@ const num = (s: string) => (s.trim() === "" ? null : Number(s));
 export function RegisterWizard(props: {
   cohortId: number; cohortStatus: string; today: string; criteria: Criteria; lookups: { prisonerClass: Opt[]; substance: Opt[] };
   staff: Array<{ id: number; name: string }>; me: number; canOverride: boolean; canRevealId: boolean;
+  /** มาจากรายชื่อแนะนำ — กรอกเลขประจำตัวให้และค้นทันที */
+  initialInmateNo?: string;
 }) {
   const { cohortId, today, criteria } = props;
   const [step, setStep] = useState(0);
-  const [f, setF] = useState<Form>(empty(today));
+  const [f, setF] = useState<Form>(() => ({ ...empty(today), inmateNo: props.initialInmateNo ?? "" }));
   const [lookup, setLookup] = useState<LookupResult | null>(null);
   const [linked, setLinked] = useState<{ person: PersonDTO; history: HistoryItem[]; evaluation: RuleResult | null } | null>(null);
   const [candidates, setCandidates] = useState<Array<{ person: PersonDTO; history: HistoryItem[]; inmateNos: string[]; evaluation: RuleResult }> | null>(null);
@@ -65,7 +73,7 @@ export function RegisterWizard(props: {
   const [draftOffer, setDraftOffer] = useState<{ updatedAt: number; data: unknown } | null>(null);
 
   useEffect(() => {
-    autosave.load().then((d) => d && setDraftOffer(d));
+    if (!props.initialInmateNo) autosave.load().then((d) => d && setDraftOffer(d));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -95,6 +103,12 @@ export function RegisterWizard(props: {
       }
     });
 
+  // มาจากรายชื่อแนะนำ: ค้นเลขประจำตัวทันที
+  useEffect(() => {
+    if (props.initialInmateNo) doLookup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const doNidLookup = () =>
     start(async () => {
       setError(null);
@@ -121,6 +135,10 @@ export function RegisterWizard(props: {
     return true;
   };
 
+  // สเปก 17: ต้องมีเลขบัตร + ติ๊กยืนยันที่บังคับครบ ก่อน "ยืนยันรับเข้า"
+  const needNid = !!criteria?.requireNationalId && !person?.hasNationalId && !isValidNationalId(f.nationalId);
+  const missingConfirm = (criteria?.confirmations ?? []).filter((c) => c.required && !f.confirmations.includes(c.code));
+  const priority = (f.priorityFlags.length > 0) && f.priorTreatment === "ไม่เคยบำบัด";
   const screening = num(f.screeningScore);
   const screeningOut = screening != null && criteria?.screeningMin != null && (screening < criteria.screeningMin! || screening > (criteria.screeningMax ?? 999));
 
@@ -132,7 +150,8 @@ export function RegisterWizard(props: {
         personId: existing ? null : linked?.person.id ?? null,
         person: {
           prefix: f.prefix || null, firstName: f.firstName, lastName: f.lastName,
-          nationalId: existing || linked ? null : f.nationalId || null,
+          // บุคคลเดิมที่ยังไม่มีเลขบัตร: ส่งเลขที่กรอกเพิ่ม (เซิร์ฟเวอร์เติมเฉพาะช่องที่ว่าง)
+          nationalId: (existing || linked) && person?.hasNationalId ? null : f.nationalId || null,
           birthDate: f.birthDate || null, gender: (f.gender || null) as "male" | "female" | "other" | null,
           maritalStatus: f.maritalStatus || null, education: f.education || null, occupation: f.occupation || null, familySize: num(f.familySize),
         },
@@ -143,7 +162,7 @@ export function RegisterWizard(props: {
         },
         drugUse: f.drugUse.filter((d) => d.substance).map((d) => ({ substance: d.substance, ageStarted: num(d.ageStarted), frequency: d.frequency || null })),
         screeningScore: screening,
-        intake: { exclusions: f.exclusions, priorTreatment: f.priorTreatment || null, screeningOutOfRange: screeningOut },
+        intake: { exclusions: f.exclusions, priorTreatment: f.priorTreatment || null, screeningOutOfRange: screeningOut, confirmations: f.confirmations, drugClass: f.drugClass || null, priorityFlags: f.priorityFlags },
         consentSigned: f.consentSigned, consentDate: f.consentSigned ? f.consentDate : null,
         consentRefused: f.consentRefused, consentRefuseReason: f.consentRefused ? f.consentRefuseReason : null,
         confirmAdmission,
@@ -376,6 +395,37 @@ export function RegisterWizard(props: {
 
         {step === 4 && (
           <div className="space-y-4">
+            {criteria?.requireNationalId && (person?.hasNationalId ? <Alert tone="ok">มีเลขบัตรประชาชนในระบบแล้ว (หลักสูตรนี้บังคับ)</Alert> : (
+              <div>
+                <label htmlFor="nid2" className="label">เลขบัตรประชาชน <span className="text-danger">* บังคับสำหรับหลักสูตรนี้</span></label>
+                <input id="nid2" className={`input font-mono ${f.nationalId && !isValidNationalId(f.nationalId) ? "input-error" : ""}`} inputMode="numeric" maxLength={17} value={f.nationalId} onChange={(e) => set("nationalId", e.target.value)} />
+                {f.nationalId && !isValidNationalId(f.nationalId) && <p className="error-text">เลขบัตรไม่ถูกต้อง — ตรวจว่าครบ 13 หลักและพิมพ์ถูก</p>}
+                {!f.nationalId && <p className="hint">ไม่มีเลขบัตร → บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
+              </div>
+            ))}
+            {criteria?.confirmations?.map((c) => (
+              <label key={c.code} className="flex min-h-11 items-center gap-3 rounded-xl border border-line px-3">
+                <input type="checkbox" className="h-5 w-5" checked={f.confirmations.includes(c.code)} onChange={(e) => set("confirmations", e.target.checked ? [...f.confirmations, c.code] : f.confirmations.filter((x) => x !== c.code))} />
+                {c.label}{c.required && <span className="text-danger">*</span>}
+              </label>
+            ))}
+            {criteria?.drugClasses && (
+              <fieldset>
+                <legend className="label">{criteria.drugClassLabel ?? "ประวัติยาเสพติด"}</legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup">
+                  {criteria.drugClasses.map((c) => (
+                    <button key={c.code} type="button" role="radio" aria-checked={f.drugClass === c.code} onClick={() => set("drugClass", c.code)} className={`min-h-11 rounded-full border px-4 font-semibold ${f.drugClass === c.code ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>{c.label}</button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            {criteria?.priorityFlags?.map((c) => (
+              <label key={c.code} className="flex min-h-11 items-center gap-3 rounded-xl border border-line px-3">
+                <input type="checkbox" className="h-5 w-5" checked={f.priorityFlags.includes(c.code)} onChange={(e) => set("priorityFlags", e.target.checked ? [...f.priorityFlags, c.code] : f.priorityFlags.filter((x) => x !== c.code))} />
+                {c.label}
+              </label>
+            ))}
+            {priority && <Alert tone="info">ป้าย <b>&quot;ควรพิจารณาก่อน&quot;</b> — เข้าเกณฑ์พักโทษ/ลดวันต้องโทษ และยังไม่เคยบำบัด</Alert>}
             {criteria?.screeningLabel && (
               <div>
                 <label className="label" htmlFor="sc">{criteria.screeningLabel}</label>
@@ -460,13 +510,15 @@ export function RegisterWizard(props: {
         {step === 5 && (
           <div className="ml-auto flex flex-wrap gap-3">
             <button className="btn-ghost" disabled={pending || (evaluation?.level === "warn" && !ack) || (evaluation?.level === "block" && !overrideReason.trim())} onClick={() => submit(false)}>บันทึกเป็นร่าง</button>
-            <button className="btn-primary" disabled={pending || !f.consentSigned || (evaluation?.level === "warn" && !ack) || (evaluation?.level === "block" && !overrideReason.trim())} onClick={() => submit(true)}>
+            <button className="btn-primary" disabled={pending || !f.consentSigned || needNid || missingConfirm.length > 0 || (evaluation?.level === "warn" && !ack) || (evaluation?.level === "block" && !overrideReason.trim())} onClick={() => submit(true)}>
               <CheckCircle2 size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "ยืนยันรับเข้า"}
             </button>
           </div>
         )}
       </div>
       {step === 5 && !f.consentSigned && <p className="text-right text-sm text-muted">ยังไม่มีหลักฐานยินยอม → บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
+      {step === 5 && needNid && <p className="text-right text-sm text-muted">หลักสูตรนี้ต้องมีเลขบัตรประชาชน (ขั้น &quot;เกณฑ์รับเข้า&quot;) → ตอนนี้บันทึกเป็นร่างได้</p>}
+      {step === 5 && missingConfirm.length > 0 && <p className="text-right text-sm text-muted">ยังไม่ได้ติ๊กยืนยัน: {missingConfirm.map((c) => c.label).join(", ")}</p>}
     </div>
   );
 }

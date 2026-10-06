@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /** แท็บของหน้ารุ่น (สเปก 4.1) — แท็บของขั้นถัดไปแสดงเป็นสีจาง / แท็บที่ไม่มีสิทธิ์ถูกซ่อน */
-export function CohortTabs({ id, isFast, show }: { id: number; isFast: boolean; show: { assessments: boolean; health: boolean; reports: boolean; pay: boolean; budget: boolean } }) {
+export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: boolean; isPre3?: boolean; show: { candidates?: boolean; assessments: boolean; health: boolean; reports: boolean; pay: boolean; budget: boolean } }) {
   const path = usePathname();
   const base = `/cohorts/${id}`;
   const tabs: Array<{ href?: string; label: string; soon?: string; hidden?: boolean }> = [
     { href: base, label: "ภาพรวม" },
     { href: `${base}/roster`, label: "รายชื่อ" },
+    { href: `${base}/candidates`, label: "รายชื่อแนะนำ", hidden: !isPre3 || !show.candidates },
     { href: `${base}/attendance`, label: "เช็คชื่อ" },
     { href: `${base}/schedule`, label: "ตารางกิจกรรม" },
     { href: `${base}/assessments`, label: "แบบประเมิน", hidden: !show.assessments },

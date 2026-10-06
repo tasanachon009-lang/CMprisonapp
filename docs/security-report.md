@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 5/10/2569 21:46:02
+- วันเวลา: 6/10/2569 09:10:34
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 201/201 ข้อ**
+- ผล: **ผ่าน 203/203 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -10,20 +10,20 @@
 |---|---|---|
 | ✅ ผ่าน | / | HTTP 307 → /device |
 | ✅ ผ่าน | /courses | HTTP 307 → /device |
-| ✅ ผ่าน | /cohorts/11 | HTTP 307 → /device |
-| ✅ ผ่าน | /cohorts/11/roster | HTTP 307 → /device |
+| ✅ ผ่าน | /cohorts/12 | HTTP 307 → /device |
+| ✅ ผ่าน | /cohorts/12/roster | HTTP 307 → /device |
 | ✅ ผ่าน | /persons/1 | HTTP 307 → /device |
 | ✅ ผ่าน | /persons?q=สม | HTTP 307 → /device |
 | ✅ ผ่าน | /release | HTTP 307 → /device |
 | ✅ ผ่าน | /import | HTTP 307 → /device |
-| ✅ ผ่าน | /register?cohort=11 | HTTP 307 → /device |
+| ✅ ผ่าน | /register?cohort=12 | HTTP 307 → /device |
 | ✅ ผ่าน | /admin | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/users | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/audit | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/backup | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/settings | HTTP 307 → /device |
-| ✅ ผ่าน | /sessions/241 | HTTP 307 → /device |
-| ✅ ผ่าน | /print/sign-sheet/11 | HTTP 307 → /device |
+| ✅ ผ่าน | /sessions/306 | HTTP 307 → /device |
+| ✅ ผ่าน | /print/sign-sheet/12 | HTTP 307 → /device |
 | ✅ ผ่าน | /roster | HTTP 307 → /device |
 | ✅ ผ่าน | /notifications | HTTP 307 → /device |
 | ✅ ผ่าน | /api/files/photo/1 | HTTP 401 |
@@ -56,13 +56,13 @@
 | ✅ ผ่าน | assistant → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /persons/1 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /cohorts/11/roster | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /cohorts/11/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /cohorts/11/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /register?cohort=11 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | finance → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /register?cohort=11 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/12/roster | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /cohorts/12/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /cohorts/12/roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /register?cohort=12 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /register?cohort=12 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /register?cohort=12 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /register?cohort=12 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /import | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /import | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /import | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -70,32 +70,32 @@
 | ✅ ผ่าน | executive → /release | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /sessions/241 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /sessions/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /sessions/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /print/session-sheet/241 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /print/session-sheet/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /print/session-sheet/241 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /sessions/306 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /sessions/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /sessions/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/session-sheet/306 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /print/session-sheet/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /print/session-sheet/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /enrollments/411 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/411 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /enrollments/411 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /enrollments/411 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /enrollments/411/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | admin → /enrollments/411/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | finance → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /enrollments/411/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /enrollments/411/assess/KNOW?round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/411/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /enrollments/411/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /cohorts/11/health | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /cohorts/11/health | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | finance → /cohorts/11/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /cohorts/11/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/421 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/421 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /enrollments/421 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /enrollments/421 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/421/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | admin → /enrollments/421/assess/DEP?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/421/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /enrollments/421/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /enrollments/421/assess/DEP?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /enrollments/421/assess/KNOW?round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/421/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /enrollments/421/assess/KNOW?round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/12/health | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/12/health | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /cohorts/12/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/12/health | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /bst | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /bst | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /bst | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -108,15 +108,15 @@
 | ✅ ผ่าน | warden → /inbox | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | assistant → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /assigned | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | finance → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /cohorts/11/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | admin → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | finance → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | assistant → /cohorts/11/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/12/assessments/quick?form=TEMP&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/12/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /cohorts/12/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/12/assessments/quick?form=TEMP&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /cohorts/12/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | admin → /cohorts/12/assessments/quick?form=PMHQ&round=pre | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/12/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /cohorts/12/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /cohorts/12/assessments/quick?form=PMHQ&round=pre | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /rt101 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /rt101 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -186,6 +186,8 @@
 | ✅ ผ่าน | งบประมาณตรวจสิทธิ์ที่เซิร์ฟเวอร์ทุก action · ยืนยันเกินงบต้องมีสิทธิ์ · ฐานข้อมูลกันรวมงบเกินจัดสรร (trigger) + เงินเป็นสตางค์จำนวนเต็ม (CHECK) | trigger 3/3 · ตรวจจากโค้ด server action |
 | ✅ ผ่าน | LINE: เฉพาะผู้ดูแลตั้งค่า/ส่งทดสอบ · ตัวอย่างข้อความไม่มีชื่อ/เลขประจำตัวผู้ต้องขัง · ไม่แสดง token | admin 200 · fin 307 · rehab 307 · leak false |
 | ✅ ผ่าน | รายงานประจำสัปดาห์: หัวหน้าสร้าง/อนุมัติได้ · ผู้บริหารดูได้ (ไม่มีปุ่มสร้าง) · ผู้ช่วยเข้าไม่ได้ | admin 200 · exec 200 · asst 307 |
+| ✅ ผ่าน | 3 วัน: รายชื่อแนะนำ (มีชื่อ) เข้าได้เฉพาะเจ้าหน้าที่ลงทะเบียน · ผู้บริหาร/การเงิน/ผู้ช่วยเข้าไม่ได้ | rehab 200 · exec 307 · fin 307 · asst 307 |
+| ✅ ผ่าน | 3 วัน: ขั้นตอนโครงการ — ผู้บริหารเห็นแต่ติ๊กไม่ได้ · action ตรวจสิทธิ์ course.manage ที่เซิร์ฟเวอร์ · เกณฑ์เลขบัตร/ยืนยันโทษบังคับที่เซิร์ฟเวอร์ | exec 200 |
 | ✅ ผ่าน | การเงิน → หน้ามอบอำนาจ | HTTP 307 |
 | ✅ ผ่าน | ผู้ช่วย → เปิดคาบที่ไม่ได้รับผิดชอบ (ไม่เห็นฟอร์มปิดคาบ) | HTTP 307 → /forbidden |
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |

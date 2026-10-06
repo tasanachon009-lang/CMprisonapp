@@ -51,12 +51,13 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
         cohortId={cohort.id}
         cohortStatus={cohort.status}
         today={todayISO()}
-        criteria={course.intakeCriteria as { screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Array<{ code: string; label: string }> } | null}
+        criteria={course.intakeCriteria as Parameters<typeof RegisterWizard>[0]["criteria"]}
         lookups={{ prisonerClass: lookupsOf(db, "prisoner_class"), substance: lookupsOf(db, "substance") }}
         staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))}
         me={auth.user.id}
         canOverride={auth.can("registry.override_duplicate")}
         canRevealId={auth.can("national_id.view_full")}
+        initialInmateNo={typeof sp.inmate === "string" ? sp.inmate.trim().slice(0, 30) || undefined : undefined}
       />
     </div>
   );

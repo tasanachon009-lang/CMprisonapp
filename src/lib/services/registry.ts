@@ -231,6 +231,18 @@ export function registerEnrollment(db: DB, input: RegisterInput, actor: Actor) {
       }
     }
 
+    // สเปก 17 (เกณฑ์รับเข้ารายหลักสูตร): ต้องมีเลขบัตร + ติ๊กยืนยันที่บังคับ ก่อนยืนยันรับเข้า (ร่างได้)
+    // ตรวจหลังสร้าง/เติมข้อมูลบุคคลแล้ว (incarcerationId อาจยังไม่มี → ตรวจเลขบัตรจาก personId)
+    if (status === "active") {
+      const course = tx.select().from(schema.courses).where(eq(schema.courses.id, cohort.courseId)).get()!;
+      const crit = (course.intakeCriteria ?? {}) as { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
+      const gaps: string[] = [];
+      if (crit.requireNationalId && !tx.select().from(schema.persons).where(eq(schema.persons.id, personId)).get()?.nationalId) gaps.push(`หลักสูตร ${course.shortName} ต้องมีเลขบัตรประชาชน — ใส่เลขบัตรในขั้น "เกณฑ์รับเข้า"`);
+      const given = new Set(((input.intake?.confirmations as string[] | undefined) ?? []));
+      for (const c of crit.confirmations ?? []) if (c.required && !given.has(c.code)) gaps.push(`ยังไม่ได้ยืนยัน: ${c.label}`);
+      if (gaps.length) throw new RuleError(`${gaps.join("\n")}\n(หรือบันทึกเป็นร่างไว้ก่อน)`, undefined, "criteria_required");
+    }
+
     if (!incarcerationId) {
       const inc = tx
         .insert(schema.incarcerations)
@@ -298,6 +310,20 @@ export function registerEnrollment(db: DB, input: RegisterInput, actor: Actor) {
   });
 }
 
+/** เกณฑ์รับเข้าที่ยังขาด (สเปก 17) — ใช้ทั้งตอนลงทะเบียนและยืนยันรับเข้าภายหลัง */
+export function intakeGaps(db: DB, e: { courseId: number; incarcerationId: number; intake: unknown }) {
+  const course = db.select().from(schema.courses).where(eq(schema.courses.id, e.courseId)).get();
+  const crit = (course?.intakeCriteria ?? {}) as { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
+  const gaps: string[] = [];
+  if (crit.requireNationalId) {
+    const p = db.select({ nid: schema.persons.nationalId }).from(schema.incarcerations).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId)).where(eq(schema.incarcerations.id, e.incarcerationId)).get();
+    if (!p?.nid) gaps.push("ยังไม่มีเลขบัตรประชาชน");
+  }
+  const given = new Set(((e.intake as { confirmations?: string[] } | null)?.confirmations) ?? []);
+  for (const c of crit.confirmations ?? []) if (c.required && !given.has(c.code)) gaps.push(`ยังไม่ได้ยืนยัน: ${c.label}`);
+  return gaps;
+}
+
 /** ยืนยันรับเข้า (ร่าง → กำลังอบรม) หลายคนพร้อมกัน */
 export function confirmAdmissions(db: DB, enrollmentIds: number[], actor: Actor) {
   return db.transaction((tx) => {
@@ -311,6 +337,11 @@ export function confirmAdmissions(db: DB, enrollmentIds: number[], actor: Actor)
       }
       if (actor.consentRequired && !e.consentSigned) {
         skipped.push({ id: e.id, reason: "ยังไม่มีหลักฐานการลงนามยินยอม" });
+        continue;
+      }
+      const gaps = intakeGaps(tx as unknown as DB, e);
+      if (gaps.length) {
+        skipped.push({ id: e.id, reason: `${gaps.join(", ")} — เปิดแฟ้มเพื่อแก้เกณฑ์รับเข้า` });
         continue;
       }
       // ผลประเมินสภาวะกาย/จิต "ยังเข้าร่วมไม่ได้" → ยืนยันรับเข้าไม่ได้ (ยกเว้นผู้ดูแล)

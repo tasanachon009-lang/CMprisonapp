@@ -34,7 +34,9 @@ export default async function CohortLayout({ children, params }: LayoutProps<"/c
       <CohortTabs
         id={cohort.id}
         isFast={course.code === "FAST"}
+        isPre3={course.code === "PRE3"}
         show={{
+          candidates: auth.can("registry.edit"),
           assessments: auth.can("assessment.view") || auth.can("health.view") || auth.can("assessment.summary"),
           health: auth.can("health.view") || auth.can("health.summary"),
           reports: auth.can("reports.view") || auth.can("dashboard.view"),

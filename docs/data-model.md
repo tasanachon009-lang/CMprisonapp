@@ -55,6 +55,6 @@
 ## ขั้นถัดไป (เพิ่มด้วย migration โดยผูกกับตารางข้างบน ไม่รื้อของเดิม)
 | ขั้น | ตารางที่จะเพิ่ม | ผูกกับ |
 |---|---|---|
-| 4 | pre3 project checklist, health_referrals, document_templates | cohorts / enrollments |
+| 4 | ✅ `cohorts.project_steps` (JSON ขั้นตอนโครงการ 7 ขั้น — migration 0015), health_referrals, document_templates | cohorts / enrollments |
 | 5 | house_positions, teams, house_tools, discipline_records, progress_book_entries | enrollments |
 | 6 | targets, fiscal_year_closures, duty_logs | courses / cohorts |

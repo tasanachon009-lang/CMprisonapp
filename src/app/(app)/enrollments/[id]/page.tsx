@@ -15,6 +15,7 @@ import { STEP_LABEL, TASK_STATUS_LABEL, BST_STEP_ORDER, DONE_BUTTON_LABEL } from
 import { ENROLLMENT_STATUS_LABEL } from "@/lib/services/registry";
 import { userNameMap } from "@/lib/queries/names";
 import { lookupLabel } from "@/lib/bootstrap";
+import { intakeGaps } from "@/lib/services/registry";
 import { formatThaiDate, todayISO } from "@/lib/thai-date";
 import { Breadcrumb, Alert, EmptyState, Eyebrow } from "@/components/ui";
 import { Avatar } from "@/components/avatar";
@@ -89,6 +90,8 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           enrollmentId={e.id}
           score={e.screeningScore}
           exclusions={((e.intake as { exclusions?: string[] } | null)?.exclusions) ?? []}
+          intake={(e.intake as { confirmations?: string[]; drugClass?: string | null; priorityFlags?: string[] } | null) ?? {}}
+          gaps={e.status === "draft" ? intakeGaps(db, e) : []}
           criteria={course.intakeCriteria as never}
           consentSigned={e.consentSigned}
           consentDate={e.consentDate ? formatThaiDate(e.consentDate) : null}

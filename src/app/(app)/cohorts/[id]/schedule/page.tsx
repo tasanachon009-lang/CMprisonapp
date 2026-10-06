@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { getCohort, cohortSessions } from "@/lib/queries/cohorts";
@@ -16,6 +16,7 @@ import { makeupNeeded, invitationText } from "@/lib/services/session-close";
 import { getSetting } from "@/lib/bootstrap";
 import { cohortLabel } from "@/lib/services/cohorts";
 import { Alert } from "@/components/ui";
+import { speakerShortfall } from "@/lib/speaker-ratio";
 import { StaffNames, SessionStaffEditor, type StaffView } from "./schedule-client";
 import { AddSessionButton, ReplaceStaffButton, WeekBoard, DutySelect } from "./schedule-tools";
 import { ensureDutyRoster, dutyMap, dutyCandidates } from "@/lib/services/duty";
@@ -93,6 +94,12 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
         } : {}),
       }));
   };
+  // สเปก 17: วิทยากร 1 คน ต่อผู้เข้าอบรม N คน (ตั้งในเกณฑ์หลักสูตร)
+  const perSpeaker = (row.course.intakeCriteria as { peoplePerSpeaker?: number } | null)?.peoplePerSpeaker ?? null;
+  const enrolledCount = perSpeaker
+    ? db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, row.cohort.id), inArray(schema.enrollments.status, ["active", "completed"]))).all().length
+    : 0;
+  const ratioShort = new Map(active.map((s) => [s.id, speakerShortfall(enrolledCount, staff.filter((x) => x.sessionId === s.id).length, perSpeaker)] as const).filter(([, v]) => v));
   const counts = { noStaff: 0, overMax: 0, conflicts: 0 };
   for (const v of issues.values()) {
     if (v.noStaff) counts.noStaff++;
@@ -114,6 +121,7 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
         {!compact && s.category && <p className="text-xs text-muted">{s.category}</p>}
         {s.location && <p className={`text-xs ${lc.length ? "font-semibold text-danger" : "text-muted"}`}>📍 {s.location}{lc.length ? ` — ใช้ซ้อนกับ ${lc.map(fmtConflict).join(", ")}` : ""}</p>}
         <div className="mt-1"><StaffNames staff={who} /></div>
+        {ratioShort.get(s.id) && <p className="mt-1 text-sm text-warn">วิทยากรไม่พอสัดส่วน 1:{perSpeaker} — ผู้เข้าอบรม {enrolledCount} คน ควรมี {ratioShort.get(s.id)!.need} คน (มี {ratioShort.get(s.id)!.have})</p>}
         {iss?.overMax != null && <p className="mt-1 text-sm text-danger">วิทยากรเกินจำนวนสูงสุด ({iss.overMax} คน)</p>}
         {makeups.get(s.id) && !makeups.get(s.id)!.makeupId && <p className="mt-1"><Link href={`/sessions/${s.id}`} className="tag-warn">ควรจัดสอนชดเชย ({makeups.get(s.id)!.count} คน)</Link></p>}
         {s.makeupOfId && <p className="mt-1"><span className="tag-navy">คาบชดเชย</span></p>}
@@ -163,9 +171,9 @@ export default async function SchedulePage({ params, searchParams }: PageProps<"
         รวม {days.length} วัน {totalHours} ชั่วโมง (เป้าหมายหลักสูตร {row.course.totalHours} ชม.){totalHours !== row.course.totalHours && <b className="text-danger"> — ชั่วโมงไม่ตรงเป้า ({totalHours > row.course.totalHours ? "เกิน" : "ขาด"} {Math.abs(totalHours - row.course.totalHours)} ชม.)</b>}
         <span className="block text-sm text-muted">{canEdit ? "กด \"แก้คาบ / วิทยากร\" เพื่อเปลี่ยนวัน เวลา สถานที่ หรือวิทยากร · ปฏิทินรายสัปดาห์ลากย้ายคาบได้" : "ดูอย่างเดียว"} · 💰 = คาบที่เบิกค่าตอบแทนได้</span>
       </Alert>
-      {(counts.noStaff > 0 || counts.overMax > 0 || counts.conflicts > 0 || payOver.size > 0 || locClash.size > 0) && (
+      {(counts.noStaff > 0 || counts.overMax > 0 || counts.conflicts > 0 || payOver.size > 0 || locClash.size > 0 || ratioShort.size > 0) && (
         <Alert tone="warn">
-          ตรวจตาราง:{counts.noStaff > 0 && ` ไม่มีผู้รับผิดชอบ ${counts.noStaff} คาบ`}{counts.conflicts > 0 && ` · วิทยากรสอนซ้อนเวลา ${counts.conflicts} รายการ`}{locClash.size > 0 && ` · สถานที่ใช้ซ้อน ${locClash.size} คาบ`}{counts.overMax > 0 && ` · วิทยากรเกินจำนวนสูงสุด ${counts.overMax} คาบ`}{payOver.size > 0 && ` · วิทยากรเกินที่เบิกได้ ${payOver.size} คาบ`}
+          ตรวจตาราง:{counts.noStaff > 0 && ` ไม่มีผู้รับผิดชอบ ${counts.noStaff} คาบ`}{counts.conflicts > 0 && ` · วิทยากรสอนซ้อนเวลา ${counts.conflicts} รายการ`}{locClash.size > 0 && ` · สถานที่ใช้ซ้อน ${locClash.size} คาบ`}{counts.overMax > 0 && ` · วิทยากรเกินจำนวนสูงสุด ${counts.overMax} คาบ`}{payOver.size > 0 && ` · วิทยากรเกินที่เบิกได้ ${payOver.size} คาบ`}{ratioShort.size > 0 && ` · วิทยากรไม่พอสัดส่วน 1:${perSpeaker} ${ratioShort.size} คาบ`}
         </Alert>
       )}
 

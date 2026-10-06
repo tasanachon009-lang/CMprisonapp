@@ -323,6 +323,22 @@ async function main() {
         check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "รายงานประจำสัปดาห์: หัวหน้าสร้าง/อนุมัติได้ · ผู้บริหารดูได้ (ไม่มีปุ่มสร้าง) · ผู้ช่วยเข้าไม่ได้",
           wAdmin.text.includes("สร้าง/อัปเดตร่าง") && allowed(wExec) && !wExec.text.includes("สร้าง/อัปเดตร่าง") && !allowed(wAsst), `admin ${wAdmin.status} · exec ${wExec.status} · asst ${wAsst.status}`);
       }
+      // ขั้น 4 กลุ่ม 1: หลักสูตร 3 วัน — รายชื่อแนะนำ (มีชื่อผู้ต้องขัง) เฉพาะผู้ลงทะเบียน · ขั้นตอนโครงการแก้ได้เฉพาะผู้มีสิทธิ์จัดรุ่น
+      {
+        const p3 = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(and(eq(schema.courses.code, "PRE3"), ne(schema.cohorts.status, "closed"))).get();
+        if (p3) {
+          const cRehab = await get(`/cohorts/${p3.id}/candidates`, C.rehab), cExec = await get(`/cohorts/${p3.id}/candidates`, C.executive), cFin = await get(`/cohorts/${p3.id}/candidates`, C.finance), cAsst = await get(`/cohorts/${p3.id}/candidates`, C.assistant);
+          check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "3 วัน: รายชื่อแนะนำ (มีชื่อ) เข้าได้เฉพาะเจ้าหน้าที่ลงทะเบียน · ผู้บริหาร/การเงิน/ผู้ช่วยเข้าไม่ได้",
+            allowed(cRehab) && cRehab.text.includes("พ้นโทษโดยประมาณ") && !allowed(cExec) && !allowed(cFin) && !allowed(cAsst),
+            `rehab ${cRehab.status} · exec ${cExec.status} · fin ${cFin.status} · asst ${cAsst.status}`);
+          const oExec = await get(`/cohorts/${p3.id}`, C.executive);
+          const csrc = fs.readFileSync("src/app/(app)/cohorts/actions.ts", "utf8");
+          check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "3 วัน: ขั้นตอนโครงการ — ผู้บริหารเห็นแต่ติ๊กไม่ได้ · action ตรวจสิทธิ์ course.manage ที่เซิร์ฟเวอร์ · เกณฑ์เลขบัตร/ยืนยันโทษบังคับที่เซิร์ฟเวอร์",
+            allowed(oExec) && oExec.text.includes("ขั้นตอนโครงการ") && !oExec.text.includes("ติ๊กว่าเสร็จ") && fn(csrc, "setProjectStepAction").includes('requireAction("course.manage")')
+              && fs.readFileSync("src/lib/services/registry.ts", "utf8").includes('"criteria_required"'),
+            `exec ${oExec.status}`);
+        }
+      }
       const delFin = await get("/admin/delegations", C.finance);
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "การเงิน → หน้ามอบอำนาจ", !allowed(delFin), `HTTP ${delFin.status}`);
     }

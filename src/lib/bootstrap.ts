@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
-import { COURSES, B12_TEMPLATE, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
+import { COURSES, B12_TEMPLATE, PRE3_TEMPLATE, PRE3_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 
 /**
@@ -47,9 +47,29 @@ export function bootstrapReferenceData(db: DB) {
           tx.insert(schema.courseTemplateSessions).values({ courseId: row.id, ...t }).run();
         }
       }
+      if (c.code === "PRE3") {
+        for (const t of PRE3_TEMPLATE) tx.insert(schema.courseTemplateSessions).values({ courseId: row.id, ...t }).run();
+      }
     }
+    upgradeStep4(tx);
     seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * อัปเกรดครั้งเดียวสำหรับฐานข้อมูลที่ติดตั้งก่อนขั้น 4: เปิดหลักสูตร 3 วัน + เกณฑ์คัดเลือก + แม่แบบตาราง (ถ้ายังไม่มี)
+ * ไม่ทับสิ่งที่ผู้ดูแลตั้งไว้แล้ว
+ */
+function upgradeStep4(tx: Pick<DB, "select" | "insert" | "update">) {
+  if (tx.select().from(schema.settings).where(eq(schema.settings.key, "bootstrap.step4")).get()) return;
+  const c = tx.select().from(schema.courses).where(eq(schema.courses.code, "PRE3")).get();
+  if (c) {
+    tx.update(schema.courses).set({ enabled: true, ...(c.intakeCriteria ? {} : { intakeCriteria: PRE3_CRITERIA as unknown }) }).where(eq(schema.courses.id, c.id)).run();
+    if (!tx.select().from(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).get()) {
+      for (const t of PRE3_TEMPLATE) tx.insert(schema.courseTemplateSessions).values({ courseId: c.id, ...t }).run();
+    }
+  }
+  tx.insert(schema.settings).values({ key: "bootstrap.step4", value: true }).onConflictDoNothing().run();
 }
 
 /**
@@ -84,13 +104,15 @@ function seedRatesAndTopics(tx: Pick<DB, "select" | "insert" | "update">) {
       if (t.outcomeChips == null) tx.update(schema.activityTopics).set({ outcomeChips: draftChips(t.name, t.staffingType) }).where(eq(schema.activityTopics.id, t.id)).run();
     }
     const byName = new Map(topics.map((t) => [t.name, t.id]));
+    // ชื่อคาบที่แบ่งหลายครั้ง เช่น "การหาเหตุผลในการกลับไปเสพซ้ำ (2)" ผูกกับหัวข้อเดียวกัน
+    const topicOf = (title: string) => byName.get(title) ?? byName.get(title.replace(/\s*\(\d+\)$/, ""));
     for (const ts of tx.select().from(schema.courseTemplateSessions).where(and(eq(schema.courseTemplateSessions.courseId, course.id), isNull(schema.courseTemplateSessions.topicId))).all()) {
-      const id = byName.get(ts.title);
+      const id = topicOf(ts.title);
       if (id) tx.update(schema.courseTemplateSessions).set({ topicId: id }).where(eq(schema.courseTemplateSessions.id, ts.id)).run();
     }
     const cohortIds = tx.select({ id: schema.cohorts.id }).from(schema.cohorts).where(eq(schema.cohorts.courseId, course.id)).all().map((c) => c.id);
     for (const cs of cohortIds.length ? tx.select().from(schema.cohortSessions).where(and(inArray(schema.cohortSessions.cohortId, cohortIds), isNull(schema.cohortSessions.topicId))).all() : []) {
-      const id = byName.get(cs.title);
+      const id = topicOf(cs.title);
       if (id) tx.update(schema.cohortSessions).set({ topicId: id }).where(eq(schema.cohortSessions.id, cs.id)).run();
     }
   }

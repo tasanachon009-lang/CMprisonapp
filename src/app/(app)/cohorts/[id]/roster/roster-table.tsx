@@ -14,7 +14,7 @@ export type RosterRow = {
   enrollmentId: number; personId: number; name: string; inmateNo: string; zone: string | null;
   thumb: string | null; photo: string | null; status: string; statusLabel: string;
   consentSigned: boolean; consentRefused: boolean; pct: number | null; sessions: string; below: boolean; hours: number | null;
-  otherCourses: string[]; isReturnee: boolean; duplicateName: boolean; released: boolean; override: boolean;
+  otherCourses: string[]; isReturnee: boolean; duplicateName: boolean; released: boolean; override: boolean; priority?: boolean;
 };
 
 const STATUS_TAG: Record<string, string> = { draft: "tag-warn", active: "tag-ok", completed: "tag-navy", dropped: "tag-danger", withdrawn: "tag-muted", failed: "tag-danger" };
@@ -101,6 +101,7 @@ export function RosterTable({ rows, cohortId, canEdit, passPct, targetHours, def
                     <PersonThumb name={r.name} thumb={r.thumb} photo={r.photo} inmateNo={r.inmateNo} zone={r.zone} />
                     <Link href={`/enrollments/${r.enrollmentId}`} className="font-medium hover:underline">{r.name}</Link>
                     {r.duplicateName && <span className="tag-orange">ชื่อซ้ำ</span>}
+                    {r.priority && <span className="tag-navy" title="เข้าเกณฑ์พักโทษ/ลดวันต้องโทษ และยังไม่เคยบำบัด">ควรพิจารณาก่อน</span>}
                   </div>
                 </td>
                 <td className="font-mono">{r.inmateNo}</td>

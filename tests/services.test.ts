@@ -218,7 +218,8 @@ describe("ขั้น 2: บสต./ติดตาม/แบบประเม
     expect(pre3.requiresRt101).toBe(true);
     db.update(schema.courses).set({ enabled: true }).where(eq(schema.courses.id, pre3.id)).run();
     const c = createCohort(db, { courseId: pre3.id, startDate: "2026-10-05" }, 1);
-    const r = registerEnrollment(db, input(c.id, "P-1"), actor);
+    // สเปก 17: 3 วันบังคับเลขบัตร + ยืนยันเกณฑ์โทษ
+    const r = registerEnrollment(db, input(c.id, "P-1", { person: { firstName: "ทดสอบ", lastName: "สามวัน", nationalId: "1100000000016" }, intake: { exclusions: [], confirmations: ["sentence_remaining"] } }), actor);
     expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all()).toEqual([]);
     completeEnrollments(db, [r.enrollment.id], "completed", "2026-10-07", { userId: 1 });
     expect(db.select().from(schema.bstTasks).where(eq(schema.bstTasks.enrollmentId, r.enrollment.id)).all().map((t) => `${t.system}:${t.step}`)).toEqual(["rt101:record"]);

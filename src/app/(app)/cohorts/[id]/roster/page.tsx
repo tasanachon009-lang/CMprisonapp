@@ -43,6 +43,8 @@ export default async function RosterPage({ params, searchParams }: PageProps<"/c
       duplicateName: r.duplicateName,
       released: !!r.inc.releasedDate,
       override: r.enrollment.overrideSeq > 0,
+      // สเปก 17: "ควรพิจารณาก่อน" = เข้าเกณฑ์พักโทษ/ลดวันต้องโทษ และยังไม่เคยบำบัด
+      priority: (() => { const i = r.enrollment.intake as { priorityFlags?: string[]; priorTreatment?: string | null } | null; return !!i?.priorityFlags?.length && i?.priorTreatment === "ไม่เคยบำบัด"; })(),
     };
   });
   const status = typeof sp.status === "string" ? sp.status : "";

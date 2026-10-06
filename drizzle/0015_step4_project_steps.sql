@@ -1,0 +1,1 @@
+ALTER TABLE `cohorts` ADD `project_steps` text;

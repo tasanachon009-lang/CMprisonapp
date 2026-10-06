@@ -156,6 +156,8 @@ async function main() {
   type Made = { incarcerationId: number; personId: number };
   const fillCohort = (cohortId: number, n: number, opts: { yy: number; admitted: string; enrolled: string; status: "active" | "completed" | "draft"; reuse?: Made[] }) => {
     const made: Made[] = [];
+    // หลักสูตร 3 วัน: บังคับเลขบัตร + ยืนยันเกณฑ์โทษ (สเปก 17)
+    const isPre3 = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cohortId)).get()!.courseId === pre3.id;
     for (let i = 0; i < n; i++) {
       const reuse = opts.reuse?.[i];
       const r = registerEnrollment(
@@ -163,13 +165,13 @@ async function main() {
         {
           cohortId,
           personId: reuse?.personId ?? null,
-          person: fakePerson(),
+          person: isPre3 ? { ...fakePerson(), nationalId: fakeNationalId() } : fakePerson(),
           incarceration: reuse
             ? { inmateNo: db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, reuse.incarcerationId)).get()!.inmateNo }
             : fakeIncarceration(opts.yy, opts.admitted),
           drugUse: [{ substance: pick(SUBST), ageStarted: int(13, 30), frequency: pick(FREQ) }],
           screeningScore: int(4, 26),
-          intake: { exclusions: [] },
+          intake: isPre3 ? { exclusions: [], confirmations: ["sentence_remaining"], drugClass: pick(["user", "abuser", "addict"]) } : { exclusions: [] },
           consentSigned: opts.status !== "draft" || rand() < 0.5,
           consentDate: opts.enrolled,
           consentReceiverId: pick(rehabStaff),
@@ -243,9 +245,10 @@ async function main() {
   }
 
   // ปีงบ 2569 — 3 รุ่นที่จบแล้ว
+  const b12of69: Made[] = [];
   for (const start of ["2025-11-03", "2026-02-02", "2026-06-01"]) {
     const c = createCohort(db, { courseId: b12.id, startDate: start, targetCount: 40, location: "ห้องอบรม 1" }, headId);
-    fillCohort(c.id, 40, { yy: 68, admitted: "2025-05-01", enrolled: start, status: "active" });
+    b12of69.push(...fillCohort(c.id, 40, { yy: 68, admitted: "2025-05-01", enrolled: start, status: "active" }));
     fillAttendance(c.id, c.endDate);
     completeCohort(c.id, start !== "2026-06-01"); // รุ่นล่าสุดยังไม่ปิด (ทดสอบเช็คลิสต์ปิดรุ่น)
   }
@@ -261,6 +264,31 @@ async function main() {
     if (start >= "2025-10-01") pre3Cohorts.push(c.id);
     fillCohort(c.id, 45, { yy: 66, admitted: "2023-11-01", enrolled: start, status: "active" });
     completeCohort(c.id, true);
+  }
+
+  // 3 วัน รุ่นถัดไป (ยังไม่เริ่ม) — ร่างผู้ถูกคัดเลือกจากรายชื่อแนะนำ + ขั้นตอนโครงการทำไปแล้ว 2 ขั้น (สเปก 17)
+  const pre3Next = createCohort(db, { courseId: pre3.id, startDate: addDays(today, 14), targetCount: 50, location: "หอประชุม" }, headId);
+  {
+    const picked = b12of69.filter((m) => db.select().from(schema.enrollments).where(and(eq(schema.enrollments.incarcerationId, m.incarcerationId), eq(schema.enrollments.status, "completed"))).get()).slice(0, 8);
+    for (const m of picked) {
+      const p = db.select().from(schema.persons).where(eq(schema.persons.id, m.personId)).get()!;
+      const inc = db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, m.incarcerationId)).get()!;
+      registerEnrollment(db, {
+        cohortId: pre3Next.id, personId: p.id, person: { firstName: p.firstName, lastName: p.lastName }, incarceration: { inmateNo: inc.inmateNo },
+        intake: { exclusions: [], confirmations: rand() < 0.7 ? ["sentence_remaining"] : [], drugClass: pick(["user", "abuser", "addict"]), priorityFlags: rand() < 0.3 ? ["parole_eligible"] : [] },
+        consentSigned: true, consentDate: today, consentReceiverId: pick(rehabStaff), confirmAdmission: false, acknowledgeWarnings: true, enrolledDate: today, screeningScore: int(4, 26),
+      }, actor);
+    }
+    // ไม่เคยบำบัด + เข้าเกณฑ์พักโทษ → ป้าย "ควรพิจารณาก่อน"
+    for (let i = 0; i < 2; i++) {
+      registerEnrollment(db, {
+        cohortId: pre3Next.id, person: { ...fakePerson(), nationalId: fakeNationalId() }, incarceration: fakeIncarceration(69, "2026-01-15"),
+        intake: { exclusions: [], confirmations: ["sentence_remaining"], drugClass: "user", priorityFlags: ["parole_eligible"], priorTreatment: "ไม่เคยบำบัด" },
+        consentSigned: true, consentDate: today, consentReceiverId: pick(rehabStaff), confirmAdmission: false, acknowledgeWarnings: true, enrolledDate: today, screeningScore: int(4, 26),
+      }, actor);
+    }
+    const at = Date.now();
+    db.update(schema.cohorts).set({ projectSteps: { select: { done: true, date: addDays(today, -10), by: headId, at }, project_approval: { done: true, date: addDays(today, -5), by: headId, at } } }).where(eq(schema.cohorts.id, pre3Next.id)).run();
   }
 
   // ปีงบ 2570 รุ่นที่ 1 — กำลังอบรม (เริ่ม 1 ต.ค. 2569)

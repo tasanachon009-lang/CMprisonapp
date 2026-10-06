@@ -63,14 +63,15 @@ export async function completeEnrollmentsAction(cohortId: number, ids: number[],
 }
 
 /** เกณฑ์รับเข้า (คะแนนคัดกรอง + ลักษณะต้องห้าม) กรอกภายหลังได้ */
-export async function updateIntakeAction(enrollmentId: number, screeningScore: number | null, exclusions: string[]): Promise<ActionResult> {
+export async function updateIntakeAction(enrollmentId: number, screeningScore: number | null, exclusions: string[], extra?: { confirmations?: string[]; drugClass?: string | null; priorityFlags?: string[] }): Promise<ActionResult> {
   try {
     const auth = await requireAction("registry.edit");
     const db = getDb();
     const e = db.select().from(schema.enrollments).where(eq(schema.enrollments.id, enrollmentId)).get();
     if (!e) return { ok: false, error: "ไม่พบการลงทะเบียน" };
     if (screeningScore != null && (screeningScore < 0 || screeningScore > 100)) return { ok: false, error: "คะแนนคัดกรองไม่ถูกต้อง" };
-    const intake = { ...((e.intake as Record<string, unknown>) ?? {}), exclusions };
+    const clean = (a?: string[]) => (a ?? []).filter((x) => typeof x === "string" && x.length <= 40).slice(0, 20);
+    const intake = { ...((e.intake as Record<string, unknown>) ?? {}), exclusions: clean(exclusions), ...(extra ? { confirmations: clean(extra.confirmations), drugClass: extra.drugClass?.slice(0, 20) ?? null, priorityFlags: clean(extra.priorityFlags) } : {}) };
     db.update(schema.enrollments).set({ screeningScore, intake, updatedBy: auth.user.id, updatedAt: new Date(), version: e.version + 1 }).where(eq(schema.enrollments.id, enrollmentId)).run();
     writeAudit(db, { userId: auth.user.id, action: "update", entity: "enrollment", entityId: enrollmentId, before: { screeningScore: e.screeningScore, intake: e.intake }, after: { screeningScore, intake }, ip: await clientIp() });
     revalidatePath(`/enrollments/${enrollmentId}`);

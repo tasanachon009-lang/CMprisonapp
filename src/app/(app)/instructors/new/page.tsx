@@ -14,7 +14,7 @@ export default async function NewInstructorPage({ searchParams }: PageProps<"/in
   return (
     <div className="max-w-5xl space-y-6">
       <Breadcrumb items={[{ href: "/instructors", label: "ทะเบียนวิทยากร" }, { label: "เพิ่มวิทยากร" }]} />
-      <PageHeader en="New Instructor" title="เพิ่มวิทยากร" />
+      <PageHeader en="New Instructor" title="เพิ่มวิทยากร" help="วิทยากรภายในใช้ชื่อจากบัญชีผู้ใช้ เติมเฉพาะเลขบัตร ที่อยู่ และบัญชีรับเงินโอน ค้นตำบลโดยพิมพ์ชื่อตำบลตามด้วยอำเภอหรือจังหวัด หรือพิมพ์รหัสไปรษณีย์" />
       <InstructorForm id={null} initial={emptyInstructor(kind)} users={staffOptions(getDb())} canSensitive={auth.can("instructors.sensitive")} today={todayISO()} masked={{ nationalId: "", accountNo: "" }} />
     </div>
   );

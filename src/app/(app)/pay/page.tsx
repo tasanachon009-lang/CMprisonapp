@@ -48,7 +48,7 @@ export default async function PayPage({ searchParams }: PageProps<"/pay">) {
   return (
     <div className="space-y-5">
       <Breadcrumb items={[{ label: "ค่าตอบแทน" }]} />
-      <PageHeader en="Speaker Fees" title="ค่าตอบแทนวิทยากร" help="คิดจากการสอนจริงของคาบที่ปิดคาบแล้ว สร้างรอบเบิกต่อรุ่น (ทั้งรุ่นหรือช่วงวันที่) ตรวจยอดแล้วอนุมัติ เมื่ออนุมัติยอดจะคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบ คาบที่เบิกแล้วไม่ถูกนำไปเบิกซ้ำ" />
+      <PageHeader en="Speaker Fees" title="ค่าตอบแทนวิทยากร" help="คิดจากการสอนจริงของคาบที่ปิดคาบแล้ว สร้างรอบเบิกต่อรุ่น (ทั้งรุ่นหรือช่วงวันที่) ตรวจยอดแล้วอนุมัติ เมื่ออนุมัติยอดจะคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบ คาบที่เบิกแล้วไม่ถูกนำไปเบิกซ้ำ ตารางภาระงานรวมคาบที่เบิกไม่ได้ ใช้ประกอบการประเมินผลงาน" />
       <div className="flex flex-wrap gap-2">
         {tabs.map(([k, l]) => <Link key={k} href={qs({ tab: k, person: null })} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${tab === k ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{l}</Link>)}
       </div>

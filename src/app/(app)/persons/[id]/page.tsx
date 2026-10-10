@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requirePage } from "@/lib/auth/session";
@@ -100,7 +101,7 @@ export default async function PersonPage({ params }: PageProps<"/persons/[id]">)
           {canEdit && current && <PhotoUpload incarcerationId={current.inc.id} hasPhoto={!!current.inc.photoPath} />}
         </div>
         <div className="min-w-64 flex-1">
-          <h1 className="text-3xl">{p.prefix}{p.firstName} {p.lastName}</h1>
+          <h1 className="flex items-center gap-1 text-3xl">{p.prefix}{p.firstName} {p.lastName} <HelpButton>เลขประจำตัวผู้ต้องขังไม่เปลี่ยนแม้ย้ายเรือนจำ แก้เฉพาะกรณีบันทึกผิด ระบบบันทึกเหตุผลและผู้แก้ไข</HelpButton></h1>
           <dl className="mt-3 grid gap-x-8 gap-y-1 sm:grid-cols-2">
             <Item k="เลขบัตรประชาชน">{p.nationalId ? (auth.can("national_id.view_full") ? <NationalIdReveal personId={p.id} masked={maskNationalId(p.nationalId)} /> : maskNationalId(p.nationalId)) : "-"}</Item>
             <Item k="วันเกิด">{p.birthDate ? `${formatThaiDate(p.birthDate)} (อายุ ${ageOn(p.birthDate, today)} ปี)` : "-"}</Item>

@@ -18,7 +18,7 @@ export default async function UsersPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "ผู้ใช้และสิทธิ์" }]} />
-      <PageHeader en="Users & Permissions" title="ผู้ใช้และสิทธิ์" subtitle="การเปลี่ยนสิทธิ์ทุกครั้งถูกบันทึก" actions={<NewUserButton />} />
+      <PageHeader en="Users & Permissions" title="ผู้ใช้และสิทธิ์" subtitle="การเปลี่ยนสิทธิ์ทุกครั้งถูกบันทึก" help="ระงับบัญชีได้ทันทีโดยไม่ลบเพื่อเก็บประวัติ บัญชีผู้ควบคุมเปิดเฉพาะเมื่อจำเป็น สิทธิ์ที่กำหนดช่วงวันที่จะกลับเป็นค่าเดิมเมื่อครบกำหนด" actions={<NewUserButton />} />
       <div className="panel overflow-x-auto">
         <table className="table-plain">
           <thead><tr><th>ชื่อ</th><th>วิชาชีพ/ตำแหน่ง</th><th>บทบาท</th><th>เข้าใช้ล่าสุด</th><th>สถานะ</th></tr></thead>

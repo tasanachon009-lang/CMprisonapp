@@ -32,7 +32,7 @@ export default async function InstructorPage({ params }: PageProps<"/instructors
   return (
     <div className="max-w-5xl space-y-6">
       <Breadcrumb items={[{ href: "/instructors", label: "ทะเบียนวิทยากร" }, { label: x.fullName || "วิทยากร" }]} />
-      <PageHeader en="Instructor" title={x.fullName || "วิทยากร"} subtitle={x.kind === "internal" ? "วิทยากรภายใน" : "วิทยากรภายนอก"}
+      <PageHeader en="Instructor" title={x.fullName || "วิทยากร"} subtitle={x.kind === "internal" ? "วิทยากรภายใน" : "วิทยากรภายนอก"} help="วิทยากรภายในใช้ชื่อจากบัญชีผู้ใช้ เติมเฉพาะเลขบัตร ที่อยู่ และบัญชีรับเงินโอน ค้นตำบลโดยพิมพ์ชื่อตำบลตามด้วยอำเภอหรือจังหวัด หรือพิมพ์รหัสไปรษณีย์"
         actions={<Link href={`/print/instructor-form?id=${x.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์แบบฟอร์มขอข้อมูล (เติมเท่าที่มี)</Link>} />
       <RecordMeta createdBy={names.get(x.createdBy ?? 0)} createdAt={formatThaiDateTime(x.createdAt)} updatedBy={names.get(x.updatedBy ?? 0)} updatedAt={formatThaiDateTime(x.updatedAt)} />
       {!canEdit && <Alert tone="info">ดูอย่างเดียว</Alert>}

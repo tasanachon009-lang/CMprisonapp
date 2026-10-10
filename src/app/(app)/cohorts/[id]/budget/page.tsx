@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { requirePage } from "@/lib/auth/session";
@@ -123,7 +124,7 @@ export default async function CohortBudgetPage({ params }: PageProps<"/cohorts/[
 
       {/* ใช้จ่ายจริง */}
       <section className="card space-y-3">
-        <h2 className="text-xl">ใช้จ่ายจริง</h2>
+        <h2 className="flex items-center gap-1 text-xl">ใช้จ่ายจริง <HelpButton>ค่าวิทยากรไม่ต้องบันทึก ระบบตัดงบจากรอบเบิกที่อนุมัติ รุ่นที่ปิดแล้วยังบันทึกรายจ่ายจริงและคืนเงินเหลือได้ แต่แก้งบที่ตั้งไว้ไม่ได้</HelpButton></h2>
         <div>
           <h3 className="font-semibold">ค่าตอบแทนวิทยากร (จากรอบเบิกที่อนุมัติแล้ว — ตัดงบอัตโนมัติ)</h3>
           {batches.length === 0 ? <p className="text-sm text-muted">ยังไม่มีรอบเบิกที่อนุมัติ (รอบร่างยังไม่ตัดงบ)</p> : (

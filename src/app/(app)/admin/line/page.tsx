@@ -28,7 +28,7 @@ export default async function LinePage() {
   return (
     <div className="max-w-4xl space-y-5">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "LINE" }]} />
-      <PageHeader en="LINE Notify" title="แจ้งตารางสอนทาง LINE" help="ส่งถึงทุกคนที่เพิ่มเพื่อน LINE OA ของหน่วยงาน ข้อความไม่มีข้อมูลผู้ต้องขังทุกกรณี" />
+      <PageHeader en="LINE Notify" title="แจ้งตารางสอนทาง LINE" help="ส่งถึงทุกคนที่เพิ่มเพื่อน LINE OA ของหน่วยงาน ข้อความไม่มีข้อมูลผู้ต้องขังทุกกรณี หากส่งไม่สำเร็จ ใช้ปุ่มคัดลอกข้อความเพื่อส่งในกลุ่ม LINE ระบบเชื่อมต่อออกเฉพาะ api.line.me" />
       {mode.live
         ? <Alert tone="ok">พร้อมส่งจริง</Alert>
         : <Alert tone="warn"><b>โหมดทดลอง</b> — {mode.reason} · บันทึกข้อความในประวัติ ไม่ส่งจริง</Alert>}

@@ -17,7 +17,7 @@ export default async function RatesPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "อัตราค่าตอบแทน" }]} />
-      <PageHeader en="Rates" title="อัตราค่าตอบแทนวิทยากร" help="ตั้งปีละครั้ง ค่าตอบแทนแต่ละคาบใช้อัตราที่มีผล ณ ปีงบของวันสอน การแก้อัตราภายหลังไม่กระทบคาบที่อนุมัติแล้ว" />
+      <PageHeader en="Rates" title="อัตราค่าตอบแทนวิทยากร" help="ตั้งปีละครั้ง ค่าตอบแทนแต่ละคาบใช้อัตราที่มีผล ณ ปีงบของวันสอน การแก้อัตราภายหลังไม่กระทบคาบที่อนุมัติแล้ว จำนวนวิทยากรที่เบิกได้ต่อคาบเป็นค่าตัวอย่างตามระเบียบค่าใช้จ่ายในการฝึกอบรม ควรให้การเงินตรวจ ระบบเตือนเมื่อเกิน" />
       {samples.length > 0 && <Alert tone="warn">ยังมีอัตราตัวอย่าง {samples.length} รายการ ({samples.map((r) => r.name).join(", ")}) — แก้เป็นอัตราจริงของหน่วยงานก่อนเริ่มเบิกจ่าย</Alert>}
       <RatesEditor fy={currentFiscalYear()} rates={rates.map((r) => ({ id: r.id, name: r.name, kind: r.kind as "internal", externalType: r.externalType, perHourBaht: r.perHourSatang / 100, dailyCapBaht: r.dailyCapSatang == null ? null : r.dailyCapSatang / 100, fromFiscalYear: r.fromFiscalYear, active: r.active, isSample: r.isSample, note: r.note }))} />
       <PaySettingsForm

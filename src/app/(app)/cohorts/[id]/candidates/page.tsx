@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePage } from "@/lib/auth/session";
@@ -24,7 +25,7 @@ export default async function CandidatesPage({ params, searchParams }: PageProps
   const canRegister = row.cohort.status !== "closed";
   return (
     <div className="space-y-4">
-      <Alert tone="info">วันพ้นโทษเป็นค่าประมาณ (วันรับตัว + กำหนดโทษ) กรุณาตรวจกับทะเบียนก่อนคัดเลือก</Alert>
+      <Alert tone="info">วันพ้นโทษเป็นค่าประมาณ (วันรับตัว + กำหนดโทษ) กรุณาตรวจกับทะเบียนก่อนคัดเลือก <HelpButton>รายชื่อนี้คือผู้ที่ผ่านหลักสูตร 12 วันหรือชุมชนบำบัดแล้ว ยังไม่เคยเข้าหลักสูตร 3 วัน และยังไม่ออกจากเรือนจำ วันพ้นโทษโดยประมาณไม่รวมพักโทษหรือลดวันต้องโทษ</HelpButton></Alert>
       <div className="flex flex-wrap gap-2">
         {([["6", "เหลือโทษ ≤ 6 เดือน"], ["12", "≤ 1 ปี"], ["all", "ทั้งหมด"]] as const).map(([v, l]) => (
           <Link key={v} href={`?within=${v}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${(within == null ? "all" : String(within)) === v ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{l}</Link>

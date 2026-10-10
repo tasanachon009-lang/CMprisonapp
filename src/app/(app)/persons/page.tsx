@@ -16,7 +16,7 @@ export default async function PersonsPage({ searchParams }: PageProps<"/persons"
   return (
     <div className="max-w-4xl">
       <Breadcrumb items={[{ label: "ค้นหาบุคคล" }]} />
-      <PageHeader en="People Search" title="ค้นหาบุคคล" subtitle="ค้นด้วยชื่อ นามสกุล หรือเลขประจำตัว" />
+      <PageHeader en="People Search" title="ค้นหาบุคคล" subtitle="ค้นด้วยชื่อ นามสกุล หรือเลขประจำตัว" help="พิมพ์อย่างน้อย 2–3 ตัวอักษร กดปุ่ม / จากหน้าใดก็ได้เพื่อเปิดหน้าค้นหา" />
       <SearchBox initial={q} autoFocus={sp.focus === "1" || !q} />
       <div className="mt-6 space-y-2">
         {q && results.length === 0 && <EmptyState title={`ไม่พบ "${q}"`}>ค้นด้วยชื่อหรือบางส่วนของเลขประจำตัว</EmptyState>}

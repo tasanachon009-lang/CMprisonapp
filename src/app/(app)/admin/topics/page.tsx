@@ -24,7 +24,7 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "คลังหัวข้อ" }]} />
-      <PageHeader en="Topic Library" title="คลังหัวข้อ" help="กำหนดชั่วโมงมาตรฐาน ลักษณะกิจกรรม ผู้รับผิดชอบ การเบิก อัตรา และวิธีแบ่งค่าตอบแทน ใช้กับทุกรุ่นของหลักสูตร ประเภท “ทั้งทีม” จะใส่เจ้าหน้าที่หลักทุกคนเมื่อสร้างรุ่น และค่าเริ่มต้นไม่เบิก" />
+      <PageHeader en="Topic Library" title="คลังหัวข้อ" help="กำหนดชั่วโมงมาตรฐาน ลักษณะกิจกรรม ผู้รับผิดชอบ การเบิก อัตรา และวิธีแบ่งค่าตอบแทน ใช้กับทุกรุ่นของหลักสูตร ประเภท “ทั้งทีม” จะใส่เจ้าหน้าที่หลักทุกคนเมื่อสร้างรุ่น และค่าเริ่มต้นไม่เบิก หัวข้อนำเข้าจากคู่มือหลักสูตร ควรตรวจแก้ให้ตรงคู่มือ ข้อความสำเร็จรูป “มีเหตุการณ์ต้องแจ้งเวร” และเหตุผล “อื่นๆ” มีให้เสมอ" />
       <div className="flex flex-wrap gap-2">
         {courses.map((c) => (
           <Link key={c.id} href={`?course=${c.code}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${c.id === course.id ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{c.shortName}</Link>

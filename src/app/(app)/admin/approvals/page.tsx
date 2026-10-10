@@ -22,7 +22,7 @@ export default async function ApprovalsPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "ยืนยัน 2 คน" }]} />
-      <PageHeader en="Two-Person Approval" title="การกระทำที่ต้องยืนยัน 2 คน" help="ใช้กับการกู้คืนข้อมูล ลบข้อมูลถาวร และเปลี่ยนสิทธิ์ผู้ดูแล ผู้ขอและผู้ยืนยันต้องเป็นคนละคน ไม่สามารถมอบอำนาจได้" />
+      <PageHeader en="Two-Person Approval" title="การกระทำที่ต้องยืนยัน 2 คน" help="ใช้กับการกู้คืนข้อมูล ลบข้อมูลถาวร และเปลี่ยนสิทธิ์ผู้ดูแล ผู้ขอและผู้ยืนยันต้องเป็นคนละคน ไม่สามารถมอบอำนาจได้ รหัสฉุกเฉินใช้ยืนยันแทนผู้ดูแลระบบอีกคนในกรณีจำเป็น ใช้ได้ครั้งเดียวแล้วต้องสร้างใหม่ ให้พิมพ์เก็บในซองปิดผนึก" />
       {!emergencySet && <Alert tone="danger">ยังไม่มีรหัสฉุกเฉิน{usedAt ? ` (ถูกใช้ไปเมื่อ ${formatThaiDateTime(usedAt)})` : ""} — กรุณาสร้างใหม่และพิมพ์ใส่ซองปิดผนึก</Alert>}
       <section className="space-y-3">
         {rows.length === 0 && <EmptyState title="ยังไม่มีคำขอ" />}

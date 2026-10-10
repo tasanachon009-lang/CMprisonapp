@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cohortOfEnrollment } from "@/lib/auth/access";
@@ -101,7 +102,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
       </section>
 
       <section className="card">
-        <h2 className="text-xl">แบบประเมิน</h2>
+        <h2 className="flex items-center gap-1 text-xl">แบบประเมิน <HelpButton>แสดงเฉพาะผลของการลงทะเบียนครั้งนี้ คะแนนจากการต้องโทษรอบก่อนไม่ถูกนำมาใช้เป็นค่าก่อน/หลัง</HelpButton></h2>
         <p className="text-sm text-muted">เฉพาะการลงทะเบียนครั้งนี้</p>
         <div className="mt-3 overflow-x-auto">
           <table className="table-plain">
@@ -165,7 +166,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
       {(course.requiresBst || bst.followups.length > 0) && canBstView && (
         <section className="card">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl">บสต. และการติดตามหลังบำบัด</h2>
+            <h2 className="flex items-center gap-1 text-xl">บสต. และการติดตามหลังบำบัด <HelpButton>เมื่อบันทึกครบหลักสูตร ระบบสร้างงานจำหน่ายและกำหนดการติดตามเดือนที่ 1 3 6 12 โดยนับจากวันจำหน่าย</HelpButton></h2>
             {course.requiresBst && <ExternalIdForm enrollmentId={e.id} system="bst" current={bst.ids.find((x) => x.system === "bst")?.externalId ?? ""} canEdit={canBstEdit} />}
           </div>
           {course.requiresBst && (

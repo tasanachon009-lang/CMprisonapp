@@ -29,7 +29,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
   return (
     <div className="max-w-4xl">
       <Breadcrumb items={[...(row ? [{ href: `/cohorts/${row.cohort.id}/documents`, label: `${row.course.shortName} ${cohortLabel(row.cohort)} · เอกสาร` }] : []), { label: d.title }]} />
-      <PageHeader en="Official document" title={d.title} subtitle={DOC_KIND_LABEL[kind]}
+      <PageHeader en="Official document" title={d.title} subtitle={DOC_KIND_LABEL[kind]} help="เอกสารที่ล็อกแล้วต้องกด “ปลดล็อกเพื่อแก้ไข” ก่อนแก้ ช่อง “…………” เติมได้ในเนื้อความ หรือเติมข้อมูลของรุ่นแล้วสร้างเอกสารใหม่"
         actions={<>
           <Link href={`/print/document/${d.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์ / PDF</Link>
           <a href={`/api/documents/${d.id}/docx`} className="btn-ghost"><FileDown size={20} aria-hidden /> Word</a>

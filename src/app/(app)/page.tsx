@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { and, desc, isNull, or, eq, inArray } from "drizzle-orm";
 import { ClipboardCheck, CalendarDays, ShieldAlert, Users, HardDrive, FileCheck2, ClipboardList, Mail, HeartPulse, BadgeCheck } from "lucide-react";
@@ -38,7 +39,7 @@ export default async function HomePage() {
       <div>
         <p lang="en" className="font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">My Day</p>
         <p className="text-muted">{formatThaiDate(today, "full")}</p>
-        <h1 className="text-3xl">งานของฉันวันนี้</h1>
+        <h1 className="flex items-center gap-1 text-3xl">งานของฉันวันนี้ <HelpButton>บันทึกเช็คชื่อและผลกิจกรรมของแต่ละคาบ แล้วกด “บันทึกและปิดคาบ” ข้อมูลนี้ใช้คำนวณค่าตอบแทน วิทยากรภายนอกที่ยังไม่ยืนยัน ให้ส่งหนังสือหรือโทรยืนยัน แล้วเปลี่ยนสถานะที่ตารางของรุ่น</HelpButton></h1>
         {auth.can("course.view") && <div className="mt-3"><LastCohortLink /></div>}
       </div>
 

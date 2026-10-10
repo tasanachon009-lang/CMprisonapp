@@ -91,3 +91,7 @@ public/dev-preview/
 *.zip
 *.7z
 *.rar
+
+# ภาพหน้าจอจาก npm run screenshots (ถ่ายใหม่ได้ทุกเมื่อ ไฟล์ใหญ่) — เก็บเฉพาะ README
+/docs/screenshots/*
+!/docs/screenshots/README.md

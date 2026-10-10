@@ -70,7 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <p className="text-xs text-muted">{u.titleLabel ?? PROFESSIONS[u.profession]}</p>
               </div>
               <form action={switchUser}>
-                <button className="ml-1 inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm hover:bg-lime-soft" title="สลับผู้ใช้">
+                <button className="ml-1 inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 text-sm hover:bg-lime-soft" title="สลับผู้ใช้">
                   <Repeat size={18} aria-hidden /> <span className="hidden sm:inline">สลับผู้ใช้</span>
                 </button>
               </form>

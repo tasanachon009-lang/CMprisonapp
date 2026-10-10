@@ -153,7 +153,7 @@ export function LookupEditor({ category, title, items }: { category: string; tit
       <ul className="flex flex-wrap gap-2">
         {items.map((i) => (
           <li key={i.code}>
-            <button title={i.active ? "กดเพื่อปิดใช้" : "กดเพื่อเปิดใช้"} className={i.active ? "tag-navy" : "tag-muted line-through"} onClick={() => run(() => saveLookup(category, i.code, i.label, !i.active))}>{i.label}</button>
+            <button title={i.active ? "กดเพื่อปิดใช้" : "กดเพื่อเปิดใช้"} className={`min-h-11 px-4 ${i.active ? "tag-navy" : "tag-muted line-through"}`} onClick={() => run(() => saveLookup(category, i.code, i.label, !i.active))}>{i.label}</button>
           </li>
         ))}
       </ul>

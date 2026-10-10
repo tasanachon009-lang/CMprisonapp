@@ -23,7 +23,7 @@ export default async function ImportPage({ searchParams }: PageProps<"/import">)
       <Breadcrumb items={[{ label: "นำเข้า Excel" }]} />
       <PageHeader
         en="Import" title="นำเข้ารายชื่อจาก Excel"
-        help="ใช้ลงทะเบียนจำนวนมาก หรือนำเข้ารุ่นเก่าย้อนหลังพร้อมสถานะ ระบบตรวจกฎกันซ้ำทุกแถวก่อนนำเข้า"
+        help="ใช้ลงทะเบียนจำนวนมาก หรือนำเข้ารุ่นเก่าย้อนหลังพร้อมสถานะ ระบบตรวจกฎกันซ้ำทุกแถวก่อนนำเข้า แถวที่ไม่ผ่านดาวน์โหลดไปแก้แล้วนำเข้าใหม่ได้ แถว “กำลังอบรม” ที่ยังไม่ลงนามยินยอมจะนำเข้าเป็นร่าง"
         actions={<a href="/api/import/template" className="btn-secondary"><Download size={20} aria-hidden /> ดาวน์โหลดแม่แบบ Excel</a>}
       />
       <ImportForm

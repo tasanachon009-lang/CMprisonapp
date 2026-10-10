@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePage } from "@/lib/auth/session";
@@ -25,7 +26,7 @@ export default async function CohortDocuments({ params }: PageProps<"/cohorts/[i
   const names = userNameMap(db);
   return (
     <div className="space-y-6">
-      <Alert tone="info">แม่แบบเป็นร่างตามรูปแบบหนังสือราชการ กรุณาตรวจและแก้ข้อความก่อนพิมพ์</Alert>
+      <Alert tone="info">แม่แบบเป็นร่างตามรูปแบบหนังสือราชการ กรุณาตรวจและแก้ข้อความก่อนพิมพ์ <HelpButton>เอกสารสร้างจากแม่แบบและเติมข้อมูลของรุ่นให้ แก้ข้อความได้ก่อนพิมพ์ เมื่อใช้จริงแล้วให้ล็อกเป็นฉบับจริง</HelpButton></Alert>
       {canManage && (
         <section className="card">
           <h2 className="text-xl">สร้างเอกสารใหม่</h2>

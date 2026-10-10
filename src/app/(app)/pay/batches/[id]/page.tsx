@@ -32,7 +32,7 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
   return (
     <div className="space-y-5">
       <Breadcrumb items={[{ href: "/pay", label: "ค่าตอบแทน" }, { href: "/pay?tab=batches", label: "รอบเบิก" }, { label: `${c.course.shortName} ${cohortLabel(c.c)}` }]} />
-      <PageHeader en="Pay Batch" title={`รอบเบิก ${c.course.shortName} ${cohortLabel(c.c)}`} subtitle={`${formatThaiDate(b.dateFrom)} – ${formatThaiDate(b.dateTo)}${b.note ? ` · ${b.note}` : ""}`} />
+      <PageHeader en="Pay Batch" title={`รอบเบิก ${c.course.shortName} ${cohortLabel(c.c)}`} subtitle={`${formatThaiDate(b.dateFrom)} – ${formatThaiDate(b.dateTo)}${b.note ? ` · ${b.note}` : ""}`} help="หากข้อมูลเปลี่ยนหลังอนุมัติ ต้องปลดล็อกแล้วอนุมัติใหม่ และพิมพ์เอกสารใหม่ให้ลงนามใหม่ ชื่อหน่วยงานและ “เรียน” ในเอกสารใช้ค่าจากตั้งค่าระบบ" />
       <div className="flex flex-wrap items-center gap-3">
         <span className={b.status === "approved" ? "tag-ok" : b.status === "cancelled" ? "tag-muted" : "tag-warn"}>{BATCH_STATUS_LABEL[b.status]}</span>
         {b.approvedAt && <span className="text-sm text-muted">อนุมัติโดย {names.get(b.approvedBy ?? 0)} เมื่อ {formatThaiDateTime(b.approvedAt)}{viaRow ? ` (อนุมัติแทน — มอบอำนาจโดย ${names.get(viaRow.fromUserId)})` : ""}</span>}

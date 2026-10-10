@@ -1,5 +1,6 @@
 "use client";
 
+import { HelpButton } from "@/components/help-button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Replace, GripVertical } from "lucide-react";
@@ -72,7 +73,7 @@ export function ReplaceStaffButton({ cohortId, people, dateFrom, dateTo }: { coh
               <div><span className="label">ถึง</span><ThaiDateInput value={f.dateTo} onChange={(v) => setF({ ...f, dateTo: v })} /></div>
               <label className="sm:col-span-2"><span className="label">ขอบเขต</span><select className="input" value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value as "cohort" })}><option value="cohort">เฉพาะรุ่นนี้</option><option value="all">ทุกรุ่นทุกหลักสูตร</option></select></label>
             </div>
-            <p className="hint">ไม่เปลี่ยนคาบที่ล็อก ยกเลิก หรือรุ่นที่ปิดแล้ว</p>
+            <p className="hint">ไม่เปลี่ยนคาบที่ล็อก ยกเลิก หรือรุ่นที่ปิดแล้ว <HelpButton>ถ้าคนใหม่อยู่ในคาบแล้ว จะเอาคนเดิมออกอย่างเดียว คาบที่คนใหม่สอนซ้อนเวลาจะแจ้งให้ตรวจ</HelpButton></p>
             {result && <Alert tone={result.tone}><p>{result.text}</p>{result.lines.length > 0 && <ul className="mt-1 list-disc pl-5 text-sm">{result.lines.slice(0, 10).map((l) => <li key={l}>{l}</li>)}</ul>}</Alert>}
             <button className="btn-primary" disabled={pending || !f.from || !f.to} onClick={() => start(async () => {
               const r = await replaceStaffAction({ from: person(f.from), to: person(f.to), dateFrom: f.dateFrom, dateTo: f.dateTo, cohortId: f.scope === "cohort" ? cohortId : null });
@@ -106,7 +107,7 @@ export function WeekBoard({ cohortId, days, cards, editable }: { cohortId: numbe
   });
   return (
     <div className="space-y-2">
-      {editable && <p className="hint">ลากการ์ดคาบไปวางวันอื่นเพื่อย้าย หรือใช้ปุ่ม &quot;แก้คาบ / วิทยากร&quot;</p>}
+      {editable && <p className="hint">ลากการ์ดคาบไปวางวันอื่นเพื่อย้าย หรือใช้ปุ่ม &quot;แก้คาบ / วิทยากร&quot; <HelpButton>ลากการ์ดคาบโดยจับที่ไอคอน ⋮⋮ บนแท็บเล็ตใช้แท็บ “รายละเอียดคาบ” เปลี่ยนวันที่แทนการลาก แก้เวลาและสถานที่ที่ปุ่ม “แก้คาบ / วิทยากร” คาบที่เช็คชื่อแล้วแก้เวลา/สถานที่ได้ แต่ย้ายวันไม่ได้</HelpButton></p>}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(180px, 1fr))`, overflowX: "auto" }}>
         {days.map((d) => (

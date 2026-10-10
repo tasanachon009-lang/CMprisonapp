@@ -212,15 +212,18 @@ export function RegisterWizard(props: {
       )}
 
       {/* แถบขั้นตอน */}
-      <ol className="flex flex-wrap gap-2" aria-label="ขั้นตอน">
+      {/* เส้นเชื่อมวาดในช่องว่างด้านซ้ายของแต่ละขั้น — ขั้นแรกของบรรทัดใหม่ เส้นจะอยู่นอกขอบซ้ายและถูกตัดออก */}
+      <ol className="-ml-1 flex flex-wrap items-center gap-x-5 gap-y-2 overflow-x-clip pl-1" aria-label="ขั้นตอน">
         {STEPS.map((s, i) => (
-          <li key={s}>
+          <li key={s} className="relative">
+            {i > 0 && <span aria-hidden className={`absolute -left-4 top-1/2 h-0.5 w-3 -translate-y-1/2 rounded ${i <= step ? "bg-navy" : "bg-line"}`} />}
             <button
-              type="button" disabled={i > step && !canNext()} onClick={() => i <= step && setStep(i)}
-              className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${i === step ? "bg-ink text-white" : i < step ? "bg-lime text-ink" : "border border-line bg-white text-muted"}`}
+              type="button" disabled={i > step} onClick={() => setStep(i)}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-full py-1 pl-1 pr-3 font-semibold ${i === step ? "bg-navy text-white" : i < step ? "bg-lime text-ink hover:bg-lime-soft" : "border border-line bg-white text-muted"}`}
               aria-current={i === step ? "step" : undefined}
             >
-              <span>{i + 1}</span> {s}
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-display ${i === step ? "border-white bg-white text-navy" : i < step ? "border-navy bg-navy text-white" : "border-line bg-cream text-muted"}`}>{i + 1}</span>
+              {s}
             </button>
           </li>
         ))}

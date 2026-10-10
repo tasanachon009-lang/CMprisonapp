@@ -30,7 +30,7 @@ export default async function ReleasePage() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "บันทึกออกจากเรือนจำ" }]} />
-      <PageHeader en="Release Records" title="บันทึกออกจากเรือนจำ" help="บันทึกเมื่อทราบว่าออกจากเรือนจำแล้วเท่านั้น ระบบปรับสถานะการอบรมและการเช็คชื่ออัตโนมัติ" />
+      <PageHeader en="Release Records" title="บันทึกออกจากเรือนจำ" help="บันทึกเมื่อทราบว่าออกจากเรือนจำแล้วเท่านั้น ระบบปรับสถานะการอบรมและการเช็คชื่ออัตโนมัติ ยกเลิกรายการภายหลังได้ ระบบคืนสถานะเดิม" />
       {canEdit && <ReleaseForm reasons={reasons} today={todayISO()} />}
       <section className="card">
         <h2 className="text-xl">รายการล่าสุด</h2>

@@ -1,3 +1,4 @@
+import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Printer } from "lucide-react";
@@ -76,7 +77,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-muted">{course.shortName} {cohortLabel(cohort)} · วันที่ {session.dayNo ?? "-"} ของหลักสูตร{nth > 0 ? ` · ครั้งที่ ${nth}/${allSessions.length}` : ""}</p>
-          <h1 className="text-3xl">{session.title}</h1>
+          <h1 className="flex items-center gap-1 text-3xl">{session.title} <HelpButton>เช็คชื่อและบันทึกผลได้ตั้งแต่เวลาเริ่มคาบ ผู้ที่ไม่อยู่ในรายชื่อผู้สอนบันทึกได้เป็น “บันทึกแทนผู้สอน” เปลี่ยนตัวผู้สอนที่ตารางของรุ่น ค่าตอบแทนคิดจากการสอนจริง คาบชดเชยนับเฉพาะผู้ที่ติดเหตุราชทัณฑ์ คาบที่ยกเลิกไม่ต้องเช็คชื่อ</HelpButton></h1>
           <p className="text-muted">{formatThaiDate(session.date, "full")} · {session.startTime}–{session.endTime} น. ({session.hours} ชม.){session.location ? ` · ${session.location}` : ""}</p>
           <p className="mt-1">วิทยากร: {staff.length ? staff.map((x) => `${staffName(x)}${x.userId ? "" : " (ภายนอก)"}${x.role ? ` – ${STAFF_ROLE_LABEL[x.role]}` : ""}`).join(", ") : <span className="text-muted">ยังไม่ระบุ</span>}</p>
         </div>

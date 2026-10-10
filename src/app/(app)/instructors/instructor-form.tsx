@@ -149,9 +149,9 @@ export function InstructorForm({ id, initial, version, users, canSensitive, toda
 
       <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-line bg-cream/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-3">
-          <span className="mr-auto">
-            {ready.ready ? <span className="tag-ok">พร้อมเบิก</span> : <span className="tag-danger">ข้อมูลไม่ครบ: ขาด{ready.missing.join(", ")}</span>}
-            {problem && <span className="ml-2 text-sm text-danger">{problem}</span>}
+          <span className="mr-auto min-w-0 flex-1 basis-64">
+            {ready.ready ? <span className="tag-ok">พร้อมเบิก</span> : <span className="text-sm font-semibold text-danger">ข้อมูลไม่ครบ: ขาด{ready.missing.join(", ")}</span>}
+            {problem && <span className="block text-sm text-danger">{problem}</span>}
           </span>
           {msg && <span className={msg.tone === "ok" ? "tag-ok" : "text-sm text-danger"}>{msg.text}</span>}
           <button className="btn-primary" disabled={pending} onClick={save}><Save size={20} aria-hidden /> {pending ? "กำลังบันทึก..." : "บันทึก"}</button>

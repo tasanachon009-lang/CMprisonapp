@@ -35,7 +35,7 @@ export default async function BstPage({ searchParams }: PageProps<"/bst">) {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "งาน บสต." }]} />
-      <PageHeader en="BST Records" title="งาน บสต. และการติดตามหลังบำบัด" help="กด “ลง บสต. แล้ว” หลังลงข้อมูลในระบบ บสต. ระบบจะเตือนจนกว่าจะบันทึก" actions={<Link href={`/print/bst?s=bst&f=${filter}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์เช็คลิสต์ค้างลง</Link>} />
+      <PageHeader en="BST Records" title="งาน บสต. และการติดตามหลังบำบัด" help="กด “ลง บสต. แล้ว” หลังลงข้อมูลในระบบ บสต. ระบบจะเตือนจนกว่าจะบันทึก ผลการติดตามบันทึกในแฟ้มของแต่ละคน" actions={<Link href={`/print/bst?s=bst&f=${filter}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์เช็คลิสต์ค้างลง</Link>} />
 
       <section className="card grid grid-cols-3 gap-2">
         <Stat value={counts.today} label="ครบกำหนดวันนี้" href={`?f=today&fy=${fy}`} />

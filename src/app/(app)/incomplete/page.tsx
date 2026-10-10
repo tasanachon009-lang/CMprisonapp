@@ -23,7 +23,7 @@ export default async function IncompletePage() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "ข้อมูลที่ยังไม่ครบ" }]} />
-      <PageHeader en="Data Completeness" title="ข้อมูลที่ยังไม่ครบ" subtitle={`รวม ${total} รายการ (รุ่นที่ยังไม่ปิด)`} />
+      <PageHeader en="Data Completeness" title="ข้อมูลที่ยังไม่ครบ" subtitle={`รวม ${total} รายการ (รุ่นที่ยังไม่ปิด)`} help="ข้อมูลที่ไม่บังคับตอนลงทะเบียนและยังไม่ได้กรอก จะแสดงที่หน้านี้" />
       {d.cohortsToClose.length > 0 && (
         <section className="card">
           <h2 className="text-xl">รุ่นที่อบรมครบแล้วแต่ยังไม่ปิด</h2>

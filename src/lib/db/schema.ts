@@ -393,6 +393,8 @@ export const courses = sqliteTable("courses", {
   shortName: text("short_name").notNull(),
   description: text("description"),
   durationDays: integer("duration_days").notNull(),
+  /** หลักสูตรที่นับเป็นสัปดาห์ตามปฏิทิน (ชุมชนบำบัด 24 สัปดาห์): วันที่ n ของแม่แบบ = (สัปดาห์−1)×5 + วันจันทร์…ศุกร์ · วันหยุดราชการ = ไม่มีคาบ (ไม่เลื่อนสัปดาห์) */
+  durationWeeks: integer("duration_weeks"),
   /** ปฏิทินนับเฉพาะวันทำการ (ข้ามวันหยุด) หรือนับทุกวัน */
   skipHolidays: integer("skip_holidays", { mode: "boolean" }).notNull().default(true),
   skipWeekends: integer("skip_weekends", { mode: "boolean" }).notNull().default(true),
@@ -1320,6 +1322,26 @@ export const shiftMessageAcks = sqliteTable(
 );
 
 // ───────── บันทึกพฤติกรรมด่วน (สเปก 22B) ─────────
+
+/**
+ * ระยะการบำบัดของสมาชิกชุมชนบำบัด FAST (สเปก 16: 5 ระยะ) — 1 แถวต่อการเข้าระยะ
+ * ระยะตามปฏิทินคำนวณจากสัปดาห์ของรุ่น · ระยะจริงของแต่ละคนเลื่อนได้เมื่อมีผู้อนุมัติ (แถวในตารางนี้)
+ */
+export const phaseRecords = sqliteTable(
+  "phase_records",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    /** entry | rehab | reentry | halfway | aftercare */
+    phase: text("phase").notNull(),
+    startDate: text("start_date").notNull(),
+    approvedBy: integer("approved_by"),
+    /** ผลการประเมิน/เหตุผลประกอบการเลื่อนระยะ */
+    note: text("note"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("phase_records_unique").on(t.enrollmentId, t.phase).where(sql`deleted_at IS NULL`), index("phase_records_enr_idx").on(t.enrollmentId)],
+);
 
 export const behaviorNotes = sqliteTable(
   "behavior_notes",

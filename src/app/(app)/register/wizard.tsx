@@ -1,5 +1,6 @@
 "use client";
 
+import { autoCriteriaGaps } from "@/lib/rules/intake-criteria";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Search, ShieldAlert, UserPlus } from "lucide-react";
@@ -19,6 +20,8 @@ type Criteria = {
   screeningMin?: number; screeningMax?: number; screeningLabel?: string; exclusions?: Opt2[];
   /** สเปก 17 (3 วัน): บังคับเลขบัตร · ติ๊กยืนยัน · ประวัติยาเสพติด V.2 · ป้าย "ควรพิจารณาก่อน" */
   requireNationalId?: boolean; confirmations?: Array<Opt2 & { required?: boolean }>; drugClassLabel?: string; drugClasses?: Opt2[]; priorityFlags?: Opt2[];
+  /** สเปก 16 (ชุมชนบำบัด): อายุและชั้นนักโทษ — ระบบตรวจจากข้อมูลที่กรอก */
+  minAge?: number; maxAge?: number; prisonerClasses?: string[]; prisonerClassLabel?: string;
 } | null;
 type Opt = { code: string; label: string };
 
@@ -136,6 +139,7 @@ export function RegisterWizard(props: {
   };
 
   // สเปก 17: ต้องมีเลขบัตร + ติ๊กยืนยันที่บังคับครบ ก่อน "ยืนยันรับเข้า"
+  const autoGaps = autoCriteriaGaps(criteria, { birthDate: f.birthDate || person?.birthDate || null, prisonerClass: f.prisonerClass || null }, today);
   const needNid = !!criteria?.requireNationalId && !person?.hasNationalId && !isValidNationalId(f.nationalId);
   const missingConfirm = (criteria?.confirmations ?? []).filter((c) => c.required && !f.confirmations.includes(c.code));
   const priority = (f.priorityFlags.length > 0) && f.priorTreatment === "ไม่เคยบำบัด";
@@ -398,6 +402,8 @@ export function RegisterWizard(props: {
 
         {step === 4 && (
           <div className="space-y-4">
+            {autoGaps.length > 0 && <Alert tone="warn">{autoGaps.map((g) => <p key={g}>{g}</p>)}<p className="text-sm">บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p></Alert>}
+            {criteria && (criteria.minAge != null || criteria.prisonerClasses?.length) && autoGaps.length === 0 && <Alert tone="ok">ผ่านเกณฑ์{criteria.minAge != null ? ` อายุ ${criteria.minAge}–${criteria.maxAge} ปี` : ""}{criteria.prisonerClasses?.length ? ` · ${criteria.prisonerClassLabel ?? "ชั้นนักโทษ"}` : ""}</Alert>}
             {criteria?.requireNationalId && (person?.hasNationalId ? <Alert tone="ok">มีเลขบัตรประชาชนในระบบแล้ว (หลักสูตรนี้บังคับ)</Alert> : (
               <div>
                 <label htmlFor="nid2" className="label">เลขบัตรประชาชน <span className="text-danger">* บังคับสำหรับหลักสูตรนี้</span></label>

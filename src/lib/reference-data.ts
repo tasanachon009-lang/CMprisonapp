@@ -3,6 +3,8 @@
  * ทุกค่าแก้ได้ภายหลังในหน้าตั้งค่า
  */
 
+import { fastTotalHours, FAST_WEEK_BLOCKS } from "./fast/template";
+
 /** สเปก 17: เกณฑ์คัดเลือกหลักสูตรฟื้นฟูก่อนพ้นโทษ 3 วัน */
 export const PRE3_CRITERIA = {
   /** ต้องมีเลขบัตรประชาชน (บังคับก่อนยืนยันรับเข้า) */
@@ -17,6 +19,28 @@ export const PRE3_CRITERIA = {
   priorityFlags: [{ code: "parole_eligible", label: "เข้าเกณฑ์พักการลงโทษ/ลดวันต้องโทษ" }],
   /** วิทยากร 1 คนต่อผู้ต้องขัง 50 คน (เตือนเมื่อเกิน) */
   peoplePerSpeaker: 50,
+};
+
+/**
+ * สเปก 16: เกณฑ์รับเข้าชุมชนบำบัด FAST — นักโทษชั้นกลางขึ้นไป · อายุ 18–60 (คำนวณจากวันเกิด) ·
+ * ไม่มีโรคแทรกซ้อนที่เป็นอุปสรรค · เงื่อนไขกำหนดโทษ (ตั้งค่าได้) · สมัครใจ
+ */
+export const FAST_CRITERIA = {
+  minAge: 18,
+  maxAge: 60,
+  prisonerClasses: ["medium", "good", "very_good", "excellent"],
+  prisonerClassLabel: "นักโทษชั้นกลางขึ้นไป",
+  confirmations: [
+    { code: "sentence_condition", label: "กำหนดโทษและโทษที่เหลือเข้าเงื่อนไขของโปรแกรม (เหลือโทษเพียงพอสำหรับ 6 เดือน)", required: true },
+    { code: "voluntary", label: "สมัครใจเข้ารับการฟื้นฟูในรูปแบบชุมชนบำบัด", required: true },
+  ],
+  exclusions: [
+    { code: "psych", label: "มีปัญหาจิตเวชที่เป็นอุปสรรคต่อการเข้าร่วม" },
+    { code: "physical", label: "มีโรคแทรกซ้อนทางกายที่เป็นอุปสรรคต่อการเข้าร่วม" },
+  ],
+  /** อัตราส่วนตามสเปก 16: เจ้าหน้าที่ 1:10–15 · อส.รจ. (พี่เลี้ยง) 1:10 — เตือนเมื่อเกิน */
+  membersPerStaff: 15,
+  membersPerMentor: 10,
 };
 
 export const COURSES = [
@@ -52,16 +76,18 @@ export const COURSES = [
     name: "ชุมชนบำบัด FAST Model 6 เดือน",
     shortName: "ชุมชนบำบัด",
     description: "ชุมชนบำบัด FAST Model 24 สัปดาห์",
-    durationDays: 168,
-    totalHours: 0,
+    // 24 สัปดาห์ × จันทร์–ศุกร์ = 120 วันกิจกรรม (นับเป็นสัปดาห์ตามปฏิทิน ดู planDayMap)
+    durationDays: 120,
+    durationWeeks: 24,
+    totalHours: fastTotalHours(),
     passAttendancePct: 80,
     requiresBst: true,
     requiresRt101: true,
     requiresFollowup: true,
-    enabled: false, // เปิดในขั้น 5
+    enabled: true, // เปิดในขั้น 5
     color: "#2E8B57",
     sortOrder: 2,
-    intakeCriteria: null,
+    intakeCriteria: FAST_CRITERIA,
   },
   {
     code: "PRE3",
@@ -173,6 +199,8 @@ export const TOPIC_SEEDS: Record<string, TopicSeed[]> = {
       "การป้องกันการเสพซ้ำ", "ความไว้วางใจ", "ทักษะการสื่อสาร", "การปฏิเสธ", "แรงจูงใจใฝ่สัมฤทธิ์", "การแก้ปัญหา", "การตั้งเป้าหมาย"]
       .map((name): TopicSeed => ({ name, category: "การเรียนรู้แบบมีส่วนร่วม", activityType: "group", maxStaff: 2 })),
     { name: "กิจกรรมครอบครัว", category: "ครอบครัว", activityType: "group", maxStaff: 2 },
+    team("ประเมินก่อนจบโปรแกรม"),
+    ...Array.from(new Set(FAST_WEEK_BLOCKS.map((b) => b.activity))).map((name): TopicSeed => ({ name, category: "กิจกรรมประจำวัน", activityType: "group", maxStaff: 2 })),
   ],
 };
 /**

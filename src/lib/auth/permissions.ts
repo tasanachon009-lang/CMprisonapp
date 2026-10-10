@@ -60,6 +60,11 @@ export const PERMISSIONS = {
   "docs.view": "ดู/พิมพ์เอกสารราชการของรุ่น",
   "docs.manage": "สร้าง/แก้เอกสารราชการของรุ่น",
   "docs.templates": "แก้แม่แบบเอกสารราชการ",
+  // ขั้น 5: ชุมชนบำบัด FAST
+  "tc.view": "ดูข้อมูลชุมชนบำบัด (ระยะ ตำแหน่ง ทีม เครื่องมือบ้าน)",
+  "tc.edit": "บันทึกข้อมูลชุมชนบำบัด",
+  "tc.approve": "อนุมัติเลื่อนระยะการบำบัด",
+  "tc.summary": "ดูสรุปชุมชนบำบัด (ไม่ระบุชื่อ)",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -80,20 +85,21 @@ export type Role = keyof typeof ROLES;
 const ALL = Object.keys(PERMISSIONS) as Permission[];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  admin: ALL.filter((p) => p !== "roster.view" && p !== "attendance.edit_own"),
+  admin: ALL.filter((p) => p !== "roster.view" && p !== "attendance.edit_own" && p !== "tc.summary"),
   rehab: [
     "course.view", "registry.view", "registry.edit", "registry.import", "national_id.view_full",
     "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "schedule.edit", "export.names", "instructors.view", "instructors.manage",
     "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use", "docs.view", "docs.manage",
+    "tc.view", "tc.edit",
   ],
-  medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
-  mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
+  medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use", "tc.view"],
+  mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use", "tc.view"],
   // กลุ่ม B: กล่องจดหมายเวรแบบจำกัด (ส่งได้ · รับเฉพาะที่ระบุถึงตน/รุ่นที่ตนสอน — services/shift.ts)
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
   // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
   // การเงิน: ทะเบียนวิทยากร (รวมข้อมูลเบิกจ่ายแบบเต็ม) และอัตราค่าตอบแทน
   finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage", "budget.view", "budget.spend", "docs.view"],
-  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "budget.view"],
+  executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "budget.view", "tc.summary"],
   warden: ["roster.view"],
 };
 

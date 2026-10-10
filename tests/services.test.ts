@@ -80,7 +80,8 @@ describe("ลงทะเบียนและกันลงซ้ำ (7.2)", (
   it("กำลังอยู่หลักสูตรอื่น → เตือน ลงได้เมื่อยืนยัน", () => {
     const cf = createCohort(db, { courseId: fast, startDate: "2026-07-06" }, 1);
     const c1 = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
-    registerEnrollment(db, input(cf.id, "F-1"), actor);
+    // ชุมชนบำบัด: ต้องผ่านเกณฑ์อายุ 18–60 ชั้นกลางขึ้นไป และติ๊กยืนยัน (สเปก 16)
+    registerEnrollment(db, input(cf.id, "F-1", { person: { firstName: "ทดสอบ", lastName: "F-1", nationalId: null, birthDate: "1990-01-01" }, incarceration: { inmateNo: "F-1", prisonerClass: "good" }, intake: { exclusions: [], confirmations: ["sentence_condition", "voluntary"] } }), actor);
     expect(() => registerEnrollment(db, input(c1.id, "F-1"), actor)).toThrow(/กำลังอยู่ในหลักสูตร/);
     expect(registerEnrollment(db, input(c1.id, "F-1", { acknowledgeWarnings: true }), actor).enrollment.status).toBe("active");
   });

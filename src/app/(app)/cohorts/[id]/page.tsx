@@ -1,3 +1,6 @@
+import { PhaseSteps } from "@/components/phase-steps";
+import { scheduledPhase, weekOf } from "@/lib/fast/phases";
+import { phaseSummary } from "@/lib/services/fast-phase";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserPlus } from "lucide-react";
@@ -40,6 +43,8 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
   const toMakeup = [...summary.values()].reduce((s, x) => s + x.needsMakeup, 0);
   const steps = usesProjectSteps(course.code) ? projectStepsView(cohort.projectSteps) : null;
 
+  const fastSummary = course.code === "FAST" && (auth.can("tc.view") || auth.can("tc.summary")) ? phaseSummary(db, cohort.id, today) : null;
+  const fastWeek = weekOf(cohort.startDate, today);
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -64,6 +69,17 @@ export default async function CohortOverview({ params }: PageProps<"/cohorts/[id
         <Stat value={counts.dropped} label="ออกก่อนกำหนด" href={`/cohorts/${cohort.id}/roster?status=dropped`} />
         <Stat value={unchecked.length} label="คาบที่ยังไม่เช็คชื่อ" tone={unchecked.length ? "warn" : undefined} href={`/cohorts/${cohort.id}/attendance`} />
       </section>
+
+      {fastSummary && (
+        <section className="card">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl">ระยะการบำบัด</h2>
+            <p className="text-muted">{fastWeek < 1 ? "ยังไม่เริ่มรุ่น" : fastWeek <= 24 ? `สัปดาห์ที่ ${fastWeek} จาก 24` : "ครบ 24 สัปดาห์แล้ว"}{fastSummary.due ? ` · ถึงกำหนดเลื่อนระยะ ${fastSummary.due} คน` : ""}</p>
+          </div>
+          <div className="mt-3"><PhaseSteps phases={fastSummary.byPhase} scheduledNo={scheduledPhase(cohort.startDate, today)?.no ?? null} week={fastWeek} /></div>
+          <p className="mt-2 text-sm"><Link className="underline" href={`/cohorts/${cohort.id}/tc`}>ดูระยะของสมาชิก</Link></p>
+        </section>
+      )}
 
       {steps && (
         <section className="card">

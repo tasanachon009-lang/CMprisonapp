@@ -1,9 +1,10 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
-import { COURSES, B12_TEMPLATE, PRE3_TEMPLATE, PRE3_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
+import { COURSES, B12_TEMPLATE, PRE3_TEMPLATE, PRE3_CRITERIA, FAST_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 import { writeAudit } from "./audit";
+import { fastTemplate, fastTotalHours } from "./fast/template";
 
 /**
  * ใส่ข้อมูลอ้างอิงเริ่มต้น (ทำซ้ำได้ ไม่ทับค่าที่ผู้ใช้แก้แล้ว)
@@ -51,11 +52,34 @@ export function bootstrapReferenceData(db: DB) {
       if (c.code === "PRE3") {
         for (const t of PRE3_TEMPLATE) tx.insert(schema.courseTemplateSessions).values({ courseId: row.id, ...t }).run();
       }
+      if (c.code === "FAST") {
+        for (const t of fastTemplate()) tx.insert(schema.courseTemplateSessions).values({ courseId: row.id, ...t }).run();
+      }
     }
     upgradeStep4(tx);
     upgradeRosenbergSplit(tx);
+    upgradeStep5(tx);
     seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * อัปเกรดครั้งเดียวสำหรับฐานข้อมูลที่ติดตั้งก่อนขั้น 5: เปิดหลักสูตรชุมชนบำบัด + นับเป็น 24 สัปดาห์ + เกณฑ์รับเข้า + แม่แบบตาราง (ถ้ายังไม่มี)
+ * ไม่ทับเกณฑ์/แม่แบบที่ผู้ดูแลตั้งไว้แล้ว · รุ่นที่สร้างไว้ก่อนหน้า (ไม่มีตาราง) ไม่ถูกแก้
+ */
+function upgradeStep5(tx: Pick<DB, "select" | "insert" | "update">) {
+  if (tx.select().from(schema.settings).where(eq(schema.settings.key, "bootstrap.step5")).get()) return;
+  const c = tx.select().from(schema.courses).where(eq(schema.courses.code, "FAST")).get();
+  if (c) {
+    tx.update(schema.courses).set({
+      enabled: true, durationWeeks: c.durationWeeks ?? 24, durationDays: 120, totalHours: c.totalHours || fastTotalHours(),
+      ...(c.intakeCriteria ? {} : { intakeCriteria: FAST_CRITERIA as unknown }),
+    }).where(eq(schema.courses.id, c.id)).run();
+    if (!tx.select().from(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).get()) {
+      for (const t of fastTemplate()) tx.insert(schema.courseTemplateSessions).values({ courseId: c.id, ...t }).run();
+    }
+  }
+  tx.insert(schema.settings).values({ key: "bootstrap.step5", value: true }).onConflictDoNothing().run();
 }
 
 /**

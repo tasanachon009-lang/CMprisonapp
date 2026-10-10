@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "../db";
 import { schema } from "../db";
-import { trainingDays, fiscalYearOf } from "../thai-date";
+import { trainingDays, fiscalYearOf, addDays, weekdayOf } from "../thai-date";
 import { writeAudit } from "../audit";
 import { ensureDutyRoster } from "./duty";
 
@@ -15,10 +15,36 @@ export function holidaySet(db: DB): Set<string> {
 
 /** วันอบรมของรุ่น (ข้ามวันหยุดตามตั้งค่าหลักสูตร) */
 export function planTrainingDays(db: DB, course: typeof schema.courses.$inferSelect, startDate: string) {
-  return trainingDays(startDate, course.durationDays, {
-    skipWeekends: course.skipWeekends,
-    holidays: course.skipHolidays ? holidaySet(db) : new Set(),
-  });
+  return planDayMap(db, course, startDate).days.filter((d): d is string => !!d);
+}
+
+/**
+ * แผนวันอบรมของรุ่น: days[n−1] = วันที่ของ "วันที่ n" ในแม่แบบ (null = ไม่มีคาบวันนั้น)
+ * - หลักสูตรนับเป็นวัน (12 วัน / 3 วัน): วันอบรมเรียงต่อกัน ข้ามวันหยุดตามตั้งค่า
+ * - หลักสูตรนับเป็นสัปดาห์ (ชุมชนบำบัด): สัปดาห์ที่ 1 = สัปดาห์ของวันเริ่ม · จันทร์–ศุกร์ · วันก่อนวันเริ่มและวันหยุดราชการ = null (สัปดาห์ไม่เลื่อน)
+ */
+export function planDayMap(db: DB, course: typeof schema.courses.$inferSelect, startDate: string): { days: Array<string | null>; startDate: string; endDate: string } {
+  const holidays = course.skipHolidays ? holidaySet(db) : new Set<string>();
+  if (!course.durationWeeks) {
+    const days = trainingDays(startDate, course.durationDays, { skipWeekends: course.skipWeekends, holidays });
+    return { days, startDate: days[0], endDate: days[days.length - 1] };
+  }
+  const monday = weekStartOf(startDate);
+  const days: Array<string | null> = [];
+  for (let w = 0; w < course.durationWeeks; w++) {
+    for (let d = 0; d < 5; d++) {
+      const date = addDays(monday, w * 7 + d);
+      days.push(date < startDate || holidays.has(date) ? null : date);
+    }
+  }
+  const real = days.filter((d): d is string => !!d);
+  return { days, startDate: real[0] ?? startDate, endDate: addDays(monday, course.durationWeeks * 7 - 3) };
+}
+
+/** วันจันทร์ของสัปดาห์ที่มีวันนั้น */
+export function weekStartOf(iso: string) {
+  const wd = weekdayOf(iso);
+  return addDays(iso, wd === 0 ? -6 : 1 - wd);
 }
 
 export function nextCohortNumber(db: DB, courseId: number, fiscalYear: number) {
@@ -39,8 +65,9 @@ export function createCohort(
   return db.transaction((tx) => {
     const course = tx.select().from(schema.courses).where(eq(schema.courses.id, input.courseId)).get();
     if (!course) throw new Error("ไม่พบหลักสูตร");
-    const days = planTrainingDays(tx as unknown as DB, course, input.startDate);
-    const fiscalYear = fiscalYearOf(days[0]);
+    const plan = planDayMap(tx as unknown as DB, course, input.startDate);
+    const days = plan.days;
+    const fiscalYear = fiscalYearOf(plan.startDate);
     const number = input.number ?? nextCohortNumber(tx as unknown as DB, course.id, fiscalYear);
     const dup = tx
       .select()
@@ -55,8 +82,8 @@ export function createCohort(
         courseId: course.id,
         fiscalYear,
         number,
-        startDate: days[0],
-        endDate: days[days.length - 1],
+        startDate: plan.startDate,
+        endDate: plan.endDate,
         status: "planned",
         targetCount: input.targetCount ?? null,
         location: input.location ?? null,
@@ -85,7 +112,7 @@ export function createCohort(
         ? tx.select().from(schema.sessionStaff).where(and(inArray(schema.sessionStaff.sessionId, srcSessions.map((x) => x.id)), isNull(schema.sessionStaff.deletedAt))).all()
         : [];
       slots = srcSessions.map((x) => ({
-        dayNo: srcDates.indexOf(x.date) + 1, startTime: x.startTime, endTime: x.endTime, title: x.title, category: x.category, hours: x.hours,
+        dayNo: course.durationWeeks && x.dayNo ? x.dayNo : srcDates.indexOf(x.date) + 1, startTime: x.startTime, endTime: x.endTime, title: x.title, category: x.category, hours: x.hours,
         takesAttendance: x.takesAttendance, location: x.location, topicId: x.topicId,
         staff: staffRows.filter((st) => st.sessionId === x.id).map((st) => ({ userId: st.userId, instructorId: st.instructorId, role: st.role })),
       }));

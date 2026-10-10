@@ -438,6 +438,31 @@ async function main() {
       }
     }
   }
+  // ขั้น 5: แท็บชุมชนบำบัด (ระยะการบำบัด)
+  {
+    const G = "2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ";
+    const fastCohort = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.courses.code, "FAST")).get();
+    if (!fastCohort) check(G, "ชุมชนบำบัด: มีรุ่นให้ตรวจ", false, "รัน npm run seed ใหม่");
+    else {
+      const p = `/cohorts/${fastCohort.id}/tc`;
+      for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: true, finance: false, assistant: false, warden: false })) {
+        const r = await get(p, C[role as keyof typeof U]);
+        check(G, `${role} → ${p} (ชุมชนบำบัด)`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+      }
+      const member = db.select({ last: schema.persons.lastName, no: schema.incarcerations.inmateNo }).from(schema.enrollments)
+        .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId)).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId))
+        .where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get();
+      const exec = await get(p, C.executive), rehab = await get(p, C.rehab), admin = await get(p, C.admin);
+      check(G, "ชุมชนบำบัด: ผู้บริหารเห็นเฉพาะสรุปจำนวนต่อระยะ ไม่มีรายชื่อสมาชิก", allowed(exec) && exec.text.includes("ระยะการบำบัด") && !!member && !exec.text.includes(member.no) && !exec.text.includes(member.last) && !exec.text.includes("เริ่มระยะ"), `HTTP ${exec.status}`);
+      check(G, "ชุมชนบำบัด: เจ้าหน้าที่ฟื้นฟูเห็นรายชื่อแต่ไม่มีช่องเลือกเพื่ออนุมัติเลื่อนระยะ · ผู้ดูแลมี", allowed(rehab) && rehab.text.includes("เริ่มระยะ") && !rehab.text.includes('aria-label="เลือก ') && admin.text.includes('aria-label="เลือก '), `rehab ${rehab.status} / admin ${admin.status}`);
+      const tcSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/actions.ts", "utf8");
+      const fn = (src: string, name: string) => src.slice(src.indexOf(`export async function ${name}`)).split("export async function")[1] ?? "";
+      check(G, "ชุมชนบำบัด: อนุมัติ/ยกเลิกการเลื่อนระยะ ตรวจสิทธิ์ tc.approve ที่เซิร์ฟเวอร์", fn(tcSrc, "advancePhaseAction").includes('requireAction("tc.approve")') && fn(tcSrc, "revertPhaseAction").includes('requireAction("tc.approve")'), "ตรวจจากโค้ด server action");
+      const other = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.courses.code, "B12")).get()!;
+      const wrong = await get(`/cohorts/${other.id}/tc`, C.admin);
+      check(G, "ชุมชนบำบัด: เปิดแท็บนี้กับรุ่นหลักสูตรอื่นไม่ได้", wrong.status === 404, `HTTP ${wrong.status}`);
+    }
+  }
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

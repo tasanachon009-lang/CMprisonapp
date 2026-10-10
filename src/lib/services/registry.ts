@@ -1,3 +1,5 @@
+import { todayISO } from "../thai-date";
+import { autoCriteriaGaps, type AutoCriteria } from "../rules/intake-criteria";
 import { and, desc, eq, inArray, isNull, max } from "drizzle-orm";
 import type { DB } from "../db";
 import { schema } from "../db";
@@ -235,8 +237,13 @@ export function registerEnrollment(db: DB, input: RegisterInput, actor: Actor) {
     // ตรวจหลังสร้าง/เติมข้อมูลบุคคลแล้ว (incarcerationId อาจยังไม่มี → ตรวจเลขบัตรจาก personId)
     if (status === "active") {
       const course = tx.select().from(schema.courses).where(eq(schema.courses.id, cohort.courseId)).get()!;
-      const crit = (course.intakeCriteria ?? {}) as { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
+      const crit = (course.intakeCriteria ?? {}) as AutoCriteria & { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
       const gaps: string[] = [];
+      {
+        const p = tx.select().from(schema.persons).where(eq(schema.persons.id, personId)).get();
+        const inc = incarcerationId ? tx.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, incarcerationId)).get() : null;
+        gaps.push(...autoCriteriaGaps(crit, { birthDate: p?.birthDate, prisonerClass: input.incarceration.prisonerClass ?? inc?.prisonerClass }, input.enrolledDate));
+      }
       if (crit.requireNationalId && !tx.select().from(schema.persons).where(eq(schema.persons.id, personId)).get()?.nationalId) gaps.push(`หลักสูตร ${course.shortName} ต้องมีเลขบัตรประชาชน — ใส่เลขบัตรในขั้น "เกณฑ์รับเข้า"`);
       const given = new Set(((input.intake?.confirmations as string[] | undefined) ?? []));
       for (const c of crit.confirmations ?? []) if (c.required && !given.has(c.code)) gaps.push(`ยังไม่ได้ยืนยัน: ${c.label}`);
@@ -311,10 +318,14 @@ export function registerEnrollment(db: DB, input: RegisterInput, actor: Actor) {
 }
 
 /** เกณฑ์รับเข้าที่ยังขาด (สเปก 17) — ใช้ทั้งตอนลงทะเบียนและยืนยันรับเข้าภายหลัง */
-export function intakeGaps(db: DB, e: { courseId: number; incarcerationId: number; intake: unknown }) {
+export function intakeGaps(db: DB, e: { courseId: number; incarcerationId: number; intake: unknown; enrolledDate?: string | null }) {
   const course = db.select().from(schema.courses).where(eq(schema.courses.id, e.courseId)).get();
-  const crit = (course?.intakeCriteria ?? {}) as { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
+  const crit = (course?.intakeCriteria ?? {}) as AutoCriteria & { requireNationalId?: boolean; confirmations?: Array<{ code: string; label: string; required?: boolean }> };
   const gaps: string[] = [];
+  {
+    const row = db.select({ birthDate: schema.persons.birthDate, prisonerClass: schema.incarcerations.prisonerClass }).from(schema.incarcerations).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId)).where(eq(schema.incarcerations.id, e.incarcerationId)).get();
+    gaps.push(...autoCriteriaGaps(crit, { birthDate: row?.birthDate, prisonerClass: row?.prisonerClass }, e.enrolledDate ?? todayISO()));
+  }
   if (crit.requireNationalId) {
     const p = db.select({ nid: schema.persons.nationalId }).from(schema.incarcerations).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId)).where(eq(schema.incarcerations.id, e.incarcerationId)).get();
     if (!p?.nid) gaps.push("ยังไม่มีเลขบัตรประชาชน");

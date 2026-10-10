@@ -108,7 +108,7 @@ describe("แก้ตารางของรุ่น (สเปก 11.4) + �
     expect(calendarSessions(db, "2026-10-05", "2026-10-05", { person: { userId: u2 } }).map((s) => s.id)).toEqual([sa.id]);
     // คาบของชุมชนบำบัดเวลาซ้อน + ผู้ต้องขังคนเดียวกันอยู่ทั้ง 2 รุ่น
     addSession(db, f.id, { date: "2026-10-05", startTime: "09:30", endTime: "10:30", hours: 1, title: "กิจกรรมทดสอบ" }, actor);
-    const reg = (cohortId: number) => registerEnrollment(db, { cohortId, person: { firstName: "ทดสอบ", lastName: "ซ้อน", nationalId: null }, incarceration: { inmateNo: "OV-1" }, confirmAdmission: true, consentSigned: true, consentDate: "2026-10-01", enrolledDate: "2026-10-01", acknowledgeWarnings: true }, { userId: 1, canOverride: true, consentRequired: false });
+    const reg = (cohortId: number) => registerEnrollment(db, { cohortId, person: { firstName: "ทดสอบ", lastName: "ซ้อน", nationalId: null, birthDate: "1990-01-01" }, incarceration: { inmateNo: "OV-1", prisonerClass: "good" }, intake: { exclusions: [], confirmations: ["sentence_condition", "voluntary"] }, confirmAdmission: true, consentSigned: true, consentDate: "2026-10-01", enrolledDate: "2026-10-01", acknowledgeWarnings: true }, { userId: 1, canOverride: true, consentRequired: false });
     reg(a.id);
     reg(f.id);
     const report = overlapReport(db, "2026-10-05", "2026-10-05");

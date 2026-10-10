@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 10/10/2569 23:41:57
+- วันเวลา: 10/10/2569 23:55:19
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 265/265 ข้อ**
+- ผล: **ผ่าน 275/275 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -22,7 +22,7 @@
 | ✅ ผ่าน | /admin/audit | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/backup | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/settings | HTTP 307 → /device |
-| ✅ ผ่าน | /sessions/306 | HTTP 307 → /device |
+| ✅ ผ่าน | /sessions/780 | HTTP 307 → /device |
 | ✅ ผ่าน | /print/sign-sheet/12 | HTTP 307 → /device |
 | ✅ ผ่าน | /roster | HTTP 307 → /device |
 | ✅ ผ่าน | /notifications | HTTP 307 → /device |
@@ -70,12 +70,12 @@
 | ✅ ผ่าน | executive → /release | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /sessions/306 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /sessions/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /sessions/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /print/session-sheet/306 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /print/session-sheet/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /print/session-sheet/306 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /sessions/780 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /sessions/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /sessions/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/session-sheet/780 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /print/session-sheet/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /print/session-sheet/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -198,18 +198,18 @@
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม | HTTP 200 |
-| ✅ ผ่าน | admin → /enrollments/284/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /enrollments/284/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | admin → /print/referral/284 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /print/referral/284 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | admin → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |
@@ -239,7 +239,7 @@
 | ✅ ผ่าน | warden → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ไม่ล็อกอิน | HTTP 401 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ผู้บริหาร (ไม่มีสิทธิ์) | HTTP 403 |
-| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10508 ไบต์ |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10509 ไบต์ |
 | ✅ ผ่าน | การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ) | HTTP 200 |
 | ✅ ผ่าน | admin → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |
@@ -255,6 +255,16 @@
 | ✅ ผ่าน | assistant → /print/course-report/7 (แบบรายงานผล) | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | warden → /print/course-report/7 (แบบรายงานผล) | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | แบบรายงานผล: ไม่มีเลขประจำตัว/เลขบัตร/นามสกุลผู้ต้องขัง (ตัวเลขรวมเท่านั้น) | HTTP 200 |
+| ✅ ผ่าน | admin → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /cohorts/6/tc (ชุมชนบำบัด) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | ชุมชนบำบัด: ผู้บริหารเห็นเฉพาะสรุปจำนวนต่อระยะ ไม่มีรายชื่อสมาชิก | HTTP 200 |
+| ✅ ผ่าน | ชุมชนบำบัด: เจ้าหน้าที่ฟื้นฟูเห็นรายชื่อแต่ไม่มีช่องเลือกเพื่ออนุมัติเลื่อนระยะ · ผู้ดูแลมี | rehab 200 / admin 200 |
+| ✅ ผ่าน | ชุมชนบำบัด: อนุมัติ/ยกเลิกการเลื่อนระยะ ตรวจสิทธิ์ tc.approve ที่เซิร์ฟเวอร์ | ตรวจจากโค้ด server action |
+| ✅ ผ่าน | ชุมชนบำบัด: เปิดแท็บนี้กับรุ่นหลักสูตรอื่นไม่ได้ | HTTP 404 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |
 

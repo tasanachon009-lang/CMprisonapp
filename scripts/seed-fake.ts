@@ -16,6 +16,7 @@ import { getForm, saveAssessment } from "../src/lib/services/assessments";
 import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from "../src/lib/services/followup";
 import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { saveReferral } from "../src/lib/services/health-referral";
+import { advancePhase } from "../src/lib/services/fast-phase";
 import { createDocument, updateDocument, setDocumentStatus } from "../src/lib/services/documents";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
@@ -167,6 +168,7 @@ async function main() {
     const made: Made[] = [];
     // หลักสูตร 3 วัน: บังคับเลขบัตร + ยืนยันเกณฑ์โทษ (สเปก 17)
     const isPre3 = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cohortId)).get()!.courseId === pre3.id;
+    const isFast = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cohortId)).get()!.courseId === fast.id;
     for (let i = 0; i < n; i++) {
       const reuse = opts.reuse?.[i];
       const r = registerEnrollment(
@@ -174,13 +176,14 @@ async function main() {
         {
           cohortId,
           personId: reuse?.personId ?? null,
-          person: isPre3 ? { ...fakePerson(), nationalId: fakeNationalId() } : fakePerson(),
+          // ชุมชนบำบัด: อายุ 18–60 ตามเกณฑ์รับเข้า (สเปก 16)
+          person: isPre3 ? { ...fakePerson(), nationalId: fakeNationalId() } : isFast ? (() => { const p = fakePerson(); return { ...p, birthDate: `${int(1970, 2004)}${p.birthDate.slice(4)}` }; })() : fakePerson(),
           incarceration: reuse
             ? { inmateNo: db.select().from(schema.incarcerations).where(eq(schema.incarcerations.id, reuse.incarcerationId)).get()!.inmateNo }
             : fakeIncarceration(opts.yy, opts.admitted),
           drugUse: [{ substance: pick(SUBST), ageStarted: int(13, 30), frequency: pick(FREQ) }],
           screeningScore: int(4, 26),
-          intake: isPre3 ? { exclusions: [], confirmations: ["sentence_remaining"], drugClass: pick(["user", "abuser", "addict"]) } : { exclusions: [] },
+          intake: isPre3 ? { exclusions: [], confirmations: ["sentence_remaining"], drugClass: pick(["user", "abuser", "addict"]) } : isFast ? { exclusions: [], confirmations: ["sentence_condition", "voluntary"] } : { exclusions: [] },
           consentSigned: opts.status !== "draft" || rand() < 0.5,
           consentDate: opts.enrolled,
           consentReceiverId: pick(rehabStaff),
@@ -507,6 +510,14 @@ async function main() {
         } catch { /* ข้าม */ }
       }
     }
+  }
+  // ชุมชนบำบัด: เลื่อนเข้าระยะ Rehabilitation เมื่อเข้าสัปดาห์ที่ 3 (ส่วนใหญ่) — เหลือบางคนให้เห็นป้าย "ถึงกำหนดเลื่อน"
+  {
+    const members = db.select().from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, cf.id), eq(schema.enrollments.status, "active"))).all();
+    // คาบย้อนหลังของชุมชนบำบัด (เกิน 2 วัน): ถือว่าเช็คชื่อและปิดคาบแล้ว เพื่อไม่ให้หน้าแรกเต็มไปด้วยงานค้างปลอม
+    db.update(schema.cohortSessions).set({ attendanceCheckedAt: new Date(), attendanceCheckedBy: headId, taughtAt: new Date(), taughtBy: headId, status: "done" }).where(and(eq(schema.cohortSessions.cohortId, cf.id), lte(schema.cohortSessions.date, addDays(today, -3)))).run();
+    const rehabStart = addDays(cf.startDate, 14);
+    if (rehabStart <= today) advancePhase(db, { enrollmentIds: members.slice(0, Math.max(0, members.length - 3)).map((m) => m.id), toPhase: "rehab", date: rehabStart, note: "ผ่านการประเมินระยะแรกรับ (ข้อมูลปลอม)" }, { userId: headId });
   }
   // หลักสูตร 3 วันปีงบ 2569: ทบทวนสถานภาพ (ก่อน) · รับรู้ความเครียด · ความพึงพอใจ (หลัง) — ข้อมูลปลอม
   for (const cid of pre3Cohorts) {

@@ -88,7 +88,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
       </div>
 
       <div className="space-y-2">
-        {cancelled && <Alert tone="warn">คาบนี้ถูกยกเลิก — ไม่ต้องเช็คชื่อและบันทึกผล (ดูเหตุผลในประวัติการแก้ไข)</Alert>}
+        {cancelled && <Alert tone="warn">คาบนี้ถูกยกเลิก</Alert>}
         {original && <Alert tone="info">คาบชดเชยของ <Link className="underline" href={`/sessions/${original.id}`}>{original.title} ({formatThaiDate(original.date)})</Link> — รายชื่อเฉพาะผู้ที่ติดเหตุราชทัณฑ์ในคาบเดิม</Alert>}
         {makeup && (
           <Alert tone={makeup.makeupId ? "ok" : "warn"}>
@@ -115,7 +115,7 @@ export default async function SessionPage({ params }: PageProps<"/sessions/[id]"
             {report.source === "paper_copy" && <span className="tag-muted ml-2">คัดลอกจากใบบันทึกของวิทยากร</span>}
           </Alert>
         )}
-        {session.lockedAt && <Alert tone="warn">คาบนี้ถูกล็อกหลังอนุมัติค่าตอบแทน — แก้ได้เฉพาะหัวหน้า/รอง</Alert>}
+        {session.lockedAt && <Alert tone="warn">คาบนี้ถูกล็อกหลังอนุมัติค่าตอบแทน</Alert>}
         {!session.takesAttendance && <Alert tone="info">คาบนี้ตั้งค่าว่าไม่ต้องเช็คชื่อ</Alert>}
       </div>
 

@@ -81,10 +81,10 @@ export function saveAttendance(
       if (latest > loadedVersion) {
         const by = rows.map((r) => r.record).filter(Boolean).sort((a, b) => b!.updatedAt.getTime() - a!.updatedAt.getTime())[0];
         const u = by?.updatedBy ? t.select().from(schema.users).where(eq(schema.users.id, by.updatedBy)).get() : null;
-        throw new RuleError(`คุณ${u ? `${u.firstName}` : "ผู้ใช้อื่น"} เพิ่งบันทึกการเช็คชื่อคาบนี้ระหว่างที่คุณเปิดหน้านี้อยู่ — กรุณาโหลดหน้าใหม่เพื่อดูผลล่าสุดก่อนแก้`, undefined, "conflict");
+        throw new RuleError(`${u ? u.firstName : "ผู้ใช้อื่น"} บันทึกการเช็คชื่อคาบนี้แล้ว กรุณาโหลดหน้าใหม่`, undefined, "conflict");
       }
     }
-    if (session.lockedAt && !actor.isAdmin) throw new RuleError("คาบนี้ถูกล็อกแล้ว (อนุมัติค่าตอบแทนแล้ว) — ติดต่อหัวหน้า/รองเพื่อปลดล็อก");
+    if (session.lockedAt && !actor.isAdmin) throw new RuleError("คาบนี้ถูกล็อก กรุณาติดต่อผู้ดูแลระบบ");
     if (!session.takesAttendance) throw new RuleError("คาบนี้ไม่ต้องเช็คชื่อ");
     const allowed = new Set(rows.map((r) => r.enrollmentId));
     const now = new Date();

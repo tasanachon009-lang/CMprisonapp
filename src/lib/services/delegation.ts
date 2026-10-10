@@ -47,9 +47,9 @@ export function delegationNote(d: ActiveDelegation) {
 }
 
 export function createDelegation(db: DB, input: { toUserId: number; scopes: string[]; startDate: string; endDate: string; reason?: string | null }, actor: { userId: number; ip?: string | null }) {
-  if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะหัวหน้า/รอง");
+  if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะผู้ดูแลระบบ");
   if (input.toUserId === actor.userId) throw new RuleError("มอบอำนาจให้ตัวเองไม่ได้");
-  if (!dutyCandidates(db).some((u) => u.id === input.toUserId) || isAdmin(db, input.toUserId)) throw new RuleError("มอบอำนาจได้เฉพาะเจ้าหน้าที่กลุ่ม A (ไม่ใช่หัวหน้า/รอง) — เลือกจากรายชื่อ");
+  if (!dutyCandidates(db).some((u) => u.id === input.toUserId) || isAdmin(db, input.toUserId)) throw new RuleError("มอบอำนาจได้เฉพาะเจ้าหน้าที่หลัก กรุณาเลือกจากรายชื่อ");
   const scopes = Array.from(new Set(input.scopes)).filter((s): s is DelegationScope => s in DELEGATION_SCOPES);
   if (!scopes.length) throw new RuleError("เลือกขอบเขตอย่างน้อย 1 อย่าง");
   if (!isValidISODate(input.startDate) || !isValidISODate(input.endDate) || input.endDate < input.startDate) throw new RuleError("ช่วงวันที่ไม่ถูกต้อง — วันสิ้นสุดต้องไม่ก่อนวันเริ่ม");
@@ -60,7 +60,7 @@ export function createDelegation(db: DB, input: { toUserId: number; scopes: stri
 }
 
 export function revokeDelegation(db: DB, id: number, actor: { userId: number; ip?: string | null }) {
-  if (!isAdmin(db, actor.userId)) throw new RuleError("ยกเลิกการมอบอำนาจได้เฉพาะหัวหน้า/รอง");
+  if (!isAdmin(db, actor.userId)) throw new RuleError("ยกเลิกการมอบอำนาจได้เฉพาะผู้ดูแลระบบ");
   const d = db.select().from(schema.delegations).where(eq(schema.delegations.id, id)).get();
   if (!d || d.revokedAt) throw new RuleError("ไม่พบการมอบอำนาจที่ยังมีผล");
   db.update(schema.delegations).set({ revokedAt: new Date(), revokedBy: actor.userId, updatedBy: actor.userId, updatedAt: new Date() }).where(eq(schema.delegations.id, id)).run();

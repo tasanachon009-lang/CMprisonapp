@@ -41,7 +41,7 @@ export async function updateDocumentAction(id: number, input: z.input<typeof Edi
   try {
     const auth = await requireAction("docs.manage");
     const parsed = EditSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้องหรือยาวเกินไป — ตรวจช่องที่กรอกแล้วลองใหม่" };
+    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้องหรือยาวเกินกำหนด กรุณาตรวจช่องที่กรอก" };
     const db = getDb();
     updateDocument(db, Number(id), parsed.data, await actorOf(auth), loadedVersion);
     refresh(getDocument(db, Number(id))?.cohortId, Number(id));
@@ -54,7 +54,7 @@ export async function updateDocumentAction(id: number, input: z.input<typeof Edi
 export async function setDocumentStatusAction(id: number, status: "draft" | "final"): Promise<ActionResult> {
   try {
     const auth = await requireAction("docs.manage");
-    if (status !== "draft" && status !== "final") return { ok: false, error: "สถานะไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่" };
+    if (status !== "draft" && status !== "final") return { ok: false, error: "สถานะไม่ถูกต้อง กรุณาโหลดหน้าใหม่" };
     const db = getDb();
     setDocumentStatus(db, Number(id), status, await actorOf(auth));
     refresh(getDocument(db, Number(id))?.cohortId, Number(id));
@@ -83,7 +83,7 @@ export async function saveTemplateAction(code: string, input: z.input<typeof Tem
   try {
     const auth = await requireAction("docs.templates");
     const parsed = TemplateSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: "ข้อความยาวเกินไป — ย่อให้สั้นลงแล้วลองใหม่" };
+    if (!parsed.success) return { ok: false, error: "ข้อความยาวเกินกำหนด กรุณาย่อข้อความ" };
     saveTemplate(getDb(), String(code).slice(0, 60), parsed.data, await actorOf(auth));
     revalidatePath("/admin/doc-templates");
     return { ok: true };

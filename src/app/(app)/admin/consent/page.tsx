@@ -16,8 +16,8 @@ export default async function ConsentTextPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "แบบฟอร์มยินยอม PDPA" }]} />
-      <PageHeader en="Consent Form" title="ข้อความแบบฟอร์มยินยอม PDPA" subtitle="ใช้กับแบบฟอร์มที่พิมพ์จากหน้ารายชื่อรุ่น (มีชื่อผู้ต้องขังพิมพ์ไว้) และฟอร์มเปล่า" />
-      <Alert tone="warn">ควรให้ฝ่ายกฎหมาย/ผู้รับผิดชอบ PDPA ของหน่วยงานตรวจข้อความก่อนใช้จริง — การแก้ไขทุกครั้งถูกบันทึกในประวัติการใช้งาน (ค่าเดิม → ค่าใหม่)</Alert>
+      <PageHeader en="Consent Form" title="ข้อความแบบฟอร์มยินยอม PDPA" subtitle="ใช้กับแบบฟอร์มยินยอมที่พิมพ์จากหน้ารายชื่อรุ่น" />
+      <Alert tone="warn">กรุณาให้ผู้รับผิดชอบ PDPA ของหน่วยงานตรวจข้อความก่อนใช้งาน · การแก้ไขทุกครั้งถูกบันทึก</Alert>
       <ConsentEditor
         initialTitle={title ?? DEFAULT_CONSENT_TITLE}
         initialParagraphs={paragraphs ?? DEFAULT_CONSENT_TEXT}

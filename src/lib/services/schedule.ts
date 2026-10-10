@@ -39,7 +39,7 @@ export function getSession(db: DB, id: number) {
 export function assertEditable(db: DB, s: Session) {
   const c = db.select({ status: schema.cohorts.status }).from(schema.cohorts).where(eq(schema.cohorts.id, s.cohortId)).get();
   if (c?.status === "closed") throw new RuleError("รุ่นนี้ปิดแล้ว แก้ตารางไม่ได้");
-  if (s.lockedAt) throw new RuleError("คาบนี้ล็อกแล้ว (อนุมัติค่าตอบแทนแล้ว) — ถ้าต้องแก้ ให้ผู้ดูแลปลดล็อกก่อน");
+  if (s.lockedAt) throw new RuleError("คาบนี้ถูกล็อก กรุณาติดต่อผู้ดูแลระบบ");
   if (s.status === "cancelled") throw new RuleError("คาบนี้ถูกยกเลิกแล้ว");
 }
 
@@ -100,11 +100,11 @@ export function addStaff(db: DB, sessionId: number, input: StaffInput, actor: { 
     throw new RuleError("คนนี้อยู่ในคาบนี้แล้ว");
   }
   const max = maxStaffOf(db, s);
-  if (current.length >= max) throw new RuleError(`คาบนี้มีวิทยากรได้สูงสุด ${max} คน — เอาคนเดิมออกก่อน หรือให้ผู้ดูแลปรับจำนวนสูงสุดของหัวข้อ`, undefined, "max_staff");
+  if (current.length >= max) throw new RuleError(`คาบนี้มีวิทยากรได้สูงสุด ${max} คน`, undefined, "max_staff");
   const conflicts = findConflicts(db, s, { userId: input.userId, instructorId: input.instructorId, externalName });
   if (conflicts.length && !opts.acknowledgeConflict) {
     const c = conflicts[0];
-    throw new RuleError(`สอนซ้อนเวลา: มีคาบ "${c.title}" (${c.label}) เวลา ${c.startTime}–${c.endTime} วันเดียวกันอยู่แล้ว${conflicts.length > 1 ? ` และอีก ${conflicts.length - 1} คาบ` : ""} — ตรวจตารางก่อน หรือกด "ยืนยันเพิ่ม" ถ้าตั้งใจ`, undefined, "conflict");
+    throw new RuleError(`สอนซ้อนเวลา: มีคาบ "${c.title}" (${c.label}) เวลา ${c.startTime}–${c.endTime} วันเดียวกันอยู่แล้ว${conflicts.length > 1 ? ` และอีก ${conflicts.length - 1} คาบ` : ""} — กด "ยืนยันเพิ่ม" เพื่อดำเนินการต่อ`, undefined, "conflict");
   }
   const row = db.insert(schema.sessionStaff).values({ sessionId, userId: input.userId ?? null, instructorId: input.instructorId ?? null, externalName, role: input.role ?? null, createdBy: actor.userId, updatedBy: actor.userId }).returning().get();
   writeAudit(db, {

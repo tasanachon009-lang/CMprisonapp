@@ -237,7 +237,7 @@ export function recordExpense(db: DB, cohortId: number, input: ExpenseInput, act
     const newReds = reds.filter((c) => c.category === cat || !wasRed(c.category));
     if (newReds.length) {
       const what = newReds.map((c) => `${BUDGET_CATEGORIES[c.category]} เกิน ${(c.over / 100).toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`).join(", ");
-      if (!actor.canConfirm) throw new RuleError(`ใช้เกินงบ (${a.flexible ? "เกินยอดรวมของแหล่งเงิน" : "แหล่งเงินนี้ห้ามถัว"}): ${what} — ต้องให้หัวหน้า/รองยืนยันก่อน (ยืนยันได้ที่หน้างบของรุ่น)`, undefined, "overrun");
+      if (!actor.canConfirm) throw new RuleError(`ใช้เกินงบ (${a.flexible ? "เกินยอดรวมของแหล่งเงิน" : "แหล่งเงินนี้ห้ามถัว"}): ${what} — ต้องได้รับการยืนยันจากผู้ดูแลระบบก่อน`, undefined, "overrun");
       if (!actor.confirmNote?.trim()) throw new RuleError(`ใช้เกินงบ: ${what} — ใส่เหตุผลแล้วกดยืนยันเพื่อบันทึก`, undefined, "overrun");
       for (const c of newReds) tx.insert(schema.budgetOverrunAcks).values({ cohortId, allocationId: input.allocationId, category: c.category, overSatang: c.over, note: actor.confirmNote.trim(), viaDelegationId: actor.delegationId ?? null, createdBy: actor.userId }).run();
     }

@@ -16,10 +16,10 @@ export default async function PersonsPage({ searchParams }: PageProps<"/persons"
   return (
     <div className="max-w-4xl">
       <Breadcrumb items={[{ label: "ค้นหาบุคคล" }]} />
-      <PageHeader en="People Search" title="ค้นหาบุคคล" subtitle="พิมพ์ชื่อ นามสกุล หรือเลขประจำตัว 2–3 ตัวขึ้นไป (กด / จากหน้าใดก็ได้เพื่อมาที่นี่)" />
+      <PageHeader en="People Search" title="ค้นหาบุคคล" subtitle="ค้นด้วยชื่อ นามสกุล หรือเลขประจำตัว" />
       <SearchBox initial={q} autoFocus={sp.focus === "1" || !q} />
       <div className="mt-6 space-y-2">
-        {q && results.length === 0 && <EmptyState title={`ไม่พบ "${q}"`}>ลองพิมพ์แค่ชื่อ หรือแค่บางส่วนของเลขประจำตัว</EmptyState>}
+        {q && results.length === 0 && <EmptyState title={`ไม่พบ "${q}"`}>ค้นด้วยชื่อหรือบางส่วนของเลขประจำตัว</EmptyState>}
         {results.map(({ person: p, current, incarcerationCount }) => (
           <Link key={p.id} href={`/persons/${p.id}`} className="flex items-center gap-4 rounded-2xl border border-line bg-white px-4 py-3 hover:border-navy">
             <Avatar first={p.firstName} last={p.lastName} src={current?.thumbPath ? `/api/files/photo/${current.id}?s=thumb` : null} size={48} color="var(--lime)" />

@@ -40,7 +40,7 @@ export function evaluateEnrollment(input: {
     res.level = "block";
     res.codes.push("duplicate_same_incarceration");
     res.messages.push(
-      `เลขประจำตัว ${dup.inmateNo} เคยลงหลักสูตร${dup.courseName} แล้ว (${dup.cohortLabel}) — ลงซ้ำไม่ได้ ต้องให้ผู้ดูแลปลดล็อกพร้อมเหตุผล`,
+      `เลขประจำตัว ${dup.inmateNo} เคยลงหลักสูตร${dup.courseName} แล้ว (${dup.cohortLabel}) — ลงซ้ำไม่ได้ กรุณาติดต่อผู้ดูแลระบบ`,
     );
   }
 

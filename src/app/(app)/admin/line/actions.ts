@@ -47,7 +47,7 @@ export async function sendLineTestAction(kind: "ping" | "tomorrow"): Promise<Act
       r = await sendLine(db, "test", "✅ ทดสอบการส่งจากระบบสถานฟื้นฟู — ถ้าได้รับข้อความนี้ แปลว่าตั้งค่า LINE ถูกต้อง", { sentBy: auth.user.id });
     }
     revalidatePath("/admin/line");
-    return r.status === "failed" ? { ok: false, error: `ส่งไม่สำเร็จ: ${r.error ?? ""} — กด "คัดลอกข้อความ" ส่งเองในกลุ่ม LINE ได้` } : { ok: true, message: LINE_STATUS_LABEL[r.status] + (r.error ? ` — ${r.error}` : "") };
+    return r.status === "failed" ? { ok: false, error: `ส่งไม่สำเร็จ: ${r.error ?? ""} กรุณาใช้ปุ่ม "คัดลอกข้อความ"` } : { ok: true, message: LINE_STATUS_LABEL[r.status] + (r.error ? ` — ${r.error}` : "") };
   } catch (e) {
     return toError(e);
   }

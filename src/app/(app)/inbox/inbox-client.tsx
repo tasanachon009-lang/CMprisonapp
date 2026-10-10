@@ -37,8 +37,8 @@ export function Compose({ staff, cohorts, canHealth, today, prefill }: { staff: 
             <label><span className="label">รุ่น</span><select className="input" value={f.recipientCohortId} onChange={(e) => setF({ ...f, recipientCohortId: e.target.value })}><option value="">— เลือก —</option>{cohorts.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
           )}
         </div>
-        <label className="flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.healthRelated} onChange={(e) => setF({ ...f, healthRelated: e.target.checked })} /> เป็นเรื่องสุขภาพ (คนที่ไม่มีสิทธิ์จะเห็นแค่ &quot;มีเรื่องสุขภาพ — ติดต่อพยาบาล&quot;)</label>
-        {!canHealth && f.healthRelated && <p className="hint">คุณจะยังเห็นข้อความที่ตัวเองเขียน</p>}
+        <label className="flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.healthRelated} onChange={(e) => setF({ ...f, healthRelated: e.target.checked })} /> เป็นเรื่องสุขภาพ (แสดงเนื้อหาเฉพาะผู้มีสิทธิ์ข้อมูลสุขภาพ)</label>
+        {!canHealth && f.healthRelated && <p className="hint">ผู้เขียนยังเห็นข้อความของตนเอง</p>}
         <label className="flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.needsAction} onChange={(e) => setF({ ...f, needsAction: e.target.checked })} /> เป็นเรื่องที่ต้องติดตาม (ผู้รับกด &quot;ดำเนินการแล้ว&quot; + ผล)</label>
         {f.needsAction && <div className="w-64"><span className="label">กำหนดภายใน</span><ThaiDateInput value={f.dueDate} onChange={(v) => setF({ ...f, dueDate: v })} min={today} /></div>}
         <p className="hint">ผูกกับผู้ต้องขังได้จากหน้าบุคคล (ปุ่ม &quot;ส่งเวร&quot;)</p>

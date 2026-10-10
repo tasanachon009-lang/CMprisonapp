@@ -130,7 +130,7 @@ export function checkRows(db: DB, cohortId: number, rows: RawRow[]): CheckedRow[
     const personId = existing?.person.id ?? byNid?.id ?? null;
     if (!personId) {
       const cands = findPossibleSamePersons(db, r.firstName, r.lastName, birthDate);
-      if (cands.length) return { ...r, category: "possible_same" as const, reasons: [`ชื่อ-สกุล${birthDate ? "และวันเกิด" : ""}ตรงกับผู้ที่มีในระบบ ${cands.length} คน — ลงทะเบียนทีละคนในหน้าลงทะเบียนเพื่อยืนยัน`], parsed };
+      if (cands.length) return { ...r, category: "possible_same" as const, reasons: [`ชื่อ-สกุล${birthDate ? "และวันเกิด" : ""}ตรงกับผู้ที่มีในระบบ ${cands.length} คน — ต้องลงทะเบียนรายคนเพื่อยืนยัน`], parsed };
       return { ...r, category: "ok" as const, reasons: [], parsed };
     }
     const ev = evaluateEnrollment({ targetCourseId: cohort.courseId, incarcerationId: existing?.incarceration.id ?? null, priors: priorsForPerson(db, personId) });

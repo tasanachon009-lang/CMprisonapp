@@ -31,8 +31,8 @@ export default async function ReferralPage({ params }: PageProps<"/enrollments/[
       <PageHeader en="Health referral" title="ส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ" subtitle={`${ctx.name} · ${ctx.inc.inmateNo}`}
         actions={existing?.needsReferral ? <Link href={`/print/referral/${ctx.e.id}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์ใบส่งต่อ</Link> : undefined} />
       <div className="mb-3 space-y-2">
-        <Alert tone="warn">ข้อมูลสุขภาพ — เห็นเฉพาะสถานพยาบาลและผู้ดูแล การเปิดดูและการพิมพ์ถูกบันทึกไว้ · ไม่เชื่อมกับระบบ HIV ภายนอก</Alert>
-        {!["active", "completed"].includes(ctx.e.status) && <Alert tone="info">ยังไม่ได้ยืนยันรับเข้ารุ่น — บันทึกส่งต่อได้หลังเจ้าหน้าที่ฟื้นฟูยืนยันรับเข้า</Alert>}
+        <Alert tone="warn">ข้อมูลสุขภาพ — เห็นเฉพาะสถานพยาบาลและผู้ดูแล การเปิดดูและการพิมพ์ถูกบันทึกไว้</Alert>
+        {!["active", "completed"].includes(ctx.e.status) && <Alert tone="info">ยังไม่ได้ยืนยันรับเข้ารุ่น จึงยังบันทึกส่งต่อไม่ได้</Alert>}
         {existing && <RecordMeta createdBy={names.get(existing.createdBy ?? 0)} createdAt={formatThaiDateTime(existing.createdAt)} updatedBy={names.get(existing.updatedBy ?? 0)} updatedAt={formatThaiDateTime(existing.updatedAt)} />}
       </div>
       <ReferralForm

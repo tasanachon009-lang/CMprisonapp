@@ -21,7 +21,7 @@ export function CloseCohortButton({ cohortId, ready, isAdmin }: { cohortId: numb
         if (!r.ok) return setError(r.error);
         router.refresh();
       })}><Lock size={20} aria-hidden /> ปิดรุ่น</button>
-      {!ready && !isAdmin && <p className="text-sm text-muted">ทำรายการที่ยังไม่ครบให้เสร็จก่อน จึงจะปิดรุ่นได้</p>}
+      {!ready && !isAdmin && <p className="text-sm text-muted">ต้องดำเนินการรายการที่ยังไม่ครบก่อนปิดรุ่น</p>}
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default async function PayPage({ searchParams }: PageProps<"/pay">) {
   return (
     <div className="space-y-5">
       <Breadcrumb items={[{ label: "ค่าตอบแทน" }]} />
-      <PageHeader en="Speaker Fees" title="ค่าตอบแทนวิทยากร" subtitle="คิดจาก &quot;สอนจริง&quot; ของคาบที่ปิดคาบแล้ว · อนุมัติแล้วยอดคงที่และล็อกคาบ" />
+      <PageHeader en="Speaker Fees" title="ค่าตอบแทนวิทยากร" help="คิดจากการสอนจริงของคาบที่ปิดคาบแล้ว สร้างรอบเบิกต่อรุ่น (ทั้งรุ่นหรือช่วงวันที่) ตรวจยอดแล้วอนุมัติ เมื่ออนุมัติยอดจะคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบ คาบที่เบิกแล้วไม่ถูกนำไปเบิกซ้ำ" />
       <div className="flex flex-wrap gap-2">
         {tabs.map(([k, l]) => <Link key={k} href={qs({ tab: k, person: null })} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${tab === k ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{l}</Link>)}
       </div>
@@ -175,7 +175,7 @@ function Workload({ lines }: { lines: Line[] }) {
   return (
     <section className="card overflow-x-auto">
       <h2 className="text-xl">ชั่วโมงสอนของเจ้าหน้าที่ (วิทยากรภายใน)</h2>
-      <p className="text-sm text-muted">รวมคาบที่เบิกไม่ได้ เช่น ประชุมเช้า กิจกรรมทั้งทีม — ใช้ประกอบการประเมินผลงาน</p>
+      <p className="text-sm text-muted">รวมคาบที่เบิกไม่ได้</p>
       <table className="mt-2 w-full text-sm">
         <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th>{months.map((m) => <th key={m} className="text-right">{fmtMonth(m)}</th>)}<th className="text-right">คาบ</th><th className="text-right">รวม ชม.</th></tr></thead>
         <tbody>
@@ -197,7 +197,7 @@ function Batches({ canManage, cohorts }: { canManage: boolean; cohorts: Array<{ 
   const batches = listBatches(db);
   return (
     <div className="space-y-4">
-      <Alert tone="info">สร้างรอบเบิกต่อรุ่น (ทั้งรุ่นหรือช่วงวันที่ เช่น รายเดือนของชุมชนบำบัด) → ตรวจยอด → หัวหน้า/รองกด &quot;อนุมัติ&quot; → ยอดคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบ · คาบที่เบิกแล้วไม่ถูกนำไปเบิกซ้ำ</Alert>
+      
       {(() => { const n = unsignedCount(db); return n > 0 ? <Alert tone="warn">ใบสำคัญรับเงินที่พิมพ์แล้วแต่ยังไม่ได้ลายเซ็น {n} ใบ — เปิดรอบเบิกแล้วติ๊ก &quot;เซ็นรับแล้ว&quot; เมื่อได้ใบคืน</Alert> : null; })()}
       {canManage && <CreateBatchForm cohorts={cohorts} />}
       {canManage && <DocSettingsForm initial={{ payerName: getSetting<string>(db, "docs.payerName", ""), corner: getSetting<string>(db, "docs.voucherCorner", ""), showKtbForm: getSetting<boolean>(db, "docs.showKtbForm", true) !== false, intro: getSetting<{ intro: string }>(db, "docs.ktbTemplate", { intro: "" }).intro, companyNote: getSetting<{ companyNote: string }>(db, "docs.ktbTemplate", { companyNote: "" }).companyNote }} />}

@@ -37,7 +37,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
       <div className="mb-3 space-y-2">
         <RecordMeta createdBy={names.get(d.createdBy ?? 0)} createdAt={formatThaiDateTime(d.createdAt)} updatedBy={names.get(d.updatedBy ?? 0)} updatedAt={formatThaiDateTime(d.updatedAt)} />
         {leftover.length > 0 && <Alert tone="warn">ยังมีตัวแปรที่ระบบไม่รู้จัก: {leftover.map((k) => `{{${k}}}`).join(", ")} — แก้เป็นข้อความจริงก่อนพิมพ์</Alert>}
-        {/…………/.test(`${d.subject}${d.toLine}${d.body}`) && <Alert tone="warn">มีช่อง “…………” ที่ระบบยังไม่มีข้อมูลให้เติม (เช่น สถานที่ จำนวนเป้าหมาย งบของรุ่น) — พิมพ์แก้ในเนื้อความ หรือกลับไปเติมข้อมูลของรุ่นแล้วสร้างเอกสารใหม่</Alert>}
+        {/…………/.test(`${d.subject}${d.toLine}${d.body}`) && <Alert tone="warn">มีช่อง “…………” ที่ยังไม่มีข้อมูล กรุณาเติมในเนื้อความก่อนพิมพ์</Alert>}
         {!canManage && <Alert tone="info">ดูอย่างเดียว</Alert>}
       </div>
       <DocEditor

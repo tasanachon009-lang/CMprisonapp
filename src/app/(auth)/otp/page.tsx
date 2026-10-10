@@ -15,7 +15,7 @@ export default async function OtpPage() {
       <h2 className="text-2xl">ยืนยันรหัส OTP</h2>
       <p className="mt-1 text-muted">ผู้ดูแลระบบต้องยืนยันตัวตน 2 ขั้น — เปิดแอป Authenticator ในโทรศัพท์ แล้วใส่รหัส 6 หลัก</p>
       <OtpForm />
-      <p className="hint mt-4">โทรศัพท์หาย/เปลี่ยนเครื่อง: ให้ผู้ดูแลอีกคนขอ &quot;รีเซ็ต OTP&quot; ในหน้าผู้ใช้ (ยืนยัน 2 คน) หรือใช้ขั้นตอนรหัสฉุกเฉินใน README</p>
+      <p className="hint mt-4">กรณีโทรศัพท์สูญหายหรือเปลี่ยนเครื่อง กรุณาติดต่อผู้ดูแลระบบ</p>
     </div>
   );
 }

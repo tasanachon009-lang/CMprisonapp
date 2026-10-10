@@ -29,7 +29,7 @@ export async function saveAttendanceAction(
     const db = getDb();
     const s = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, sessionId)).get();
     if (!s) return { ok: false, error: "ไม่พบคาบกิจกรรม" };
-    if (!sessionAccess(auth, s.id, s.cohortId).canEdit) return { ok: false, error: "คุณไม่มีสิทธิ์เช็คชื่อคาบนี้" };
+    if (!sessionAccess(auth, s.id, s.cohortId).canEdit) return { ok: false, error: "ไม่มีสิทธิ์เช็คชื่อคาบนี้" };
     const parsed = z.array(Entry).max(500).safeParse(entries);
     if (!parsed.success) return { ok: false, error: "ข้อมูลการเช็คชื่อไม่ถูกต้อง กรุณาโหลดหน้าใหม่" };
     const r = saveAttendance(
@@ -63,7 +63,7 @@ export async function saveSessionReportAction(sessionId: number, input: z.input<
     const db = getDb();
     const s = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, sessionId)).get();
     if (!s) return { ok: false, error: "ไม่พบคาบกิจกรรม" };
-    if (!sessionAccess(auth, s.id, s.cohortId).canEdit) return { ok: false, error: "คุณไม่มีสิทธิ์บันทึกผลคาบนี้" };
+    if (!sessionAccess(auth, s.id, s.cohortId).canEdit) return { ok: false, error: "ไม่มีสิทธิ์บันทึกผลคาบนี้" };
     const p = ReportZ.safeParse(input);
     if (!p.success) return { ok: false, error: "ข้อมูลผลกิจกรรมไม่ถูกต้อง" };
     const r = saveSessionReport(db, sessionId, p.data, { userId: auth.user.id, isAdmin: auth.isAdmin, ip: await clientIp() });

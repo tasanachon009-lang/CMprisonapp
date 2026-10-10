@@ -23,7 +23,7 @@ export default async function DelegationsPage() {
   return (
     <div className="max-w-4xl space-y-5">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "มอบอำนาจอนุมัติชั่วคราว" }]} />
-      <PageHeader en="Delegation" title="มอบอำนาจอนุมัติชั่วคราว" subtitle="ระหว่างหัวหน้า/รองไม่อยู่ — หมดเวลาสิทธิ์คืนเอง ทุกการอนุมัติแทนบันทึกในประวัติพร้อมชื่อผู้มอบ" />
+      <PageHeader en="Delegation" title="มอบอำนาจอนุมัติชั่วคราว" help="สิทธิ์คืนอัตโนมัติเมื่อครบกำหนด การอนุมัติแทนทุกครั้งถูกบันทึกพร้อมชื่อผู้มอบ ผู้รับมอบไม่สามารถอนุมัติค่าตอบแทนของตนเอง งานที่ต้องยืนยัน 2 คนมอบอำนาจไม่ได้" />
       <DelegationForm people={dutyCandidates(db)} scopes={Object.entries(DELEGATION_SCOPES).map(([k, v]) => [k, v.label])} today={today} />
       <section className="space-y-2">
         <h2 className="text-xl">รายการมอบอำนาจ</h2>

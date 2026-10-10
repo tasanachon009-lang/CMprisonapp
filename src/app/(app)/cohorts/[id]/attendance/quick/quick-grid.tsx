@@ -125,7 +125,7 @@ export function QuickGrid({ cohortId, date, dates, sessions, people }: { cohortI
       </div>
       <Alert tone="info">
         <p><b>ช่องว่าง = มา</b> · 2 ขาด · 3 ลา · 4 ป่วย · 5 ไปศาล · 6 พบทนาย · 7 ออก รพ.ภายนอก · 8 เบิกตัวอื่นๆ</p>
-        <p className="text-sm text-muted">Enter/ลูกศรลง = คนถัดไป · ลูกศรซ้าย-ขวา = คาบถัดไป · คัดลอกจาก Excel แล้ววางได้ทั้งแผ่น · Ctrl+S ไม่ใช้ในหน้านี้ ให้กดปุ่มบันทึก</p>
+        <p className="text-sm text-muted">Enter/ลูกศรลง = คนถัดไป · ลูกศรซ้าย-ขวา = คาบถัดไป · วางข้อมูลจาก Excel ได้</p>
       </Alert>
       {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={() => { const d = draftOffer.data as { grid: typeof grid; notes: typeof notes }; setGrid(d.grid); setNotes(d.notes ?? {}); setDraftOffer(null); }} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}

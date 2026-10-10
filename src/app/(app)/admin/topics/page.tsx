@@ -24,13 +24,13 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "คลังหัวข้อ" }]} />
-      <PageHeader en="Topic Library" title="คลังหัวข้อ" subtitle="ชั่วโมงมาตรฐาน ลักษณะกิจกรรม ผู้รับผิดชอบ (รายบุคคล/ทั้งทีม) การเบิก อัตรา และวิธีแบ่งค่าตอบแทน — ใช้กับทุกรุ่นของหลักสูตร" />
+      <PageHeader en="Topic Library" title="คลังหัวข้อ" help="กำหนดชั่วโมงมาตรฐาน ลักษณะกิจกรรม ผู้รับผิดชอบ การเบิก อัตรา และวิธีแบ่งค่าตอบแทน ใช้กับทุกรุ่นของหลักสูตร ประเภท “ทั้งทีม” จะใส่เจ้าหน้าที่หลักทุกคนเมื่อสร้างรุ่น และค่าเริ่มต้นไม่เบิก" />
       <div className="flex flex-wrap gap-2">
         {courses.map((c) => (
           <Link key={c.id} href={`?course=${c.code}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${c.id === course.id ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{c.shortName}</Link>
         ))}
       </div>
-      <Alert tone="info">หัวข้อนำเข้าจากคู่มือไว้ให้แล้ว (12 วันยังเป็นร่างเดียวกับแม่แบบตาราง) — ตรวจแก้ให้ตรงคู่มือ · &quot;ทั้งทีม&quot; = ใส่เจ้าหน้าที่หลักทุกคนให้อัตโนมัติเมื่อสร้างรุ่น (เอาออกได้) ค่าเริ่มต้นไม่เบิก</Alert>
+      
       <TopicsEditor
         courseId={course.id}
         courseColor={course.color}
@@ -40,8 +40,8 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
       />
       <section className="card space-y-3">
         <h2 className="text-xl">ชิป &quot;สิ่งที่ได้&quot; สำหรับบันทึกผลหลังสอน</h2>
-        <p className="text-muted">ผู้บันทึกกดเลือกชิปแทนการพิมพ์ ระบบประกอบเป็นประโยคสรุปให้ (สเปก 22B)</p>
-        {topics.some((t) => t.active && !t.chipsReviewedAt) && <Alert tone="warn">ชิปที่มีป้าย &quot;ร่าง&quot; ระบบร่างจากชื่อหัวข้อ เพราะยังไม่มีไฟล์คู่มือหลักสูตรในระบบ — กรุณาตรวจกับ &quot;จุดประสงค์การเรียนรู้&quot; ในคู่มือ แล้วกดบันทึก</Alert>}
+        <p className="text-muted">ข้อความสำเร็จรูปสำหรับบันทึกผลหลังสอน</p>
+        {topics.some((t) => t.active && !t.chipsReviewedAt) && <Alert tone="warn">รายการที่มีป้าย &quot;ร่าง&quot; ยังไม่ได้ตรวจกับจุดประสงค์การเรียนรู้ในคู่มือ กรุณาตรวจแล้วกดบันทึก</Alert>}
         <TopicChipsEditor topics={topics.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name, chips: (t.outcomeChips as string[] | null) ?? [], draft: !t.chipsReviewedAt }))} />
       </section>
       <section className="card space-y-3">

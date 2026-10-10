@@ -25,7 +25,7 @@ export default async function CohortDocuments({ params }: PageProps<"/cohorts/[i
   const names = userNameMap(db);
   return (
     <div className="space-y-6">
-      <Alert tone="info">เอกสารสร้างจากแม่แบบและเติมข้อมูลของรุ่นให้ — <b>ตรวจและแก้ข้อความได้ก่อนพิมพ์</b> · แม่แบบชุดนี้เป็นร่างตามรูปแบบหนังสือราชการทั่วไป จะปรับให้ตรงกับไฟล์ที่หน่วยงานใช้จริงเมื่อได้รับไฟล์</Alert>
+      <Alert tone="info">แม่แบบเป็นร่างตามรูปแบบหนังสือราชการ กรุณาตรวจและแก้ข้อความก่อนพิมพ์</Alert>
       {canManage && (
         <section className="card">
           <h2 className="text-xl">สร้างเอกสารใหม่</h2>

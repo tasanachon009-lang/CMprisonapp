@@ -29,7 +29,7 @@ export default async function Rt101Page({ searchParams }: PageProps<"/rt101">) {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "งาน รท.101" }]} />
-      <PageHeader en="RT.101 Records" title="งาน รท.101 — บันทึกผ่านการฟื้นฟู" subtitle="ผู้ครบหลักสูตรต้องลงในระบบข้อมูลผู้ต้องขัง (รท.101) ว่าผ่านการฟื้นฟูแล้ว คนละ 1 ครั้งต่อหลักสูตร — ติ๊กหลายคนแล้วกด &quot;ลง รท.101 แล้ว&quot;" actions={<Link href={`/print/bst?s=rt101&f=${filter}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์เช็คลิสต์ค้างลง</Link>} />
+      <PageHeader en="RT.101 Records" title="งาน รท.101 — บันทึกผ่านการฟื้นฟู" help="ผู้ครบหลักสูตรต้องลงในระบบข้อมูลผู้ต้องขัง (รท.101) ว่าผ่านการฟื้นฟูแล้ว คนละ 1 ครั้งต่อหลักสูตร เลือกหลายคนแล้วกด “ลง รท.101 แล้ว”" actions={<Link href={`/print/bst?s=rt101&f=${filter}`} target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> พิมพ์เช็คลิสต์ค้างลง</Link>} />
 
       <section className="card grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Stat value={counts.total} label="รท.101 ค้างลง (คน)" href={`?f=all&fy=${fy}`} tone={counts.total ? "warn" : "ok"} />

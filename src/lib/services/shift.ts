@@ -62,7 +62,7 @@ export function createMessage(db: DB, input: { level: string; body: string; pers
   if (input.recipientType === "cohort") {
     if (!input.recipientCohortId) throw new RuleError("กรุณาเลือกรุ่นที่จะส่งถึง");
     // กลุ่ม B ส่งถึงทีมของรุ่นได้เฉพาะรุ่นที่ตนสอน/ได้รับมอบหมาย
-    if (actor.viewer && !actor.viewer.full && !actor.viewer.cohortIds.includes(input.recipientCohortId)) throw new RuleError("ส่งถึงได้เฉพาะรุ่นที่คุณสอนหรือได้รับมอบหมาย");
+    if (actor.viewer && !actor.viewer.full && !actor.viewer.cohortIds.includes(input.recipientCohortId)) throw new RuleError("ส่งได้เฉพาะรุ่นที่รับผิดชอบหรือได้รับมอบหมาย");
   }
   const values = { ...input, recipientUserId: input.recipientType === "user" ? input.recipientUserId : null, recipientCohortId: input.recipientType === "cohort" ? input.recipientCohortId : null };
   const m = db.insert(schema.shiftMessages).values({ ...values, body: input.body.trim(), authorId: actor.userId, createdBy: actor.userId, updatedBy: actor.userId }).returning().get();

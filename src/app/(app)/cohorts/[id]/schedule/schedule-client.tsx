@@ -89,7 +89,7 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
   });
   // ข้อความไม่มีข้อมูลผู้ต้องขัง — คัดลอกไปส่ง LINE/อีเมลให้วิทยากรเอง
   const copyText = (text: string) => {
-    navigator.clipboard?.writeText(text).then(() => setMsg({ tone: "ok", text: "คัดลอกข้อความแล้ว — วางในแชตหรืออีเมลถึงวิทยากรได้เลย" }), () => setMsg({ tone: "warn", text: text }));
+    navigator.clipboard?.writeText(text).then(() => setMsg({ tone: "ok", text: "คัดลอกข้อความแล้ว" }), () => setMsg({ tone: "warn", text: text }));
   };
   const changeRole = (id: number, v: string) => start(async () => {
     const r = await setStaffRoleAction(cohortId, id, v === "lead" || v === "co" ? v : null);
@@ -184,7 +184,7 @@ export function SessionStaffEditor({ cohortId, session, staff, options, external
         )}
         {msg && <div className="mt-3"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
         {conflictAsk && <button className="btn-danger mt-2" disabled={pending} onClick={() => add(true)}>ยืนยันเพิ่ม (ทราบแล้วว่าชนเวลา)</button>}
-        <p className="hint mt-4">ค่าตอบแทนและการแบ่งเงินตามจำนวนวิทยากรคำนวณในหน้าค่าตอบแทน (กลุ่มถัดไปของขั้น 3)</p>
+        
         </>}
       </Modal>
     </>
@@ -218,7 +218,7 @@ function SessionDetailsForm({ cohortId, session, topics, locations, onDone }: { 
         <label><span className="label">ชั่วโมงที่นับ</span><input className="input" inputMode="decimal" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
         <label><span className="label">สถานที่</span><input className="input" list={`loc-${session.id}`} value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} /><datalist id={`loc-${session.id}`}>{locations.map((l) => <option key={l} value={l} />)}</datalist></label>
       </div>
-      {session.checked && <p className="hint">คาบนี้เช็คชื่อแล้ว — แก้เวลา/สถานที่ได้ แต่ย้ายวันไม่ได้</p>}
+      {session.checked && <p className="hint">คาบนี้เช็คชื่อแล้ว ไม่สามารถย้ายวัน</p>}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="flex flex-wrap gap-2">
         <button className="btn-primary" disabled={pending} onClick={() => save(false)}>บันทึก</button>

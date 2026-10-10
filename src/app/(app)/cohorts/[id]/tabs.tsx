@@ -15,7 +15,7 @@ export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: b
     { href: `${base}/schedule`, label: "ตารางกิจกรรม" },
     { href: `${base}/assessments`, label: "แบบประเมิน", hidden: !show.assessments },
     { href: `${base}/health`, label: "สถานพยาบาล", hidden: !show.health },
-    ...(isFast ? [{ label: "ชุมชนบำบัด", soon: "ขั้นที่ 5" }] : []),
+    ...(isFast ? [{ label: "ชุมชนบำบัด", soon: "ยังไม่เปิดใช้งาน" }] : []),
     { href: `/pay?cohort=${id}`, label: "ค่าตอบแทน", hidden: !show.pay },
     { href: `${base}/budget`, label: "งบประมาณ", hidden: !show.budget },
     { href: `${base}/documents`, label: "เอกสาร", hidden: !show.docs },
@@ -25,7 +25,7 @@ export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: b
     <nav aria-label="แท็บของรุ่น" className="no-print -mx-1 flex gap-1 overflow-x-auto border-b border-line pb-px">
       {tabs.filter((t) => !t.hidden).map((t) => {
         if (!t.href) {
-          return <span key={t.label} title={`จะเปิดใช้ใน${t.soon}`} className="inline-flex min-h-11 cursor-not-allowed items-center whitespace-nowrap px-4 text-muted/60">{t.label}</span>;
+          return <span key={t.label} title={t.soon} className="inline-flex min-h-11 cursor-not-allowed items-center whitespace-nowrap px-4 text-muted/60">{t.label}</span>;
         }
         const active = t.href === base ? path === base : path.startsWith(t.href);
         return (

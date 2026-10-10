@@ -46,7 +46,7 @@ export function BehaviorNoteButton({ incarcerationId, enrollmentId, name, compac
               router.refresh();
             })}>บันทึก</button>
           </div>
-          <p className="hint">พฤติกรรมเชิงลบที่รุนแรง จะแปลงเป็นบันทึกวินัย/เครื่องมือบ้านได้เมื่อเปิดหลักสูตรชุมชนบำบัด (ขั้นที่ 5)</p>
+          
         </div>
       </Modal>
     </>

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronRight, HelpCircle } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { HelpButton } from "./help-button";
 
 export function Breadcrumb({ items }: { items: Array<{ href?: string; label: string }> }) {
   return (
@@ -23,18 +24,14 @@ export function Eyebrow({ children, light }: { children: React.ReactNode; light?
   );
 }
 
-export function PageHeader({ title, subtitle, actions, help, en }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; help?: string; en?: string }) {
+export function PageHeader({ title, subtitle, actions, help, en }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; help?: React.ReactNode; en?: string }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
         {en && <Eyebrow>{en}</Eyebrow>}
         <h1 className="flex items-center gap-2 text-3xl">
           {title}
-          {help && (
-            <span title={help} className="cursor-help text-muted" aria-label={`วิธีใช้: ${help}`}>
-              <HelpCircle size={22} />
-            </span>
-          )}
+          {help && <HelpButton>{help}</HelpButton>}
         </h1>
         {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
       </div>

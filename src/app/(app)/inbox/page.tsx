@@ -40,9 +40,9 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
   return (
     <div className="max-w-4xl space-y-6">
       <Breadcrumb items={[{ label: "จดหมายเวร" }]} />
-      <PageHeader en="Shift Handoff" title="กล่องจดหมายเวร" subtitle="ส่งต่องานระหว่างเวร — ผู้รับต้องกด &quot;รับทราบภารกิจ&quot; ทีละข้อ ระบบบันทึกว่าใครรับทราบเมื่อไร" />
-      {!v.full && <Alert tone="info">คุณเห็นเฉพาะข้อความที่ส่งถึงคุณ หรือถึงทีมของรุ่นที่คุณสอน — ส่งข้อความถึงเจ้าหน้าที่หลักได้ตามปกติ</Alert>}
-      {sp.must && pendingAck.some((m) => m.level === "red") && <Alert tone="danger">มีข้อความระดับสีแดงที่ยังไม่รับทราบ — ต้องกด &quot;รับทราบภารกิจ&quot; ก่อนจึงจะเข้าเมนูอื่นได้</Alert>}
+      <PageHeader en="Shift Handoff" title="กล่องจดหมายเวร" help="ใช้ส่งต่องานระหว่างเวร ผู้รับต้องกด “รับทราบภารกิจ” ทีละข้อ ระบบบันทึกผู้รับทราบและเวลา" />
+      {!v.full && <Alert tone="info">แสดงเฉพาะข้อความที่ส่งถึงตนเองหรือทีมของรุ่นที่รับผิดชอบ</Alert>}
+      {sp.must && pendingAck.some((m) => m.level === "red") && <Alert tone="danger">มีข้อความระดับสีแดงที่ยังไม่รับทราบ กรุณากด &quot;รับทราบภารกิจ&quot; ก่อนใช้งานเมนูอื่น</Alert>}
       <Compose staff={staff.map((s) => ({ id: s.id, name: `${s.f} ${s.l}` }))} cohorts={cohorts} canHealth={auth.can("health.view")} today={today} prefill={prefill} />
       <section className="space-y-3">
         {msgs.length === 0 && <EmptyState title="ยังไม่มีข้อความ" />}

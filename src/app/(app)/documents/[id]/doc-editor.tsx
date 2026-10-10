@@ -39,7 +39,7 @@ export function DocEditor(p: { id: number; kind: "memo" | "letter" | "order"; to
 
   return (
     <div className="space-y-4">
-      {p.locked && <Alert tone="ok">เอกสารนี้ล็อกแล้ว (ฉบับที่ใช้จริง) — ถ้าต้องแก้ ให้กด &quot;ปลดล็อกเพื่อแก้ไข&quot;</Alert>}
+      {p.locked && <Alert tone="ok">เอกสารนี้ล็อกแล้ว (ฉบับที่ใช้จริง)</Alert>}
       <fieldset disabled={ro} className="card space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           {text("docNo", p.kind === "order" ? "คำสั่งที่ (เช่น 123/2569)" : "ที่ (เลขที่หนังสือ)", { ph: "เว้นว่างไว้เติมด้วยมือได้" })}
@@ -71,7 +71,7 @@ export function DocEditor(p: { id: number; kind: "memo" | "letter" | "order"; to
       <div className="flex flex-wrap items-center justify-end gap-3">
         {!p.readOnly && !p.locked && (confirmDelete ? (
           <span className="mr-auto flex flex-wrap items-center gap-2">
-            <span className="text-danger">ลบเอกสารฉบับนี้?</span>
+            <span className="text-danger">ยืนยันการลบเอกสารฉบับนี้</span>
             <button type="button" className="btn-ghost btn-sm" disabled={pending} onClick={() => run(() => deleteDocumentAction(p.id), "ลบแล้ว", () => router.push(p.backHref))}>ยืนยันลบ</button>
             <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>ไม่ลบ</button>
           </span>

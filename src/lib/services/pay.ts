@@ -136,7 +136,7 @@ export function approveBatch(db: DB, id: number, actor: { userId: number; ip?: s
     const v = batchView(t, id);
     if (v.batch.status !== "draft") throw new RuleError("รอบนี้ไม่ได้อยู่ในสถานะร่าง — อนุมัติไม่ได้");
     if (!v.lines.length) throw new RuleError("ไม่มีรายการที่เบิกได้ในช่วงนี้ — ตรวจว่าปิดคาบแล้ว และหัวข้อตั้งเป็นเบิกได้พร้อมอัตรา");
-    if (v.lines.some((l) => l.userId === actor.userId)) throw new RuleError("รอบนี้มีค่าตอบแทนของคุณเอง — อนุมัติเองไม่ได้ (แยกหน้าที่) ให้หัวหน้า/รองอีกคนอนุมัติ");
+    if (v.lines.some((l) => l.userId === actor.userId)) throw new RuleError("ไม่สามารถอนุมัติรอบเบิกที่มีค่าตอบแทนของตนเอง");
     for (const l of v.lines) {
       tx.insert(schema.payLines).values({
         batchId: id, sessionId: l.sessionId, sessionStaffId: l.staffId, userId: l.userId, instructorId: l.instructorId, name: l.name, kind: l.kind, date: l.date, title: l.title,
@@ -158,7 +158,7 @@ export function approveBatch(db: DB, id: number, actor: { userId: number; ip?: s
 
 /** ปลดล็อก (หัวหน้า/รองเท่านั้น + เหตุผล): รอบกลับเป็นร่าง ยอดเดิมเก็บใน audit log · คาบแก้ได้อีกครั้ง */
 export function unlockBatch(db: DB, id: number, reason: string, actor: { userId: number; isAdmin: boolean; ip?: string | null }) {
-  if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะหัวหน้า/รอง");
+  if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะผู้ดูแลระบบ");
   if (!reason.trim()) throw new RuleError("กรุณาระบุเหตุผลที่ปลดล็อก");
   return db.transaction((tx) => {
     const t = tx as unknown as DB;
@@ -212,7 +212,7 @@ function snapshotRow(l: typeof schema.payLines.$inferSelect): PayLine {
 
 /** แก้วิธีแบ่งเฉพาะคาบ (ผู้ดูแล) + หมายเหตุ · สัดส่วนรายคน (เมื่อแบ่งแบบกำหนดสัดส่วน) */
 export function setSessionSplit(db: DB, sessionId: number, input: { method: SplitMethod | null; note?: string | null; ratios?: Array<{ staffId: number; ratio: number }> }, actor: { userId: number; isAdmin: boolean; ip?: string | null }) {
-  if (!actor.isAdmin) throw new RuleError("แก้วิธีแบ่งเฉพาะคาบได้เฉพาะหัวหน้า/รอง");
+  if (!actor.isAdmin) throw new RuleError("แก้วิธีแบ่งเฉพาะคาบได้เฉพาะผู้ดูแลระบบ");
   const s = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, sessionId)).get();
   if (!s) throw new RuleError("ไม่พบคาบ");
   if (s.payBatchId) throw new RuleError("คาบนี้อยู่ในรอบเบิกที่อนุมัติแล้ว — ปลดล็อกรอบก่อน");

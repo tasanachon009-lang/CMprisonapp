@@ -37,7 +37,7 @@ export async function updatePerson(personId: number, version: number, input: z.i
     const db = getDb();
     const p = db.select().from(schema.persons).where(eq(schema.persons.id, personId)).get();
     if (!p) return { ok: false, error: "ไม่พบบุคคล" };
-    if (p.version !== version) return { ok: false, error: "มีผู้อื่นแก้ไขข้อมูลนี้ไปแล้วระหว่างที่คุณเปิดหน้าอยู่ — กรุณาโหลดหน้าใหม่แล้วแก้อีกครั้ง", code: "conflict" };
+    if (p.version !== version) return { ok: false, error: "ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่", code: "conflict" };
     const { nationalId, ...rest } = parsed.data;
     const patch: Record<string, unknown> = { ...rest };
     if (nationalId) {
@@ -45,7 +45,7 @@ export async function updatePerson(personId: number, version: number, input: z.i
       if (!isValidNationalId(nid)) return { ok: false, error: "เลขบัตรประชาชนไม่ถูกต้อง (ตรวจหลักสุดท้ายไม่ผ่าน)" };
       if (p.nationalId && p.nationalId !== nid && !auth.isAdmin) return { ok: false, error: "เลขบัตรที่บันทึกแล้ว แก้ได้เฉพาะผู้ดูแลระบบ" };
       const other = db.select().from(schema.persons).where(and(eq(schema.persons.nationalId, nid), ne(schema.persons.id, personId))).get();
-      if (other) return { ok: false, error: `เลขบัตรนี้เป็นของบุคคลอื่นในระบบ (${other.firstName} ${other.lastName}) — ถ้าเป็นคนเดียวกัน ให้แจ้งผู้ดูแลรวมประวัติ` };
+      if (other) return { ok: false, error: `เลขบัตรนี้เป็นของบุคคลอื่นในระบบ (${other.firstName} ${other.lastName}) กรุณาติดต่อผู้ดูแลระบบ` };
       patch.nationalId = nid;
     }
     const d = diff(p as Record<string, unknown>, patch);

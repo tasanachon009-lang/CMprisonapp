@@ -48,7 +48,7 @@ export function docContext(db: DB, batchId: number) {
 /** ผู้รับเงินในรอบ (ยอดจากรายการที่อนุมัติแล้ว) + ข้อมูลเติมเอกสาร + ความครบของข้อมูล */
 export function payees(db: DB, batchId: number, opts: { order?: "name" | "first"; who?: "all" | "internal" | "external"; keys?: string[] } = {}): Payee[] {
   const v = batchView(db, batchId);
-  if (v.batch.status !== "approved") throw new RuleError("พิมพ์เอกสารการเงินได้เฉพาะรอบเบิกที่อนุมัติแล้ว — ให้หัวหน้า/รองอนุมัติก่อน");
+  if (v.batch.status !== "approved") throw new RuleError("พิมพ์เอกสารการเงินได้เฉพาะรอบเบิกที่อนุมัติแล้ว");
   const totals = personTotals(v.lines, v.tax);
   const userIds = totals.map((t) => t.userId).filter((x): x is number => !!x);
   const insIds = totals.map((t) => t.instructorId).filter((x): x is number => !!x);
@@ -105,7 +105,7 @@ export function reconcile(batch: { totalSatang: number | null }, people: Payee[]
   if (voucherSum !== summarySum) issues.push(`ผลรวมใบสำคัญรับเงิน (${voucherSum / 100}) ไม่เท่ากับสรุปใหญ่ (${summarySum / 100})`);
   if (!filtered) {
     if (lineSum !== summarySum) issues.push(`ผลรวมรายคาบ (${lineSum / 100}) ไม่เท่ากับสรุปใหญ่ (${summarySum / 100})`);
-    if (batch.totalSatang != null && batch.totalSatang !== summarySum) issues.push(`ยอดที่อนุมัติ (${batch.totalSatang / 100}) ไม่เท่ากับสรุปใหญ่ (${summarySum / 100}) — ให้หัวหน้า/รองปลดล็อกแล้วอนุมัติใหม่`);
+    if (batch.totalSatang != null && batch.totalSatang !== summarySum) issues.push(`ยอดที่อนุมัติ (${batch.totalSatang / 100}) ไม่เท่ากับสรุปใหญ่ (${summarySum / 100}) — กรุณาติดต่อผู้ดูแลระบบ`);
   }
   return issues;
 }

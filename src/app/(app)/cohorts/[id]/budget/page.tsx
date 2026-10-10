@@ -47,10 +47,10 @@ export default async function CohortBudgetPage({ params }: PageProps<"/cohorts/[
     <div className="space-y-6">
       {!auth.can("budget.manage") && !canSpend && <Alert tone="info">ดูอย่างเดียว</Alert>}
       {data.status.unbudgetedCompensation > 0 && <Alert tone="danger">ค่าวิทยากรที่อนุมัติแล้ว {b(data.status.unbudgetedCompensation)} บาท ยังไม่มีบรรทัดงบรองรับ — เพิ่มรายการ &quot;ค่าตอบแทนวิทยากรภายใน/ภายนอก&quot; ในงบของรุ่น</Alert>}
-      {data.needsConfirmation && <Alert tone="danger">มีหมวดที่ใช้เกินงบและยังไม่ได้รับการยืนยันจากหัวหน้า/รอง</Alert>}
+      {data.needsConfirmation && <Alert tone="danger">มีหมวดที่ใช้เกินงบและยังไม่ได้รับการยืนยัน</Alert>}
 
       {/* สถานะต่อแหล่งเงิน */}
-      {data.status.allocations.length === 0 ? <EmptyState title="รุ่นนี้ยังไม่มีงบประมาณ">{canManage ? "เพิ่มรายการงบด้านล่าง หรือใช้แม่แบบของหลักสูตร" : "รอหัวหน้า/รองตั้งงบของรุ่น"}</EmptyState> : (
+      {data.status.allocations.length === 0 ? <EmptyState title="รุ่นนี้ยังไม่มีงบประมาณ">{canManage ? "เพิ่มรายการงบด้านล่าง หรือใช้แม่แบบของหลักสูตร" : "ยังไม่ได้ตั้งงบของรุ่น"}</EmptyState> : (
         <section className="grid gap-4">
           {data.status.allocations.map((a) => {
             const alloc = allocById.get(a.allocationId);
@@ -67,7 +67,7 @@ export default async function CohortBudgetPage({ params }: PageProps<"/cohorts/[
                         <td className="pl-4">
                           <span className={LEVEL[c.level].cls}>{LEVEL[c.level].label}</span>
                           {c.level === "yellow" && c.borrowFrom.length > 0 && <span className="block text-xs">ถัวจาก {c.borrowFrom.map((x) => BUDGET_CATEGORIES[x]).join(", ")}</span>}
-                          {c.level === "red" && c.over > 0 && (c.confirmed ? <span className="tag-ok ml-1">ยืนยันแล้ว</span> : <span className="ml-2 text-sm text-danger">เกิน {b(c.over)} บาท — ต้องหัวหน้า/รองยืนยัน</span>)}
+                          {c.level === "red" && c.over > 0 && (c.confirmed ? <span className="tag-ok ml-1">ยืนยันแล้ว</span> : <span className="ml-2 text-sm text-danger">เกิน {b(c.over)} บาท — รอยืนยัน</span>)}
                           {c.level === "red" && c.over > 0 && !c.confirmed && canConfirm && <ConfirmOverrun cohortId={cohort.id} allocationId={a.allocationId} category={c.category} label={`${BUDGET_CATEGORIES[c.category]} เกิน ${b(c.over)} บาท`} />}
                         </td>
                       </tr>
@@ -151,7 +151,7 @@ export default async function CohortBudgetPage({ params }: PageProps<"/cohorts/[
             </table>
           )}
         </div>
-        {closed && canSpend && <p className="hint">รุ่นนี้ปิดแล้ว — ยังบันทึกใช้จ่ายจริง/คืนเงินเหลือได้ (ใบเสร็จที่มาหลังจบรุ่น) แต่แก้งบที่ตั้งไว้ไม่ได้</p>}
+        {closed && canSpend && <p className="hint">รุ่นนี้ปิดแล้ว บันทึกได้เฉพาะรายจ่ายจริงและคืนเงินเหลือ</p>}
         {canSpend && (
           <>
             <ExpenseForm cohortId={cohort.id} allocations={allocOpts} items={items} today={today} canConfirm={canConfirm} />

@@ -27,17 +27,18 @@ export async function clientIp(): Promise<string | null> {
 
 // ───────── ชั้นที่ 1: เครื่องที่ผ่านรหัสหน่วยงาน ─────────
 
-export async function trustThisDevice() {
+/** remember = false (ไม่ติ๊ก "จดจำเครื่องนี้"): ใช้ได้จนปิดเบราว์เซอร์ และไม่เกิน 12 ชั่วโมง */
+export async function trustThisDevice(remember = true) {
   const db = getDb();
   const days = getSetting(db, "security.deviceTrustDays", 30);
   const token = newToken();
   const now = Date.now();
   const h = await headers();
   db.insert(schema.trustedDevices)
-    .values({ id: sha256(token), createdAt: new Date(now), expiresAt: new Date(now + days * 86400000), ip: await clientIp(), userAgent: h.get("user-agent") })
+    .values({ id: sha256(token), createdAt: new Date(now), expiresAt: new Date(now + (remember ? days * 86400000 : 12 * 3600000)), ip: await clientIp(), userAgent: h.get("user-agent") })
     .run();
   (await cookies()).set(DEVICE_COOKIE, token, {
-    httpOnly: true, secure: secureCookies(), sameSite: "strict", path: "/", maxAge: days * 86400,
+    httpOnly: true, secure: secureCookies(), sameSite: "strict", path: "/", ...(remember ? { maxAge: days * 86400 } : {}),
   });
 }
 
@@ -218,7 +219,7 @@ export async function requireAction(...need: Permission[]): Promise<Auth> {
   if (auth.locked) throw new AuthError("หน้าจอถูกล็อก กรุณาใส่รหัสผ่านเพื่อปลดล็อกก่อน");
   if (auth.user.mustChangePassword) throw new AuthError("กรุณาเปลี่ยนรหัสผ่านก่อนใช้งาน");
   if (!auth.mfaOk) throw new AuthError("ผู้ดูแลระบบต้องยืนยันรหัส OTP จากแอปมือถือก่อน");
-  if (need.length && !need.some((p) => auth.can(p))) throw new AuthError("คุณไม่มีสิทธิ์ทำรายการนี้");
+  if (need.length && !need.some((p) => auth.can(p))) throw new AuthError("ไม่มีสิทธิ์ทำรายการนี้");
   touchSession(auth.sessionId);
   return auth;
 }

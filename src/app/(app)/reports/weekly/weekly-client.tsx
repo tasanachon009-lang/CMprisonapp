@@ -38,7 +38,7 @@ export function WeeklyEditor({ id, status, initial, monday }: { id: number; stat
   return (
     <section className="card space-y-3">
       <h2 className="text-xl">แก้ข้อความก่อนอนุมัติ</h2>
-      <label className="block"><span className="label">5. ปัญหา อุปสรรค ข้อเสนอแนะ (ระบบรวบรวมจากผลกิจกรรมให้แล้ว แก้เพิ่มได้)</span><textarea className="input" rows={5} value={f.issues} maxLength={5000} onChange={(e) => setF({ ...f, issues: e.target.value })} /></label>
+      <label className="block"><span className="label">5. ปัญหา อุปสรรค ข้อเสนอแนะ</span><textarea className="input" rows={5} value={f.issues} maxLength={5000} onChange={(e) => setF({ ...f, issues: e.target.value })} /></label>
       <label className="block"><span className="label">6. แผนสัปดาห์หน้า</span><textarea className="input" rows={5} value={f.nextPlan} maxLength={5000} onChange={(e) => setF({ ...f, nextPlan: e.target.value })} /></label>
       <label className="block"><span className="label">หมายเหตุ (ไม่บังคับ)</span><textarea className="input" rows={2} value={f.note} maxLength={2000} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}

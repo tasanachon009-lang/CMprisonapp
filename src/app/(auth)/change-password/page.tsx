@@ -11,7 +11,7 @@ export default async function ChangePasswordPage() {
     <div className="card w-full max-w-md">
       <h2 className="text-2xl">ตั้งรหัสผ่านใหม่</h2>
       {auth.user.mustChangePassword ? (
-        <p className="mt-1 text-muted">{auth.isAdmin ? "ผู้ดูแลระบบต้องใช้รหัสผ่านยาวอย่างน้อย 12 ตัว — กรุณาตั้งรหัสผ่านใหม่ก่อนใช้งาน" : "เข้าใช้ครั้งแรก (หรือผู้ดูแลเพิ่งรีเซ็ตรหัส) กรุณาตั้งรหัสผ่านของคุณเองก่อนใช้งาน"}</p>
+        <p className="mt-1 text-muted">{auth.isAdmin ? "ผู้ดูแลระบบต้องใช้รหัสผ่านอย่างน้อย 12 ตัว กรุณาตั้งรหัสผ่านใหม่ก่อนใช้งาน" : "กรุณาตั้งรหัสผ่านใหม่ก่อนใช้งาน"}</p>
       ) : (
         <p className="mt-1 text-muted">{auth.user.fullName}</p>
       )}

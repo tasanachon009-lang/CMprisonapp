@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (auth.user.mustChangePassword) redirect("/change-password");
   if (auth.locked) redirect("/lock");
   const db = getDb();
-  const demo = getSetting(db, "app.isDemoData", false);
+  const demo = getSetting(db, "app.isDemoData", false) && config.envLabel !== "production";
   const unread = db
     .select({ n: sql<number>`count(*)` })
     .from(schema.notifications)
@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen">
-      {(demo || config.envLabel !== "production") && (
+      {config.envLabel !== "production" && (
         <div className="no-print bg-warn-bg px-4 py-1 text-center text-sm font-semibold text-ink">
           {demo ? "ข้อมูลตัวอย่าง (ข้อมูลปลอม) — " : ""}
           {config.envLabel === "staging" ? "สภาพแวดล้อมทดสอบ — ไม่ใช่ระบบใช้จริง" : config.envLabel === "training" ? "โหมดฝึกหัด — ไม่กระทบข้อมูลจริง" : config.envLabel === "development" ? "เครื่องพัฒนา" : ""}

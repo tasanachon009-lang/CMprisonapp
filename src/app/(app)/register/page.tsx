@@ -46,7 +46,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   return (
     <div className="max-w-4xl">
       <Breadcrumb items={[{ href: "/courses", label: "หลักสูตร" }, { href: `/cohorts/${cohort.id}`, label: `${course.shortName} ${cohortLabel(cohort)}` }, { label: "ลงทะเบียน" }]} />
-      <PageHeader en="Registration" title="ลงทะเบียนเข้ารุ่น" subtitle={`${course.name} ${cohortLabel(cohort)}`} help="ช่องบังคับมีแค่ เลขประจำตัว ชื่อ และนามสกุล — ที่เหลือกรอกภายหลังได้ ระบบบันทึกร่างให้ทุก 30 วินาที" />
+      <PageHeader en="Registration" title="ลงทะเบียนเข้ารุ่น" subtitle={`${course.name} ${cohortLabel(cohort)}`} help="ช่องบังคับ: เลขประจำตัว ชื่อ และนามสกุล ข้อมูลอื่นกรอกภายหลังได้ ระบบบันทึกร่างทุก 30 วินาที" />
       <RegisterWizard
         cohortId={cohort.id}
         cohortStatus={cohort.status}

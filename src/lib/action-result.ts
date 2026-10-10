@@ -13,5 +13,5 @@ export function toError(e: unknown): { ok: false; error: string; code?: string; 
   }
   if (msg.includes("SQLITE_BUSY")) return { ok: false, error: "ระบบกำลังบันทึกข้อมูลของผู้อื่นอยู่ กรุณากดบันทึกอีกครั้ง", code: "busy" };
   console.error(e);
-  return { ok: false, error: "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่ ถ้ายังไม่ได้ให้แจ้งผู้ดูแลระบบ", code: "internal" };
+  return { ok: false, error: "เกิดข้อผิดพลาด กรุณาดำเนินการอีกครั้ง หรือติดต่อผู้ดูแลระบบ", code: "internal" };
 }

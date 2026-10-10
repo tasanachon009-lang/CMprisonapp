@@ -102,7 +102,7 @@ export async function setProjectStepAction(cohortId: number, code: string, input
   try {
     const auth = await requireAction("course.manage");
     const parsed = StepSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่" };
+    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้อง กรุณาโหลดหน้าใหม่" };
     setProjectStep(getDb(), Number(cohortId), String(code), parsed.data, { userId: auth.user.id, ip: await clientIp() });
     revalidatePath(`/cohorts/${cohortId}`);
     return { ok: true };

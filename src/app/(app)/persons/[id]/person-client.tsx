@@ -136,7 +136,7 @@ export function ChangeInmateNo({ incarcerationId, current }: { incarcerationId: 
     <>
       <button className="btn-ghost btn-sm" onClick={() => setOpen(true)}>แก้เลขประจำตัว (ผู้ดูแล)</button>
       <Modal open={open} onClose={() => setOpen(false)} title="แก้เลขประจำตัวผู้ต้องขัง">
-        <Alert tone="warn">เลขประจำตัวไม่เปลี่ยนแม้ย้ายเรือนจำ — แก้เฉพาะกรณีบันทึกผิด ระบบจะบันทึกเหตุผลและผู้แก้ไว้</Alert>
+        <Alert tone="warn">แก้เลขประจำตัวเฉพาะกรณีบันทึกผิด ระบบบันทึกเหตุผลและผู้แก้ไข</Alert>
         <label className="mt-3 block"><span className="label">เลขใหม่</span><input className="input font-mono" value={no} onChange={(e) => setNo(e.target.value)} /></label>
         <label className="mt-3 block"><span className="label">เหตุผล</span><textarea className="input" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></label>
         {error && <div className="mt-3"><Alert tone="danger">{error}</Alert></div>}

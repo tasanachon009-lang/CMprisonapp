@@ -84,7 +84,7 @@ export async function resetPassword(id: number, tempPassword: string): Promise<A
     const db = getDb();
     const u = db.select().from(schema.users).where(eq(schema.users.id, id)).get();
     if (!u) return { ok: false, error: "ไม่พบผู้ใช้" };
-    if (activeAdminIds(db).includes(id) && id !== auth.user.id) return { ok: false, error: "รหัสของผู้ดูแลอีกคน ให้เจ้าตัวเปลี่ยนเอง (หรือใช้ขั้นตอนรหัสฉุกเฉินใน README)" };
+    if (activeAdminIds(db).includes(id) && id !== auth.user.id) return { ok: false, error: "ไม่สามารถรีเซ็ตรหัสผ่านของผู้ดูแลระบบอีกคน" };
     const problem = checkPassword(tempPassword, { ...u, isAdmin: activeAdminIds(db).includes(id) });
     if (problem) return { ok: false, error: problem };
     db.update(schema.users).set({ passwordHash: await hashPassword(tempPassword), mustChangePassword: true, failedAttempts: 0, lockedUntil: null, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.users.id, id)).run();
@@ -101,7 +101,7 @@ export async function resetPassword(id: number, tempPassword: string): Promise<A
 export async function resetOtp(id: number, reason: string): Promise<ActionResult> {
   try {
     const auth = await requireAction("users.manage");
-    if (id === auth.user.id) return { ok: false, error: "รีเซ็ต OTP ของตัวเองไม่ได้ — ให้ผู้ดูแลอีกคนทำ หรือใช้ขั้นตอนรหัสฉุกเฉิน" };
+    if (id === auth.user.id) return { ok: false, error: "ไม่สามารถรีเซ็ต OTP ของตนเอง กรุณาติดต่อผู้ดูแลระบบ" };
     if (!reason.trim()) return { ok: false, error: "กรุณาระบุเหตุผล" };
     const db = getDb();
     db.update(schema.users).set({ totpSecret: null, totpEnabled: false, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.users.id, id)).run();
@@ -185,7 +185,7 @@ export async function requestDualAction(action: DualAction, payload: Record<stri
     if (action === "grant_admin" && activeAdminIds(db).length >= MAX_ADMINS) return { ok: false, error: `ผู้ดูแลระบบมีได้ไม่เกิน ${MAX_ADMINS} คน — ถอนสิทธิ์คนเดิมก่อน` };
     requestDual(db, action, payload, reason, auth.user.id, await clientIp());
     revalidatePath("/admin/approvals");
-    return { ok: true, message: "ส่งคำขอแล้ว รอผู้ดูแลอีกคนกดยืนยัน" };
+    return { ok: true, message: "ส่งคำขอแล้ว รอผู้ดูแลระบบอีกหนึ่งคนยืนยัน" };
   } catch (e) {
     return toError(e);
   }
@@ -326,7 +326,7 @@ export async function saveSettings(values: Record<string, unknown>): Promise<Act
     for (const [k, v] of Object.entries(values)) {
       if (!allowed.includes(k)) continue;
       if (k === "security.idleLockMinutes" && (typeof v !== "number" || v < 5 || v > 15)) throw new RuleError("เวลาล็อกอัตโนมัติต้องอยู่ระหว่าง 5–15 นาที");
-      if (k === "docs.thaiNumerals" && typeof v !== "boolean") throw new RuleError("ค่าเลขไทยไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่");
+      if (k === "docs.thaiNumerals" && typeof v !== "boolean") throw new RuleError("ค่าเลขไทยไม่ถูกต้อง กรุณาโหลดหน้าใหม่");
       if ((k.startsWith("org.") || k === "docs.unitHeadName" || k === "docs.unitHeadTitle") && (typeof v !== "string" || v.length > 300)) throw new RuleError("ข้อความยาวเกินไป (ไม่เกิน 300 ตัวอักษร)");
       if (k === "security.adminOtp" && typeof v !== "boolean") throw new RuleError("ค่าการใช้ OTP ไม่ถูกต้อง");
       if (k === "security.officeHours") {

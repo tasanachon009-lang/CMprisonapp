@@ -24,18 +24,19 @@ export async function verifyOrgCode(_: FormState, formData: FormData): Promise<F
   // นับเฉพาะครั้งที่ใส่ผิด (ใส่ถูกไม่นับ) — ผิด 10 ครั้งใน 15 นาทีจากเครื่องเดียวกัน → รอ
   const key = `org:${ip}`;
   const wait = failureLockMinutes(key, 10, 15 * 60000);
-  if (wait) return { error: `ใส่รหัสหน่วยงานผิดหลายครั้งเกินไป กรุณารอประมาณ ${wait} นาทีแล้วลองใหม่` };
+  if (wait) return { error: `ใส่รหัสหน่วยงานผิดเกินกำหนด กรุณารอ ${wait} นาที` };
   const db = getDb();
   const hash = getSetting<string | null>(db, "auth.orgCodeHash", null);
-  if (!hash) return { error: "ระบบยังไม่ได้ตั้งรหัสหน่วยงาน กรุณาให้ผู้ดูแลรันสคริปต์ติดตั้ง" };
+  if (!hash) return { error: "ยังไม่ได้ตั้งรหัสหน่วยงาน กรุณาติดต่อผู้ดูแลระบบ" };
   if (!code || !(await verifyPassword(hash, code))) {
     recordFailure(key);
     writeAudit(db, { userId: null, action: "device.fail", ip });
-    return { error: "รหัสหน่วยงานไม่ถูกต้อง กรุณาตรวจสอบกับหัวหน้า/รองหัวหน้า (ตัวพิมพ์เล็ก-ใหญ่ต้องตรงกัน)" };
+    return { error: "รหัสหน่วยงานไม่ถูกต้อง" };
   }
   clearFailures(key);
-  await trustThisDevice();
-  writeAudit(db, { userId: null, action: "device.trust", ip });
+  const remember = formData.get("remember") != null;
+  await trustThisDevice(remember);
+  writeAudit(db, { userId: null, action: "device.trust", ip, note: remember ? null : "ไม่จดจำเครื่อง" });
   redirect("/login");
 }
 
@@ -51,11 +52,11 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   const lockMin = getSetting(db, "security.lockoutMinutes", 15);
 
   const u = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
-  if (!u || u.status !== "active" || u.deletedAt) return { error: "ไม่พบบัญชีนี้ หรือบัญชีถูกระงับ กรุณาติดต่อหัวหน้า/รองหัวหน้า" };
+  if (!u || u.status !== "active" || u.deletedAt) return { error: "ไม่พบบัญชีนี้ หรือบัญชีถูกระงับ กรุณาติดต่อผู้ดูแลระบบ" };
 
   if (u.lockedUntil && u.lockedUntil.getTime() > Date.now()) {
     const mins = Math.ceil((u.lockedUntil.getTime() - Date.now()) / 60000);
-    return { error: `บัญชีถูกล็อกชั่วคราวเพราะใส่รหัสผิดหลายครั้ง กรุณารออีก ${mins} นาที หรือให้ผู้ดูแลรีเซ็ตรหัส` };
+    return { error: `บัญชีถูกระงับชั่วคราว กรุณารอ ${mins} นาที` };
   }
 
   if (!(await verifyPassword(u.passwordHash, password))) {
@@ -68,9 +69,9 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
     writeAudit(db, { userId: u.id, action: "login.fail", ip, note: lock ? "ล็อกบัญชีชั่วคราว" : `ผิดครั้งที่ ${fails}` });
     if (lock) {
       notify(db, { role: "admin", severity: "warning", kind: "login_lockout", message: `บัญชี ${u.firstName} ${u.lastName} ใส่รหัสผ่านผิด ${maxFail} ครั้ง ถูกล็อก ${lockMin} นาที`, link: "/admin/audit" });
-      return { error: `ใส่รหัสผ่านผิด ${maxFail} ครั้ง บัญชีถูกล็อก ${lockMin} นาที` };
+      return { error: `บัญชีถูกระงับชั่วคราว ${lockMin} นาที` };
     }
-    return { error: `รหัสผ่านไม่ถูกต้อง (เหลืออีก ${maxFail - fails} ครั้งก่อนล็อก) — ลืมรหัส ให้ติดต่อหัวหน้า/รองหัวหน้าเพื่อรีเซ็ต` };
+    return { error: `รหัสผ่านไม่ถูกต้อง (เหลือ ${maxFail - fails} ครั้ง)` };
   }
 
   const isAdmin = !!db.select().from(schema.userRoles).where(and(eq(schema.userRoles.userId, u.id), eq(schema.userRoles.role, "admin"))).get();
@@ -155,7 +156,7 @@ export async function startOtpSetup(): Promise<{ ok: boolean; secret?: string; q
   const auth = await getAuth();
   if (!auth || !auth.isAdmin) return { ok: false, error: "เฉพาะผู้ดูแลระบบ" };
   if (!auth.otpRequired) return { ok: false, error: "ระบบไม่ได้เปิดใช้ OTP (เปิดได้ที่ ตั้งค่า → ตั้งค่าระบบ)" };
-  if (auth.totpEnabled && !auth.mfaOk) return { ok: false, error: "บัญชีนี้ตั้ง OTP แล้ว — ถ้าโทรศัพท์หาย ให้ผู้ดูแลอีกคนขอรีเซ็ต OTP (ยืนยัน 2 คน)" };
+  if (auth.totpEnabled && !auth.mfaOk) return { ok: false, error: "บัญชีนี้ตั้ง OTP แล้ว กรุณาติดต่อผู้ดูแลระบบ" };
   const { generateSecret, otpauthUrl } = await import("@/lib/auth/totp");
   const QR = await import("qrcode");
   const secret = generateSecret();

@@ -118,7 +118,7 @@ export function AttendanceForm({ sessionId, rows: initial, loadedVersion, readOn
         )}
       </div>
       {draftOffer && <DraftOffer savedAt={draftOffer.updatedAt} onRestore={restore} onDiscard={() => { void autosave.clear(); setDraftOffer(null); }} />}
-      {!anySaved && !readOnly && <Alert tone="info">ทุกคนถูกตั้งเป็น &quot;มา&quot; ไว้แล้ว — แก้เฉพาะคนที่ไม่มา แล้วกด {embedded ? "\"บันทึกและปิดคาบ\" ด้านล่าง" : "\"บันทึก\" (Ctrl+S)"}</Alert>}
+      {!anySaved && !readOnly && <Alert tone="info">ค่าเริ่มต้นทุกคนเป็น &quot;มา&quot; แก้เฉพาะผู้ที่ไม่มา แล้วกด {embedded ? "\"บันทึกและปิดคาบ\" ด้านล่าง" : "\"บันทึก\" (Ctrl+S)"}</Alert>}
       {error && <Alert tone="danger">{error}</Alert>}
 
       <ul className="panel divide-y divide-line">

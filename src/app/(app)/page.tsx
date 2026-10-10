@@ -38,7 +38,7 @@ export default async function HomePage() {
       <div>
         <p lang="en" className="font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">My Day</p>
         <p className="text-muted">{formatThaiDate(today, "full")}</p>
-        <h1 className="text-3xl">สวัสดี คุณ{auth.user.firstName}</h1>
+        <h1 className="text-3xl">งานของฉันวันนี้</h1>
         {auth.can("course.view") && <div className="mt-3"><LastCohortLink /></div>}
       </div>
 
@@ -56,7 +56,7 @@ export default async function HomePage() {
         <section className="card">
           <h2 className="flex flex-wrap items-center gap-2 text-xl"><ClipboardCheck aria-hidden /> คาบของฉันวันนี้ <Link href="/print/my-schedule" target="_blank" className="ml-auto text-sm font-normal text-navy underline">พิมพ์ตารางสัปดาห์นี้</Link></h2>
           <div className="mt-4 space-y-2">
-            {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <EmptyState title="วันนี้ไม่มีคาบที่คุณรับผิดชอบ" />}
+            {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <EmptyState title="วันนี้ไม่มีคาบที่รับผิดชอบ" />}
           </div>
           {mineTomorrow.length > 0 && (
             <>
@@ -101,11 +101,11 @@ function MainCards({ today, mineToday, mineTomorrow }: { today: string; userId: 
         <h2 className="flex flex-wrap items-center gap-2 text-xl"><CalendarDays aria-hidden /> ตารางของฉัน <Link href="/print/my-schedule" target="_blank" className="ml-auto text-sm font-normal text-navy underline">พิมพ์ตารางสัปดาห์นี้</Link></h2>
         <h3 className="mt-3 font-semibold">วันนี้</h3>
         <div className="mt-2 space-y-2">
-          {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่คุณรับผิดชอบ</p>}
+          {mineToday.length ? mineToday.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่รับผิดชอบ</p>}
         </div>
         <h3 className="mt-4 font-semibold">พรุ่งนี้ ({formatThaiDate(addDays(today, 1))})</h3>
         <div className="mt-2 space-y-2">
-          {mineTomorrow.length ? mineTomorrow.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่คุณรับผิดชอบ</p>}
+          {mineTomorrow.length ? mineTomorrow.map((s) => <SessionCardView key={s.id} s={s} today={today} />) : <p className="text-muted">ไม่มีคาบที่รับผิดชอบ</p>}
         </div>
       </section>
     </div>
@@ -140,7 +140,7 @@ function CloseReminders({ today, userId, scope, invites }: { today: string; user
       {pending.length > 0 && (
         <section className="card border-2 border-danger/40">
           <h2 className="flex items-center gap-2 text-xl"><ClipboardList aria-hidden /> ยังไม่บันทึกผลคาบ <span className="rounded-full bg-danger px-2.5 py-0.5 text-base text-white">{pending.length}</span></h2>
-          <p className="text-sm text-muted">กดเข้าไปเช็คชื่อ + ผลกิจกรรม แล้วกด &quot;บันทึกและปิดคาบ&quot; (ใช้คำนวณค่าตอบแทน)</p>
+          <p className="text-sm text-muted">บันทึกเช็คชื่อและผลกิจกรรม แล้วกด &quot;บันทึกและปิดคาบ&quot;</p>
           <ul className="mt-3 space-y-2">
             {pending.slice(0, 8).map((s) => (
               <li key={s.id}><Link href={`/sessions/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
@@ -155,7 +155,7 @@ function CloseReminders({ today, userId, scope, invites }: { today: string; user
       {due.length > 0 && (
         <section className="card">
           <h2 className="flex items-center gap-2 text-xl"><Mail aria-hidden /> วิทยากรภายนอกยังไม่ยืนยัน <span className="tag-warn">{due.length}</span></h2>
-          <p className="text-sm text-muted">อีกไม่เกิน 14 วันจะถึงวันสอน — ส่งหนังสือ/โทรยืนยัน แล้วเปลี่ยนสถานะที่ตารางของรุ่น</p>
+          <p className="text-sm text-muted">ถึงวันสอนภายใน 14 วัน</p>
           <ul className="mt-3 space-y-2">
             {due.slice(0, 8).map((d) => (
               <li key={d.staffId}><Link href={`/cohorts/${d.session.cohortId}/schedule?view=week&week=${d.session.date}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 hover:bg-lime-soft">
@@ -274,7 +274,7 @@ function ExecSummary() {
         <Stat value={p(ind.bst.relapse.pct)} label="ไม่กลับไปเสพซ้ำ (จากผลติดตาม)" />
         <Stat value={p(ind.rt101.pct)} label={`ลง รท.101 ครบ (${ind.rt101.done}/${ind.rt101.completed})`} />
       </div>
-      <p className="mt-2 text-xs text-muted">แดชบอร์ดผู้บริหารแบบเต็มจะเพิ่มในขั้นที่ 6</p>
+      
     </section>
   );
 }

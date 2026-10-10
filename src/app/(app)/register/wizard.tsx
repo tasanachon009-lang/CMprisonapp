@@ -265,7 +265,7 @@ export function RegisterWizard(props: {
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } }} />
                 <button className="btn-primary shrink-0" onClick={doLookup} disabled={pending || !f.inmateNo.trim()}><Search size={20} aria-hidden /> ตรวจสอบ</button>
               </div>
-              <p className="hint">เลขนี้แก้ไม่ได้หลังบันทึก (ยกเว้นผู้ดูแลพร้อมเหตุผล)</p>
+              <p className="hint">เลขนี้แก้ไม่ได้หลังบันทึก</p>
             </div>
             {lookup?.kind === "new" && (
               <>
@@ -279,7 +279,7 @@ export function RegisterWizard(props: {
                     <button className="btn-ghost shrink-0" onClick={doNidLookup} disabled={pending || !isValidNationalId(f.nationalId)}><Search size={20} aria-hidden /> ค้นประวัติ</button>
                   </div>
                   {f.nationalId && !isValidNationalId(f.nationalId) && <p className="error-text">เลขบัตรไม่ถูกต้อง — ตรวจว่าครบ 13 หลักและพิมพ์ถูก</p>}
-                  <p className="hint">ใส่เลขบัตรเพื่อค้นว่าเคยต้องโทษ/เข้าหลักสูตรมาก่อนหรือไม่ — ไม่มีเลขบัตรก็ไปต่อได้ ระบบจะเทียบชื่อ-สกุลและวันเกิดให้</p>
+                  <p className="hint">ใช้ค้นประวัติการต้องโทษและการเข้าหลักสูตร (ไม่บังคับ)</p>
                 </div>
               </>
             )}
@@ -319,7 +319,7 @@ export function RegisterWizard(props: {
             <Field className="sm:col-span-2" label="ระดับการศึกษา" value={f.education} onChange={(v) => set("education", v)} list={["ไม่ได้เรียน", "ประถมศึกษา", "มัธยมศึกษาตอนต้น", "มัธยมศึกษาตอนปลาย", "ปวช./ปวส.", "ปริญญาตรี", "สูงกว่าปริญญาตรี"]} />
             <Field className="sm:col-span-2" label="อาชีพก่อนต้องโทษ" value={f.occupation} onChange={(v) => set("occupation", v)} list={["รับจ้างทั่วไป", "เกษตรกร", "ค้าขาย", "ว่างงาน", "ขับรถรับจ้าง"]} />
             <Field className="sm:col-span-2" label="จำนวนสมาชิกในครอบครัว" value={f.familySize} onChange={(v) => set("familySize", v.replace(/\D/g, ""))} numeric />
-            {existing && <p className="hint sm:col-span-6">ข้อมูลบุคคลดึงจากระบบ — แก้ไขได้ที่หน้าบุคคล</p>}
+            {existing && <p className="hint sm:col-span-6">ข้อมูลบุคคลจากระบบ แก้ไขได้ที่หน้าบุคคล</p>}
             {candidates && !notSame && !linked && (
               <div className="sm:col-span-6">
                 <Alert tone="warn">
@@ -400,7 +400,7 @@ export function RegisterWizard(props: {
                 <label htmlFor="nid2" className="label">เลขบัตรประชาชน <span className="text-danger">* บังคับสำหรับหลักสูตรนี้</span></label>
                 <input id="nid2" className={`input font-mono ${f.nationalId && !isValidNationalId(f.nationalId) ? "input-error" : ""}`} inputMode="numeric" maxLength={17} value={f.nationalId} onChange={(e) => set("nationalId", e.target.value)} />
                 {f.nationalId && !isValidNationalId(f.nationalId) && <p className="error-text">เลขบัตรไม่ถูกต้อง — ตรวจว่าครบ 13 หลักและพิมพ์ถูก</p>}
-                {!f.nationalId && <p className="hint">ไม่มีเลขบัตร → บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
+                {!f.nationalId && <p className="hint">ไม่มีเลขบัตร: บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
               </div>
             ))}
             {criteria?.confirmations?.map((c) => (
@@ -444,7 +444,7 @@ export function RegisterWizard(props: {
                     </label>
                   ))}
                 </div>
-                {f.exclusions.length > 0 && <p className="mt-2 text-sm font-semibold text-warn">มีลักษณะต้องห้าม — ควรบันทึกเป็นร่างและปรึกษาหัวหน้า/สถานพยาบาลก่อนยืนยันรับเข้า</p>}
+                {f.exclusions.length > 0 && <p className="mt-2 text-sm font-semibold text-warn">มีลักษณะต้องห้าม ควรบันทึกเป็นร่างก่อนยืนยันรับเข้า</p>}
               </fieldset>
             )}
           </div>
@@ -473,7 +473,7 @@ export function RegisterWizard(props: {
                     <textarea id="ovr" className="input" rows={2} value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
                   </div>
                 )}
-                {evaluation.level === "block" && !props.canOverride && <p className="mt-2 font-semibold">ต้องให้หัวหน้าหรือรองหัวหน้าเป็นผู้ลงทะเบียนพร้อมเหตุผล</p>}
+                {evaluation.level === "block" && !props.canOverride && <p className="mt-2 font-semibold">ต้องลงทะเบียนโดยผู้ดูแลระบบพร้อมเหตุผล</p>}
               </Alert>
             )}
 
@@ -491,7 +491,7 @@ export function RegisterWizard(props: {
               )}
               <label className="mt-3 flex items-start gap-3">
                 <input type="checkbox" className="mt-1 h-5 w-5" checked={f.consentRefused} onChange={(e) => { set("consentRefused", e.target.checked); if (e.target.checked) set("consentSigned", false); }} />
-                <span>ไม่ยินยอม (ระบบจะแจ้งหัวหน้า/รองพิจารณา)</span>
+                <span>ไม่ยินยอม</span>
               </label>
               {f.consentRefused && <textarea className="input mt-2" rows={2} placeholder="เหตุผล" value={f.consentRefuseReason} onChange={(e) => set("consentRefuseReason", e.target.value)} />}
               <p className="hint mt-2"><Link href={`/print/consent/${cohortId}`} target="_blank" className="underline">พิมพ์แบบฟอร์มยินยอมเปล่า</Link></p>
@@ -516,8 +516,8 @@ export function RegisterWizard(props: {
           </div>
         )}
       </div>
-      {step === 5 && !f.consentSigned && <p className="text-right text-sm text-muted">ยังไม่มีหลักฐานยินยอม → บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
-      {step === 5 && needNid && <p className="text-right text-sm text-muted">หลักสูตรนี้ต้องมีเลขบัตรประชาชน (ขั้น &quot;เกณฑ์รับเข้า&quot;) → ตอนนี้บันทึกเป็นร่างได้</p>}
+      {step === 5 && !f.consentSigned && <p className="text-right text-sm text-muted">ยังไม่มีหลักฐานยินยอม: บันทึกเป็น &quot;ร่าง&quot; ได้ แต่ยืนยันรับเข้าไม่ได้</p>}
+      {step === 5 && needNid && <p className="text-right text-sm text-muted">หลักสูตรนี้ต้องมีเลขบัตรประชาชน: บันทึกเป็น &quot;ร่าง&quot; ได้</p>}
       {step === 5 && missingConfirm.length > 0 && <p className="text-right text-sm text-muted">ยังไม่ได้ติ๊กยืนยัน: {missingConfirm.map((c) => c.label).join(", ")}</p>}
     </div>
   );

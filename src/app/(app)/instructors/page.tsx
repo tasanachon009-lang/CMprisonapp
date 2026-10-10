@@ -29,7 +29,7 @@ export default async function InstructorsPage({ searchParams }: PageProps<"/inst
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "ทะเบียนวิทยากร" }]} />
-      <PageHeader en="Instructors" title="ทะเบียนวิทยากร" subtitle="กรอกครั้งเดียว ใช้เติมเอกสารเบิกจ่ายทุกฉบับ — เลขบัตร ที่อยู่ เลขบัญชี เห็นเต็มเฉพาะการเงิน/ผู้ดูแล"
+      <PageHeader en="Instructors" title="ทะเบียนวิทยากร" help="ข้อมูลวิทยากรใช้เติมเอกสารเบิกจ่ายทุกฉบับ เลขบัตร ที่อยู่ และเลขบัญชี แสดงเต็มเฉพาะการเงินและผู้ดูแลระบบ"
         actions={<div className="flex flex-wrap gap-2">
           <Link href="/print/instructor-form" target="_blank" className="btn-ghost"><Printer size={20} aria-hidden /> แบบฟอร์มขอข้อมูลวิทยากร (เปล่า)</Link>
           {auth.can("instructors.manage") && <Link href="/instructors/new" className="btn-primary"><Plus size={20} aria-hidden /> เพิ่มวิทยากร</Link>}

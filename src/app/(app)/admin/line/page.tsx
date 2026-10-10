@@ -28,10 +28,10 @@ export default async function LinePage() {
   return (
     <div className="max-w-4xl space-y-5">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "LINE" }]} />
-      <PageHeader en="LINE Notify" title="แจ้งตารางสอนทาง LINE" subtitle="Broadcast ถึงทุกคนที่เพิ่มเพื่อน LINE OA ของหน่วยงาน · ข้อความไม่มีข้อมูลผู้ต้องขังทุกกรณี · เชื่อมต่อออกเฉพาะ api.line.me" />
+      <PageHeader en="LINE Notify" title="แจ้งตารางสอนทาง LINE" help="ส่งถึงทุกคนที่เพิ่มเพื่อน LINE OA ของหน่วยงาน ข้อความไม่มีข้อมูลผู้ต้องขังทุกกรณี" />
       {mode.live
-        ? <Alert tone="ok">พร้อมส่งจริง — มี LINE token ในไฟล์ .env ของเครื่องนี้</Alert>
-        : <Alert tone="warn"><b>โหมดทดลอง</b> — {mode.reason} · ระบบบันทึกข้อความไว้ในประวัติแต่ไม่ส่งจริง {config.lineToken ? "" : "(วิธีใส่ token ดู README หัวข้อ LINE)"}</Alert>}
+        ? <Alert tone="ok">พร้อมส่งจริง</Alert>
+        : <Alert tone="warn"><b>โหมดทดลอง</b> — {mode.reason} · บันทึกข้อความในประวัติ ไม่ส่งจริง</Alert>}
       {quota && (
         <Alert tone={quota.pct != null && quota.pct >= warnPct ? "danger" : "info"}>
           โควตาข้อความเดือนนี้: ใช้ไป {quota.used.toLocaleString("th-TH")}{quota.limit ? ` จาก ${quota.limit.toLocaleString("th-TH")} (${quota.pct}%)` : " (ไม่จำกัด)"} — นับตามจำนวนผู้รับ{quota.pct != null && quota.pct >= warnPct ? " · ใกล้หมดแล้ว" : ""}

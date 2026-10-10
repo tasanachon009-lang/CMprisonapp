@@ -21,7 +21,7 @@ export default async function NewCohortPage({ searchParams }: PageProps<"/cohort
   return (
     <div className="max-w-2xl">
       <Breadcrumb items={[{ href: "/courses", label: "หลักสูตร" }, { href: `/courses/${course.code.toLowerCase()}`, label: course.name }, { label: "สร้างรุ่นใหม่" }]} />
-      <PageHeader en="New Cohort" title="สร้างรุ่นใหม่" subtitle={`${course.name} — ระบบคำนวณวันสิ้นสุด (ข้ามวันหยุด) และสร้างตารางจากแม่แบบ หรือคัดลอกจากรุ่นก่อน (เลื่อนวันที่ให้อัตโนมัติ)`} />
+      <PageHeader en="New Cohort" title="สร้างรุ่นใหม่" subtitle={course.name} help="ระบบคำนวณวันสิ้นสุดโดยข้ามวันหยุด และสร้างตารางจากแม่แบบหรือคัดลอกจากรุ่นก่อน" />
       <NewCohortForm
         courseId={course.id}
         courseCode={course.code}

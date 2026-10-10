@@ -18,7 +18,7 @@ export default async function WeeklyListPage() {
   return (
     <div className="max-w-4xl space-y-5">
       <Breadcrumb items={[{ label: "รายงานประจำสัปดาห์" }]} />
-      <PageHeader en="Weekly Report" title="รายงานประจำสัปดาห์" subtitle="ระบบร่างให้ทุกวันศุกร์ 15.00 น. · หัวหน้า/รองตรวจแก้ข้อความ → อนุมัติ → พิมพ์บันทึกข้อความ (PDF/Word)" />
+      <PageHeader en="Weekly Report" title="รายงานประจำสัปดาห์" help="ระบบร่างรายงานทุกวันศุกร์ 15.00 น. ตรวจแก้ข้อความ อนุมัติ แล้วพิมพ์บันทึกข้อความ (PDF/Word)" />
       {auth.can("reports.weekly") && <section className="card"><CreateWeekly today={todayISO()} /></section>}
       {list.length === 0 ? <EmptyState title="ยังไม่มีรายงาน" /> : (
         <ul className="space-y-2">

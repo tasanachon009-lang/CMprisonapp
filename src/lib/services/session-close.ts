@@ -44,7 +44,7 @@ export function saveSessionReport(db: DB, sessionId: number, input: ReportInput,
     const cohort = tx.select().from(schema.cohorts).where(eq(schema.cohorts.id, s.cohortId)).get()!;
     if (cohort.status === "closed") throw new RuleError("รุ่นนี้ปิดแล้ว แก้ไม่ได้");
     if (s.status === "cancelled") throw new RuleError("คาบนี้ถูกยกเลิก — ไม่ต้องบันทึกผล");
-    if (s.lockedAt && !actor.isAdmin) throw new RuleError("คาบนี้ล็อกแล้ว (อนุมัติค่าตอบแทนแล้ว) — ติดต่อหัวหน้า/รองเพื่อปลดล็อก");
+    if (s.lockedAt && !actor.isAdmin) throw new RuleError("คาบนี้ถูกล็อก กรุณาติดต่อผู้ดูแลระบบ");
     if (!sessionStarted(s)) throw new RuleError("ยังไม่ถึงเวลาเริ่มคาบ — บันทึกผลได้ตั้งแต่เวลาเริ่มของวันสอน");
     if (s.takesAttendance && !s.attendanceCheckedAt && input.outcome !== "not_done") throw new RuleError("กรุณาเช็คชื่อให้เสร็จก่อนปิดคาบ (ถ้าไม่ได้ทำกิจกรรม เลือก \"ไม่ได้ทำ\" พร้อมเหตุผล)");
     if (!["planned", "partial", "not_done"].includes(input.outcome)) throw new RuleError("กรุณาเลือกผลการทำกิจกรรม");
@@ -259,6 +259,6 @@ export function invitationText(p: { name: string; title: string; date: string; s
     `วันที่: ${formatDate(p.date)} เวลา ${p.startTime}–${p.endTime} น.`,
     `หลักสูตร: ${p.cohortLabel}`,
     p.location ? `สถานที่: ${p.location}` : null,
-    "ขอบพระคุณครับ/ค่ะ",
+    "ขอขอบพระคุณ",
   ].filter(Boolean).join("\n");
 }

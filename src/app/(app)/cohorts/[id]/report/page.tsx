@@ -59,7 +59,7 @@ export default async function CohortReport({ params }: PageProps<"/cohorts/[id]/
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-sm text-muted">ค่าตอบแทนและรายงานส่งกรมฯ จะเพิ่มในเช็คลิสต์เมื่อเปิดขั้นที่ 3–4</p>
+            
             {auth.can("course.manage") && <CloseCohortButton cohortId={row.cohort.id} ready={cl.ready} isAdmin={auth.isAdmin} />}
           </>
         )}

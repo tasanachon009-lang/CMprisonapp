@@ -60,14 +60,14 @@ export function NewCohortForm({ courseId, suggestedNumber, fiscalYear, locations
             <option value="">สร้างจากแม่แบบหลักสูตร</option>
             {sources.map((s) => <option key={s.id} value={s.id}>คัดลอกจาก {s.label} — หัวข้อ เวลา สถานที่ และวิทยากร</option>)}
           </select>
-          <p className="hint">คัดลอก: วันที่ n ของรุ่นเดิม → วันอบรมที่ n ของรุ่นใหม่ (ข้ามวันหยุดให้เอง) ไม่คัดลอกคาบที่ยกเลิกและคาบชดเชย</p>
+          <p className="hint">ไม่คัดลอกคาบที่ยกเลิกและคาบชดเชย</p>
         </div>
       </div>
 
       {preview && (
         <Alert tone="info">
           <p className="font-semibold">อบรม {preview.days.length} วัน — สิ้นสุด{preview.endLabel}</p>
-          <p className="mt-1 text-sm text-muted">ข้ามเสาร์-อาทิตย์และวันหยุดราชการตามตั้งค่า:</p>
+          <p className="mt-1 text-sm text-muted">ข้ามเสาร์-อาทิตย์และวันหยุดราชการ:</p>
           <p className="mt-1 text-sm">{preview.days.map((d, i) => `วันที่ ${i + 1}: ${formatThaiDate(d)}`).join(" · ")}</p>
         </Alert>
       )}

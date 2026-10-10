@@ -39,7 +39,7 @@ export default async function BudgetPage({ searchParams }: PageProps<"/budget">)
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "งบประมาณ" }]} />
-      <PageHeader en="Budget" title={`งบประมาณ ปีงบ ${fy}`} subtitle="จัดสรรต่อปีงบ → แบ่งให้รุ่น (รวมห้ามเกินที่จัดสรร) · ค่าวิทยากรตัดงบเมื่ออนุมัติรอบเบิก · เงินเก็บเป็นสตางค์" />
+      <PageHeader en="Budget" title={`งบประมาณ ปีงบ ${fy}`} help="จัดสรรต่อปีงบแล้วแบ่งให้รุ่น ยอดรวมทุกรุ่นต้องไม่เกินที่จัดสรร ค่าวิทยากรตัดงบเมื่ออนุมัติรอบเบิก" />
       <div className="flex flex-wrap gap-2">
         {[fy - 1, fy, fy + 1].map((y) => <Link key={y} href={`?fy=${y}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${y === fy ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>ปีงบ {y}</Link>)}
       </div>

@@ -57,7 +57,7 @@ export async function lookupInmate(cohortId: number, inmateNo: string): Promise<
     const found = findByInmateNo(db, no);
     if (!found) return { ok: true, data: { kind: "new" } };
     if (found.incarceration.releasedDate) {
-      return { ok: false, error: `เลข ${no} ถูกบันทึกว่าออกจากเรือนจำแล้ว (${found.incarceration.releasedDate}) — ถ้ากลับเข้ามาใหม่จะได้เลขประจำตัวใหม่ ถ้าบันทึกผิดให้ยกเลิกที่หน้า "บันทึกออกจากเรือนจำ"` };
+      return { ok: false, error: `เลข ${no} ถูกบันทึกว่าออกจากเรือนจำแล้ว (${found.incarceration.releasedDate}) หากบันทึกผิด กรุณายกเลิกที่หน้า "บันทึกออกจากเรือนจำ"` };
     }
     const evaluation = evaluateEnrollment({ targetCourseId: cohort.courseId, incarcerationId: found.incarceration.id, priors: priorsForPerson(db, found.person.id) });
     const i = found.incarceration;

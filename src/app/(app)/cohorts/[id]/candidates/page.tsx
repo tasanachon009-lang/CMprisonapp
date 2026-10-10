@@ -24,7 +24,7 @@ export default async function CandidatesPage({ params, searchParams }: PageProps
   const canRegister = row.cohort.status !== "closed";
   return (
     <div className="space-y-4">
-      <Alert tone="info">เคยผ่านหลักสูตร 12 วัน/ชุมชนบำบัดแล้ว แต่ยังไม่เคยเข้า 3 วัน และยังไม่ออกจากเรือนจำ · วันพ้นโทษเป็นค่าประมาณจาก วันรับตัว + โทษ (ไม่รวมพักโทษ/ลดวันต้องโทษ) — ตรวจกับทะเบียนก่อนคัดเลือก</Alert>
+      <Alert tone="info">วันพ้นโทษเป็นค่าประมาณ (วันรับตัว + กำหนดโทษ) กรุณาตรวจกับทะเบียนก่อนคัดเลือก</Alert>
       <div className="flex flex-wrap gap-2">
         {([["6", "เหลือโทษ ≤ 6 เดือน"], ["12", "≤ 1 ปี"], ["all", "ทั้งหมด"]] as const).map(([v, l]) => (
           <Link key={v} href={`?within=${v}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${(within == null ? "all" : String(within)) === v ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{l}</Link>

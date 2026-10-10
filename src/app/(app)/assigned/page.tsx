@@ -35,7 +35,7 @@ export default async function AssignedPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "งานที่ได้รับมอบหมาย" }]} />
-      <PageHeader en="Assigned Work" title="งานที่ได้รับมอบหมาย" subtitle="เห็นเฉพาะผู้ต้องขังในรุ่นที่หัวหน้า/รองมอบหมายให้ และเฉพาะงานที่ได้รับมอบหมาย" />
+      <PageHeader en="Assigned Work" title="งานที่ได้รับมอบหมาย" subtitle="แสดงเฉพาะรุ่นและงานที่ได้รับมอบหมาย" />
       {cohorts.length === 0 && <EmptyState title="รุ่นที่ได้รับมอบหมายปิดรุ่นแล้ว" />}
       {cohorts.map((c) => {
         const list = members.filter((m) => m.e.cohortId === c.id);

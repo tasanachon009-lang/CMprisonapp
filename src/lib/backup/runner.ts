@@ -56,7 +56,7 @@ export function isDirReachable(dir: string) {
 export async function runBackup(kind: BackupKind, userId: number | null = null) {
   const db = getDb();
   const sqlite = getSqlite();
-  if (!config.backupKey) throw new Error("ยังไม่ได้ตั้ง BACKUP_KEY ใน .env");
+  if (!config.backupKey) throw new Error("ยังไม่ได้ตั้งค่ากุญแจสำรองข้อมูล (BACKUP_KEY)");
   const run = db.insert(schema.backupRuns).values({ startedAt: new Date(), kind, status: "running", triggeredBy: userId }).returning().get();
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rehab-bk-"));
   const targets = backupTargets(db);
@@ -90,7 +90,7 @@ export async function runBackup(kind: BackupKind, userId: number | null = null) 
     if (kind === "removable") {
       if (!targets.removable) throw new Error("ยังไม่ได้ตั้งตำแหน่งฮาร์ดดิสก์ถอดเก็บในหน้าตั้งค่า");
       result.removable = await copyTo(targets.removable, "removable");
-      if (!result.removable) throw new Error("ไม่พบฮาร์ดดิสก์ถอดเก็บ กรุณาเสียบดิสก์แล้วลองใหม่");
+      if (!result.removable) throw new Error("ไม่พบฮาร์ดดิสก์ถอดเก็บ กรุณาเสียบดิสก์แล้วสำรองอีกครั้ง");
       db.insert(schema.settings).values({ key: "backup.lastRemovableAt", value: Date.now() }).onConflictDoUpdate({ target: schema.settings.key, set: { value: Date.now() } }).run();
     }
     if (targets.external) result.external = await copyTo(targets.external, "external");

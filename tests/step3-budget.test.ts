@@ -136,7 +136,7 @@ describe("งบประมาณในฐานข้อมูล: กัน�
     applyCourseTemplate(db, cohortId, a.id, 50, actor()); // วัสดุ 7,950
     recordExpense(db, cohortId, { allocationId: a.id, item: "materials.stationery", date: "2026-03-02", description: "เครื่องเขียน", amountSatang: 700000 }, { userId: finance, canConfirm: false });
     const over = { allocationId: a.id, item: "materials.stationery", date: "2026-03-03", description: "เพิ่ม", amountSatang: 200000 };
-    expect(() => recordExpense(db, cohortId, over, { userId: finance, canConfirm: false })).toThrow(/ต้องให้หัวหน้า\/รองยืนยัน/);
+    expect(() => recordExpense(db, cohortId, over, { userId: finance, canConfirm: false })).toThrow(/ต้องได้รับการยืนยันจากผู้ดูแลระบบ/);
     expect(cohortBudget(db, cohortId).expenses.length).toBe(1); // ไม่ถูกบันทึก
     expect(() => recordExpense(db, cohortId, over, { userId: head, canConfirm: true })).toThrow(/ใส่เหตุผล/);
     expect(recordExpense(db, cohortId, over, { userId: head, canConfirm: true, confirmNote: "ราคาวัสดุปรับขึ้น" }).confirmedOverrun).toBe(true);

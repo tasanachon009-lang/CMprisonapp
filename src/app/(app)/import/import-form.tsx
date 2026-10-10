@@ -60,7 +60,7 @@ export function ImportForm({ cohorts, defaultCohort }: { cohorts: Array<{ id: nu
       </section>
 
       {error && <Alert tone="danger">{error}</Alert>}
-      {done != null && <Alert tone="ok">นำเข้าแล้ว {done} แถว — ดูได้ที่หน้ารายชื่อของรุ่น{failing ? ` · แถวที่ไม่ผ่าน ${failing} แถว ดาวน์โหลดไปแก้แล้วนำเข้าใหม่ หรือลงทะเบียนทีละคน` : ""}</Alert>}
+      {done != null && <Alert tone="ok">นำเข้าแล้ว {done} แถว{failing ? ` · ไม่ผ่าน ${failing} แถว` : ""}</Alert>}
 
       {preview && done == null && (
         <section className="card space-y-3">
@@ -89,7 +89,7 @@ export function ImportForm({ cohorts, defaultCohort }: { cohorts: Array<{ id: nu
             <button className="btn-primary" onClick={commit} disabled={pending || !passing}><Upload size={20} aria-hidden /> นำเข้า {passing} แถวที่ผ่าน</button>
             {failing > 0 && <a href={`/api/import/failed/${preview.token}`} className="btn-ghost"><Download size={20} aria-hidden /> ดาวน์โหลดแถวที่ไม่ผ่าน ({failing}) พร้อมเหตุผล</a>}
           </div>
-          <p className="text-sm text-muted">แถว &quot;กำลังอบรม&quot; ที่ยังไม่ได้ลงนามยินยอมจะถูกนำเข้าเป็น &quot;ร่าง&quot; · แถว &quot;อาจเป็นคนเดียวกัน&quot; ให้ลงทะเบียนทีละคนเพื่อยืนยัน</p>
+          <p className="text-sm text-muted">แถว &quot;อาจเป็นคนเดียวกัน&quot; ต้องลงทะเบียนรายคนเพื่อยืนยัน</p>
         </section>
       )}
     </div>

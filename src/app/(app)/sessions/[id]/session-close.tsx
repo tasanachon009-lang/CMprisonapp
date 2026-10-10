@@ -32,7 +32,7 @@ export function MakeupButton({ sessionId, date, startTime, endTime, hours, locat
         <label><span className="label">ชั่วโมง</span><input className="input w-20" inputMode="decimal" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
         <label><span className="label">สถานที่</span><input className="input w-auto" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} /></label>
       </div>
-      <p className="hint">ผู้เข้าร่วม = เฉพาะคนที่ติดเหตุราชทัณฑ์ในคาบนี้ · วิทยากรเดิม (แก้ได้ที่ตาราง) · ค่าตอบแทนคาบชดเชยเป็นไปตามตั้งค่า</p>
+      <p className="hint">ผู้เข้าร่วม = ผู้ที่ติดเหตุราชทัณฑ์ในคาบนี้</p>
       {err && <Alert tone="danger">{err}</Alert>}
       <div className="flex gap-2"><button type="button" className="btn-primary btn-sm" disabled={pending} onClick={submit}>{pending ? "กำลังสร้าง..." : "สร้างคาบชดเชย"}</button><button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>ยกเลิก</button></div>
     </div>
@@ -158,8 +158,8 @@ export function SessionCloseForm({ sessionId, attendance, staff, hours, initial,
 
       <section className="card space-y-5">
         <h2 className="text-xl">ผลกิจกรรม</h2>
-        {!started && <Alert tone="info">ยังไม่ถึงเวลาเริ่มคาบ — เช็คชื่อและบันทึกผลได้ตั้งแต่เวลาเริ่มของวันสอน</Alert>}
-        {proxyHint && <Alert tone="info">คุณไม่ได้อยู่ในรายชื่อผู้สอน — บันทึกครั้งนี้จะเป็น &quot;บันทึกแทนผู้สอน&quot; (ระบบเก็บผู้สอนและผู้บันทึกแยกกัน)</Alert>}
+        {!started && <Alert tone="info">ยังไม่ถึงเวลาเริ่มคาบ</Alert>}
+        {proxyHint && <Alert tone="info">ผู้บันทึกไม่อยู่ในรายชื่อผู้สอน รายการนี้จะบันทึกเป็น &quot;บันทึกแทนผู้สอน&quot;</Alert>}
 
         <div>
           <p className="label">1. ดำเนินการ</p>
@@ -203,7 +203,7 @@ export function SessionCloseForm({ sessionId, attendance, staff, hours, initial,
               <p className="label">3. สิ่งที่ได้ (กดเลือก ไม่ต้องพิมพ์ — เลือกได้หลายอัน)</p>
               {chips.topic.length > 0 && <div className="flex flex-wrap gap-2">{chips.topic.map((c) => chipBtn(c))}</div>}
               <div className="mt-2 flex flex-wrap gap-2">{chips.general.map((c) => chipBtn(c))}{chipBtn(SHIFT_CHIP, true)}</div>
-              {r.chips.includes(SHIFT_CHIP) && <p className="hint mt-1">{canShift ? "บันทึกแล้วระบบจะเปิดกล่องจดหมายเวร พร้อมเติมรุ่น/คาบให้" : "แจ้งเจ้าหน้าที่หลักให้บันทึกในกล่องจดหมายเวร"}</p>}
+              {r.chips.includes(SHIFT_CHIP) && <p className="hint mt-1">{canShift ? "ระบบจะเปิดกล่องจดหมายเวรหลังบันทึก" : "กรุณาแจ้งเจ้าหน้าที่หลักเพื่อบันทึกในกล่องจดหมายเวร"}</p>}
             </div>
 
             <label className="block">
@@ -238,7 +238,7 @@ export function SessionCloseForm({ sessionId, attendance, staff, hours, initial,
                 </li>
               ))}
             </ul>
-            <p className="hint">เปลี่ยนตัวผู้สอน: แก้ที่ตารางของรุ่น (ปุ่ม &quot;แก้คาบ / วิทยากร&quot;) — ค่าตอบแทนคิดจากการสอนจริงนี้</p>
+            <p className="hint">เปลี่ยนตัวผู้สอนได้ที่ตารางของรุ่น</p>
           </div>
         )}
         {hasExternal && (
@@ -247,7 +247,7 @@ export function SessionCloseForm({ sessionId, attendance, staff, hours, initial,
             คัดลอกจากใบบันทึกของวิทยากร (เก็บใบที่วิทยากรเซ็นไว้ที่แฟ้ม)
           </label>
         )}
-        {chips.draft && <p className="hint">ชิปของหัวข้อนี้ยังเป็นชุดร่าง — หัวหน้า/รองแก้ได้ที่ ตั้งค่า → คลังหัวข้อ</p>}
+        {chips.draft && <p className="hint">ข้อความสำเร็จรูปของหัวข้อนี้ยังเป็นชุดร่าง</p>}
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       </section>
 

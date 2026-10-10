@@ -310,7 +310,7 @@ export async function saveHealthReferralAction(enrollmentId: number, input: Refe
   try {
     const auth = await requireAction("health.edit", "health.mental_edit");
     const parsed = ReferralSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้องหรือยาวเกินไป — ตรวจช่องที่กรอกแล้วลองใหม่" };
+    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้องหรือยาวเกินกำหนด กรุณาตรวจช่องที่กรอก" };
     input = parsed.data;
     const db = getDb();
     const prev = referralOf(db, Number(enrollmentId));

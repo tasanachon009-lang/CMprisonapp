@@ -132,7 +132,7 @@ describe("เช็คชื่อ (9)", () => {
     const r = registerEnrollment(db, input(c.id, "T-1"), actor);
     const s = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, c.id)).get()!;
     saveAttendance(db, s.id, [{ enrollmentId: r.enrollment.id, status: "present" }], { userId: 1, isAdmin: false }, 0);
-    expect(() => saveAttendance(db, s.id, [{ enrollmentId: r.enrollment.id, status: "absent" }], { userId: 1, isAdmin: false }, 0)).toThrow(/เพิ่งบันทึก/);
+    expect(() => saveAttendance(db, s.id, [{ enrollmentId: r.enrollment.id, status: "absent" }], { userId: 1, isAdmin: false }, 0)).toThrow(/บันทึกการเช็คชื่อคาบนี้แล้ว/);
     const u = saveAttendance(db, s.id, [{ enrollmentId: r.enrollment.id, status: "corrections", correctionsType: "court" }], { userId: 1, isAdmin: false });
     expect(u.updated).toBe(1);
     expect(db.select().from(schema.attendance).all().length).toBe(1);

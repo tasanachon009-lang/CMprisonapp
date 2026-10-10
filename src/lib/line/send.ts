@@ -19,8 +19,8 @@ export const LINE_KIND_LABEL: Record<LineKind, string> = { daily: "ตารา�
 export const LINE_STATUS_LABEL: Record<string, string> = { sent: "ส่งแล้ว", dry_run: "โหมดทดลอง (ไม่ได้ส่งจริง)", failed: "ส่งไม่สำเร็จ" };
 
 export function lineMode(db: DB): { live: boolean; reason: string | null } {
-  if (!config.lineToken) return { live: false, reason: "ยังไม่มี LINE token ใน .env (เครื่องนี้)" };
-  if (getSetting<boolean>(db, "app.isDemoData", false) === true) return { live: false, reason: "ฐานข้อมูลนี้เป็นข้อมูลปลอม — ไม่ส่งจริงเพื่อกันข้อความทดสอบถึงเจ้าหน้าที่" };
+  if (!config.lineToken) return { live: false, reason: "ยังไม่ได้ตั้งค่าการเชื่อมต่อ LINE" };
+  if (getSetting<boolean>(db, "app.isDemoData", false) === true) return { live: false, reason: "ฐานข้อมูลนี้เป็นข้อมูลตัวอย่าง" };
   return { live: true, reason: null };
 }
 

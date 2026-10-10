@@ -36,7 +36,7 @@ export function ContactsEditor({ personId, contacts, canEdit }: { personId: numb
               {canEdit && (
                 <div className="mt-1 flex gap-1">
                   <button className="rounded-full p-2 hover:bg-lime" aria-label="แก้ไข" onClick={() => { setError(null); setEdit(c); }}><Pencil size={16} /></button>
-                  <button className="rounded-full p-2 hover:bg-danger/10" aria-label="ลบ" onClick={() => start(async () => { if (!confirm("ลบรายการนี้?")) return; const r = await deleteContactAction(c.id); if (r.ok) { setUndo(c.id); router.refresh(); } })}><Trash2 size={16} /></button>
+                  <button className="rounded-full p-2 hover:bg-danger/10" aria-label="ลบ" onClick={() => start(async () => { if (!confirm("ยืนยันการลบรายการนี้")) return; const r = await deleteContactAction(c.id); if (r.ok) { setUndo(c.id); router.refresh(); } })}><Trash2 size={16} /></button>
                 </div>
               )}
             </li>

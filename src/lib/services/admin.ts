@@ -59,7 +59,7 @@ export function requestDual(db: DB, action: DualAction, payload: Record<string, 
 export function approveDual(db: DB, id: number, approverId: number, opts: { emergency?: boolean; ip?: string | null } = {}) {
   const row = db.select().from(schema.dualApprovals).where(eq(schema.dualApprovals.id, id)).get();
   if (!row || row.status !== "pending") throw new RuleError("ไม่พบคำขอ หรือคำขอไม่อยู่ในสถานะรอยืนยัน");
-  if (row.requestedBy === approverId && !opts.emergency) throw new RuleError("ผู้ขอยืนยันคำขอของตัวเองไม่ได้ — ต้องให้ผู้ดูแลอีกคนยืนยัน");
+  if (row.requestedBy === approverId && !opts.emergency) throw new RuleError("ผู้ขอไม่สามารถยืนยันคำขอของตนเอง");
   if (!activeAdminIds(db).includes(approverId)) throw new RuleError("เฉพาะผู้ดูแลระบบเท่านั้นที่ยืนยันได้");
   if (Date.now() - row.requestedAt.getTime() > 7 * 86400000) {
     db.update(schema.dualApprovals).set({ status: "expired" }).where(eq(schema.dualApprovals.id, id)).run();

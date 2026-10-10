@@ -44,7 +44,7 @@ export function cohortOfFollowup(followupId: number) {
 
 /** ต้องมีสิทธิ์ทั้งระบบ หรือได้รับมอบหมายในรุ่นที่เกี่ยวข้อง — ไม่ผ่าน = โยน AuthError */
 export function assertIn(auth: Auth, p: Permission, cohortIds: Array<number | null>) {
-  if (!auth.canIn(p, cohortIds.filter((x): x is number => x != null))) throw new AuthError("คุณไม่มีสิทธิ์ทำรายการนี้กับผู้ต้องขังคนนี้ (ไม่ได้รับมอบหมายรุ่นนี้)");
+  if (!auth.canIn(p, cohortIds.filter((x): x is number => x != null))) throw new AuthError("ไม่มีสิทธิ์ทำรายการนี้ (ไม่ได้รับมอบหมายรุ่นนี้)");
 }
 
 /** สิทธิ์ของคาบ: แก้ได้ (ทุกคาบ หรือ คาบของตน) / ดูได้ */

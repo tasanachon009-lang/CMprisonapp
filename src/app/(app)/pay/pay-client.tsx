@@ -29,7 +29,7 @@ export function CreateBatchForm({ cohorts }: { cohorts: Array<{ id: number; labe
         <label className="grow"><span className="label">หมายเหตุ (ไม่บังคับ)</span><input className="input" value={f.note} maxLength={200} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="เช่น เบิกเดือนตุลาคม" /></label>
         <button type="button" className="btn-primary" disabled={pending} onClick={submit}>{pending ? "กำลังสร้าง..." : "สร้างและตรวจยอด"}</button>
       </div>
-      <p className="hint">ค่าเริ่มต้น = ทั้งรุ่น · เลือกช่วงวันที่ได้ (เช่น เบิกรายเดือน)</p>
+      <p className="hint">ค่าเริ่มต้น = ทั้งรุ่น</p>
       {err && <Alert tone="danger">{err}</Alert>}
     </section>
   );
@@ -51,14 +51,14 @@ export function BatchActions({ id, status, canApprove, canManage, isAdmin, block
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {status === "draft" && canApprove && (
-          <button type="button" className="btn-primary" disabled={pending || blockSelf} onClick={() => { if (confirm("อนุมัติแล้วยอดจะคงที่ และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบนี้ — ยืนยัน?")) run(() => approveBatchAction(id)); }}>
+          <button type="button" className="btn-primary" disabled={pending || blockSelf} onClick={() => { if (confirm("ยืนยันการอนุมัติ ยอดจะคงที่และล็อกเช็คชื่อ/ผลกิจกรรมของคาบในรอบนี้")) run(() => approveBatchAction(id)); }}>
             <Lock size={18} aria-hidden /> {pending ? "กำลังอนุมัติ..." : "อนุมัติและล็อกคาบ"}
           </button>
         )}
-        {status === "draft" && canManage && <button type="button" className="btn-ghost" disabled={pending} onClick={() => { if (confirm("ยกเลิกรอบเบิกนี้?")) run(() => cancelBatchAction(id)); }}>ยกเลิกรอบ</button>}
+        {status === "draft" && canManage && <button type="button" className="btn-ghost" disabled={pending} onClick={() => { if (confirm("ยืนยันการยกเลิกรอบเบิกนี้")) run(() => cancelBatchAction(id)); }}>ยกเลิกรอบ</button>}
         {status === "approved" && isAdmin && !askUnlock && <button type="button" className="btn-ghost" onClick={() => setAskUnlock(true)}><Unlock size={18} aria-hidden /> ปลดล็อก</button>}
       </div>
-      {status === "draft" && canApprove && blockSelf && <Alert tone="warn">รอบนี้มีค่าตอบแทนของคุณเอง — อนุมัติเองไม่ได้ (แยกหน้าที่) ให้หัวหน้า/รองอีกคนอนุมัติ</Alert>}
+      {status === "draft" && canApprove && blockSelf && <Alert tone="warn">ไม่สามารถอนุมัติรอบเบิกที่มีค่าตอบแทนของตนเอง</Alert>}
       {status === "draft" && canApprove && delegationNote && <Alert tone="info">คุณอนุมัติในฐานะผู้รับมอบอำนาจ — ระบบจะบันทึก: {delegationNote}</Alert>}
       {askUnlock && (
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-white p-3">
@@ -100,7 +100,7 @@ export function DocSettingsForm({ initial }: { initial: { payerName: string; cor
         <label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.showKtbForm} onChange={(e) => setF({ ...f, showKtbForm: e.target.checked })} /> พิมพ์แบบแจ้งรับเงินโอน KTB คู่กับใบสำคัญรับเงิน (ค่าเริ่มต้น)</label>
         <label className="block"><span className="label">ข้อความแบบ KTB: ย่อหน้าขอรับเงิน</span><textarea className="input" rows={2} value={f.intro} maxLength={500} onChange={(e) => setF({ ...f, intro: e.target.value })} /></label>
         <label className="block"><span className="label">ข้อความแบบ KTB: หมายเหตุกรณีนิติบุคคล</span><textarea className="input" rows={2} value={f.companyNote} maxLength={500} onChange={(e) => setF({ ...f, companyNote: e.target.value })} /></label>
-        <p className="hint">ชื่อหน่วยงานและ &quot;เรียน ...&quot; ดึงจาก ตั้งค่า → ตั้งค่าระบบ (ข้อมูลหน่วยงาน)</p>
+        <p className="hint">ชื่อหน่วยงานและ &quot;เรียน ...&quot; ใช้ค่าจากตั้งค่าระบบ</p>
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <button type="button" className="btn-primary" disabled={pending} onClick={() => start(async () => { const r = await saveDocSettingsAction(f); setMsg(r.ok ? { tone: "ok", text: r.message ?? "บันทึกแล้ว" } : { tone: "danger", text: r.error }); if (r.ok) router.refresh(); })}>{pending ? "กำลังบันทึก..." : "บันทึก"}</button>
       </div>

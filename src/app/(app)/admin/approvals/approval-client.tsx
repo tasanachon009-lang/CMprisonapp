@@ -27,7 +27,7 @@ export function ApprovalButtons({ id, isRequester, isRestore }: { id: number; is
       </div>
       {isRequester && showCode && (
         <div className="rounded-2xl bg-danger/5 p-3">
-          <p className="text-sm">ใช้เฉพาะกรณีจำเป็นตามขั้นตอนใน README · ใช้แล้วรหัสจะถูกยกเลิก ต้องสร้างใหม่ · บันทึกในประวัติการใช้งาน</p>
+          <p className="text-sm">ใช้ได้ครั้งเดียว · การใช้งานถูกบันทึก</p>
           <div className="mt-2 flex gap-2">
             <input className="input font-mono" placeholder="รหัสฉุกเฉินจากซองปิดผนึก" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" />
             <button className="btn-danger shrink-0" disabled={pending || !code} onClick={() => approve(code)}>ยืนยันด้วยรหัสฉุกเฉิน</button>
@@ -45,7 +45,7 @@ export function EmergencyCodePanel() {
   return (
     <section className="card">
       <h2 className="text-xl">รหัสฉุกเฉิน</h2>
-      <p className="text-muted">ใช้ยืนยันแทนผู้ดูแลอีกคนเมื่อไม่อยู่นาน — พิมพ์ใส่ซองปิดผนึกให้หัวหน้าเก็บ ระบบเก็บเฉพาะค่า hash แสดงรหัสครั้งเดียวเท่านั้น</p>
+      <p className="text-muted">แสดงรหัสครั้งเดียวเท่านั้น กรุณาพิมพ์และเก็บในซองปิดผนึก</p>
       {code ? (
         <div className="mt-3 rounded-2xl border-2 border-dashed border-ink p-6 text-center print:border-black">
           <p className="text-sm">รหัสฉุกเฉิน ระบบสถานฟื้นฟู (สร้างเมื่อ {new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })})</p>

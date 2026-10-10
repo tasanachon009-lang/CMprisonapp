@@ -41,7 +41,7 @@ export default async function BatchPage({ params }: PageProps<"/pay/batches/[id]
 
       {b.status === "approved" && <DocsSection batchId={b.id} canManage={auth.can("pay.manage")} />}
 
-      {v.changedAfterApproval > 0 && <Alert tone="warn">ข้อมูลสอนจริง/อัตราของคาบในรอบนี้เปลี่ยนหลังอนุมัติ {v.changedAfterApproval} รายการ — ยอดที่อนุมัติยังเป็นยอดเดิม ถ้าต้องแก้ให้หัวหน้า/รองปลดล็อกแล้วอนุมัติใหม่ (เอกสารที่พิมพ์แล้วต้องพิมพ์ใหม่)</Alert>}
+      {v.changedAfterApproval > 0 && <Alert tone="warn">ข้อมูลสอนจริง/อัตราของคาบในรอบนี้เปลี่ยนหลังอนุมัติ {v.changedAfterApproval} รายการ · ยอดที่อนุมัติยังเป็นยอดเดิม</Alert>}
       {v.unrecorded.length > 0 && (
         <Alert tone="warn">
           <p className="font-semibold">คาบในช่วงนี้ที่ยังไม่ปิดคาบ {v.unrecorded.length} คาบ — ไม่ถูกนับในรอบนี้</p>
@@ -114,7 +114,7 @@ function DocsSection({ batchId, canManage }: { batchId: number; canManage: boole
         <a href={`/api/export/pay/${batchId}`} className="btn-ghost"><FileSpreadsheet size={18} aria-hidden /> Excel</a>
       </div>
       <p className="text-sm text-muted">ยังไม่พิมพ์ {count("none")} · พิมพ์แล้วรอเซ็น {count("printed")} · เซ็นรับแล้ว {count("signed")}{count("reprint") ? ` · ต้องพิมพ์ใหม่ ${count("reprint")}` : ""}{incomplete ? ` · ข้อมูลวิทยากรไม่ครบ ${incomplete} คน` : ""}</p>
-      {count("reprint") > 0 && <Alert tone="danger">มีใบที่ยอดหรือข้อมูลวิทยากรเปลี่ยนหลังพิมพ์ — ต้องพิมพ์ใหม่แล้วให้เซ็นใหม่</Alert>}
+      {count("reprint") > 0 && <Alert tone="danger">มีเอกสารที่ข้อมูลเปลี่ยนหลังพิมพ์ ต้องพิมพ์และลงนามใหม่</Alert>}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted"><th className="py-2">ชื่อ</th><th>ประเภท</th><th className="text-right">ยอด</th><th>ข้อมูลเบิก</th><th>สถานะ</th><th>เซ็นรับ</th><th /></tr></thead>

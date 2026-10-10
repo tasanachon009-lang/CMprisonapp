@@ -10,7 +10,7 @@ import { pipeline } from "node:stream/promises";
 const MAGIC = Buffer.from("RHBK1");
 
 export function parseKey(hex: string): Buffer {
-  if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error("BACKUP_KEY ใน .env ต้องเป็นเลขฐานสิบหก 64 ตัว (AES-256) — ดู README หัวข้อ 'กุญแจสำรองข้อมูล'");
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error("กุญแจสำรองข้อมูล (BACKUP_KEY) ไม่ถูกต้อง ต้องเป็นเลขฐานสิบหก 64 ตัว");
   return Buffer.from(hex, "hex");
 }
 

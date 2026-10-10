@@ -34,11 +34,11 @@ export const listTemplates = (db: DB) => DOC_TEMPLATES.map((t) => effectiveTempl
 function checkText(v: { subject: string; body: string; toLine?: string }) {
   if (!v.subject.trim()) throw new RuleError("กรุณาใส่ \"เรื่อง\"");
   if (!v.body.trim()) throw new RuleError("กรุณาใส่เนื้อความ");
-  if (v.subject.length > 500 || (v.toLine ?? "").length > 500 || v.body.length > 20000) throw new RuleError("ข้อความยาวเกินไป — ย่อให้สั้นลงแล้วลองใหม่");
+  if (v.subject.length > 500 || (v.toLine ?? "").length > 500 || v.body.length > 20000) throw new RuleError("ข้อความยาวเกินกำหนด กรุณาย่อข้อความ");
 }
 
 export function saveTemplate(db: DB, code: string, input: { subject: string; toLine: string; body: string }, actor: Actor) {
-  if (!templateDef(code)) throw new RuleError("ไม่พบแม่แบบนี้ — รีเฟรชหน้าแล้วลองใหม่");
+  if (!templateDef(code)) throw new RuleError("ไม่พบแม่แบบนี้ กรุณาโหลดหน้าใหม่");
   checkText(input);
   const v = { subject: input.subject.trim(), toLine: input.toLine.trim(), body: input.body.trim(), updatedBy: actor.userId, updatedAt: new Date() };
   db.insert(schema.docTemplates).values({ code, ...v }).onConflictDoUpdate({ target: schema.docTemplates.code, set: v }).run();
@@ -91,7 +91,7 @@ export function getDocument(db: DB, id: number) {
 /** สร้างร่างเอกสารจากแม่แบบ (เติมข้อมูลของรุ่นให้) */
 export function createDocument(db: DB, cohortId: number, templateCode: string, actor: Actor) {
   const t = effectiveTemplate(db, templateCode);
-  if (!t) throw new RuleError("ไม่พบแม่แบบนี้ — รีเฟรชหน้าแล้วลองใหม่");
+  if (!t) throw new RuleError("ไม่พบแม่แบบนี้ กรุณาโหลดหน้าใหม่");
   const vars = cohortVariables(db, cohortId);
   const course = db.select({ code: schema.courses.code }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.cohorts.id, cohortId)).get()!;
   if (t.courseCodes && !t.courseCodes.includes(course.code)) throw new RuleError("แม่แบบนี้ไม่ได้ใช้กับหลักสูตรของรุ่นนี้");
@@ -121,7 +121,7 @@ function load(db: DB, id: number) {
 export function updateDocument(db: DB, id: number, input: DocumentEdit, actor: Actor, loadedVersion?: number) {
   const d = load(db, id);
   if (d.status === "final") throw new RuleError("เอกสารนี้ล็อกแล้ว — กด \"ปลดล็อกเพื่อแก้ไข\" ก่อน");
-  if (loadedVersion !== undefined && d.version !== loadedVersion) throw new RuleError("มีผู้อื่นแก้เอกสารนี้ไปแล้วระหว่างที่คุณเปิดอยู่ — กรุณาโหลดหน้าใหม่", undefined, "conflict");
+  if (loadedVersion !== undefined && d.version !== loadedVersion) throw new RuleError("เอกสารนี้ถูกแก้ไขโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่", undefined, "conflict");
   checkText(input);
   if (input.docDate && !isValidISODate(input.docDate)) throw new RuleError("วันที่ไม่ถูกต้อง — เลือกวันที่ใหม่หรือเว้นว่าง");
   const t = (s: string | null | undefined, max: number) => s?.trim().slice(0, max) || null;

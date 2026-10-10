@@ -92,7 +92,7 @@ describe("กล่องจดหมายเวร: ผู้รับ (สเ
   });
   it("กลุ่ม B ส่งได้ แต่ส่งถึงทีมของรุ่นได้เฉพาะรุ่นที่ตนสอน", () => {
     expect(() => createMessage(db, { level: "normal", body: "พฤติกรรมในคาบ", healthRelated: false, recipientType: "next_shift", needsAction: false }, { userId: 2, viewer: helper })).not.toThrow();
-    expect(() => createMessage(db, { level: "normal", body: "x", healthRelated: false, recipientType: "cohort", recipientCohortId: c2, needsAction: false }, { userId: 2, viewer: helper })).toThrow(/เฉพาะรุ่นที่คุณสอน/);
+    expect(() => createMessage(db, { level: "normal", body: "x", healthRelated: false, recipientType: "cohort", recipientCohortId: c2, needsAction: false }, { userId: 2, viewer: helper })).toThrow(/เฉพาะรุ่นที่รับผิดชอบ/);
     // ข้อความที่ตนเขียนเองยังเห็นได้
     expect(messagesFor(db, helper).some((m) => m.body === "พฤติกรรมในคาบ")).toBe(true);
   });

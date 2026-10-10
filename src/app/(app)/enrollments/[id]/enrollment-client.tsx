@@ -185,7 +185,7 @@ export function CompleteButton({ cohortId, enrollmentId, defaultDate }: { cohort
       <button className="btn-secondary" onClick={() => setOpen(true)}><GraduationCap size={20} aria-hidden /> บันทึกจบหลักสูตร</button>
       <Modal open={open} onClose={() => setOpen(false)} title="บันทึกจบหลักสูตร">
         <div><span className="label">วันที่จบ</span><ThaiDateInput value={date} onChange={setDate} /></div>
-        <p className="hint mt-2">&quot;ครบหลักสูตร&quot; จะสร้างกำหนดการติดตามเดือนที่ 1 3 6 12 และงาน บสต. ให้อัตโนมัติ</p>
+        <p className="hint mt-2">&quot;ครบหลักสูตร&quot; จะสร้างกำหนดการติดตามและงาน บสต. อัตโนมัติ</p>
         {error && <div className="mt-2"><Alert tone="danger">{error}</Alert></div>}
         <div className="mt-4 flex justify-end gap-2">
           <button className="btn-ghost" disabled={pending} onClick={() => run("failed")}>ไม่ผ่าน</button>

@@ -271,8 +271,8 @@ async function main() {
       const delSrc = fs.readFileSync("src/app/(app)/admin/delegations/actions.ts", "utf8");
       const delSvc = fs.readFileSync("src/lib/services/delegation.ts", "utf8");
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "อนุมัติค่าตอบแทนต้องมีสิทธิ์อนุมัติ · อนุมัติยอดตัวเองไม่ได้ · ปลดล็อกเฉพาะหัวหน้า/รอง · มอบอำนาจเฉพาะหัวหน้า/รอง",
-        fn(paySrc2, "approveBatchAction").includes('requireAction("pay.approve")') && paySvc.includes("อนุมัติเองไม่ได้") && paySvc.includes('if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะหัวหน้า/รอง")')
-          && fn(delSrc, "createDelegationAction").includes('requireAction("users.manage")') && delSvc.includes('if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะหัวหน้า/รอง")'),
+        fn(paySrc2, "approveBatchAction").includes('requireAction("pay.approve")') && paySvc.includes("ไม่สามารถอนุมัติรอบเบิกที่มีค่าตอบแทนของตนเอง") && paySvc.includes('if (!actor.isAdmin) throw new RuleError("ปลดล็อกได้เฉพาะผู้ดูแลระบบ")')
+          && fn(delSrc, "createDelegationAction").includes('requireAction("users.manage")') && delSvc.includes('if (!isAdmin(db, actor.userId)) throw new RuleError("มอบอำนาจได้เฉพาะผู้ดูแลระบบ")'),
         "ตรวจจากโค้ด server action / service");
       // กลุ่ม 5: เอกสารการเงิน (มีเลขบัตร/ที่อยู่/บัญชีวิทยากร) เฉพาะผู้มีสิทธิ์ดูค่าตอบแทน
       const appr = db.select().from(schema.payBatches).where(eq(schema.payBatches.status, "approved")).get();

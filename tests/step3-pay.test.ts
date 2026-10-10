@@ -114,7 +114,7 @@ describe("รอบเบิก อนุมัติ ล็อก ปลดล�
     expect(() => approveBatch(db, b2.id, { userId: head })).toThrow(/ไม่มีรายการ/);
     cancelBatch(db, b2.id, { userId: nurse });
     // ปลดล็อก
-    expect(() => unlockBatch(db, b.id, "แก้ชั่วโมง", { userId: nurse, isAdmin: false })).toThrow(/หัวหน้า/);
+    expect(() => unlockBatch(db, b.id, "แก้ชั่วโมง", { userId: nurse, isAdmin: false })).toThrow(/ผู้ดูแลระบบ/);
     expect(() => unlockBatch(db, b.id, " ", { userId: head, isAdmin: true })).toThrow(/เหตุผล/);
     unlockBatch(db, b.id, "แก้ชั่วโมง", { userId: head, isAdmin: true });
     expect(db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, s.id)).get()!.lockedAt).toBeNull();
@@ -127,7 +127,7 @@ describe("รอบเบิก อนุมัติ ล็อก ปลดล�
     addStaff(db, s.id, { userId: head }, { userId: head });
     close(s.id, head);
     const b = createBatch(db, { cohortId }, { userId: nurse });
-    expect(() => approveBatch(db, b.id, { userId: head })).toThrow(/ของคุณเอง/);
+    expect(() => approveBatch(db, b.id, { userId: head })).toThrow(/ของตนเอง/);
     expect(() => approveBatch(db, b.id, { userId: deputy })).not.toThrow();
   });
 
@@ -136,7 +136,7 @@ describe("รอบเบิก อนุมัติ ล็อก ปลดล�
     addStaff(db, s.id, { instructorId: ext }, { userId: head });
     addStaff(db, s.id, { externalName: "นอกทะเบียน" }, { userId: head });
     expect(() => setSessionSplit(db, s.id, { method: "equal" }, { userId: head, isAdmin: true })).toThrow(/หมายเหตุ/);
-    expect(() => setSessionSplit(db, s.id, { method: "equal", note: "x" }, { userId: nurse, isAdmin: false })).toThrow(/หัวหน้า/);
+    expect(() => setSessionSplit(db, s.id, { method: "equal", note: "x" }, { userId: nurse, isAdmin: false })).toThrow(/ผู้ดูแลระบบ/);
     setSessionSplit(db, s.id, { method: "equal", note: "สอนร่วมกันทั้งคาบ" }, { userId: head, isAdmin: true });
     const p = sessionPreview(db, s.id);
     expect(p.find((l) => l.instructorId === ext)!.amountSatang).toBe((s.hours * 60000) / 2);
@@ -154,8 +154,8 @@ describe("รอบเบิก อนุมัติ ล็อก ปลดล�
 
   it("มอบอำนาจ: เฉพาะหัวหน้า/รองมอบให้กลุ่ม A · ได้สิทธิ์อนุมัติตามช่วง · ยกเลิกแล้วหมดสิทธิ์ · ไม่ได้บทบาทผู้ดูแล", () => {
     setSetting(db, "pay.withholdingTax", { enabled: false, pct: 3 }, head);
-    expect(() => createDelegation(db, { toUserId: deputy, scopes: ["pay"], startDate: "2026-10-01", endDate: "2099-12-31" }, { userId: head })).toThrow(/กลุ่ม A/);
-    expect(() => createDelegation(db, { toUserId: head, scopes: ["pay"], startDate: "2026-10-01", endDate: "2099-12-31" }, { userId: nurse })).toThrow(/หัวหน้า/);
+    expect(() => createDelegation(db, { toUserId: deputy, scopes: ["pay"], startDate: "2026-10-01", endDate: "2099-12-31" }, { userId: head })).toThrow(/เจ้าหน้าที่หลัก/);
+    expect(() => createDelegation(db, { toUserId: head, scopes: ["pay"], startDate: "2026-10-01", endDate: "2099-12-31" }, { userId: nurse })).toThrow(/ผู้ดูแลระบบ/);
     const d = createDelegation(db, { toUserId: nurse, scopes: ["pay"], startDate: "2026-01-01", endDate: "2099-12-31", reason: "ลาพักร้อน" }, { userId: head });
     const active = activeDelegationsFor(db, nurse);
     expect(active.map((x) => x.id)).toEqual([d.id]);

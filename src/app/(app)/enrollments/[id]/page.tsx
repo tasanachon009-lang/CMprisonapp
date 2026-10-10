@@ -102,7 +102,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
 
       <section className="card">
         <h2 className="text-xl">แบบประเมิน</h2>
-        <p className="text-sm text-muted">ผูกกับการลงทะเบียนครั้งนี้เท่านั้น — คะแนนจากการต้องโทษรอบก่อนไม่ถูกนำมาใช้</p>
+        <p className="text-sm text-muted">เฉพาะการลงทะเบียนครั้งนี้</p>
         <div className="mt-3 overflow-x-auto">
           <table className="table-plain">
             <thead><tr><th>แบบประเมิน</th>{["pre", "post", "monthly"].map((r) => <th key={r}>{ROUND_LABEL[r]}</th>)}</tr></thead>
@@ -178,7 +178,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
                     : <span className="tag-muted">{TASK_STATUS_LABEL[t.status]}</span>}
                 </li>
               ))}
-              {e.status === "active" && <li className="py-2 text-sm text-muted">งาน &quot;จำหน่าย&quot; และติดตาม 4 ครั้งจะเกิดเมื่อบันทึกครบหลักสูตร — ติดตามนับจากวันจำหน่าย</li>}
+              {e.status === "active" && <li className="py-2 text-sm text-muted">งาน &quot;จำหน่าย&quot; และการติดตามจะสร้างเมื่อบันทึกครบหลักสูตร</li>}
             </ul>
           )}
           {bst.followups.length > 0 && (

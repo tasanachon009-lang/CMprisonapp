@@ -72,7 +72,7 @@ export function ReplaceStaffButton({ cohortId, people, dateFrom, dateTo }: { coh
               <div><span className="label">ถึง</span><ThaiDateInput value={f.dateTo} onChange={(v) => setF({ ...f, dateTo: v })} /></div>
               <label className="sm:col-span-2"><span className="label">ขอบเขต</span><select className="input" value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value as "cohort" })}><option value="cohort">เฉพาะรุ่นนี้</option><option value="all">ทุกรุ่นทุกหลักสูตร</option></select></label>
             </div>
-            <p className="hint">ไม่เปลี่ยนคาบที่ล็อกแล้ว/ยกเลิก/รุ่นที่ปิด · ถ้าคนใหม่อยู่ในคาบแล้ว จะเอาคนเดิมออกอย่างเดียว · คาบที่คนใหม่สอนซ้อนจะแจ้งให้ตรวจ</p>
+            <p className="hint">ไม่เปลี่ยนคาบที่ล็อก ยกเลิก หรือรุ่นที่ปิดแล้ว</p>
             {result && <Alert tone={result.tone}><p>{result.text}</p>{result.lines.length > 0 && <ul className="mt-1 list-disc pl-5 text-sm">{result.lines.slice(0, 10).map((l) => <li key={l}>{l}</li>)}</ul>}</Alert>}
             <button className="btn-primary" disabled={pending || !f.from || !f.to} onClick={() => start(async () => {
               const r = await replaceStaffAction({ from: person(f.from), to: person(f.to), dateFrom: f.dateFrom, dateTo: f.dateTo, cohortId: f.scope === "cohort" ? cohortId : null });
@@ -100,13 +100,13 @@ export function WeekBoard({ cohortId, days, cards, editable }: { cohortId: numbe
   const [pending, start] = useTransition();
   const move = (id: number, date: string) => start(async () => {
     let r = await updateSessionAction(cohortId, id, { date });
-    if (!r.ok && r.code === "conflict" && window.confirm(`${r.error}\n\nย้ายต่อหรือไม่?`)) r = await updateSessionAction(cohortId, id, { date }, true);
+    if (!r.ok && r.code === "conflict" && window.confirm(`${r.error}\n\nยืนยันการย้ายคาบ`)) r = await updateSessionAction(cohortId, id, { date }, true);
     setMsg(r.ok ? { tone: "ok", text: `ย้ายไป ${formatThaiDate(date)} แล้ว` } : { tone: "danger", text: r.error });
     router.refresh();
   });
   return (
     <div className="space-y-2">
-      {editable && <p className="hint">ลากการ์ดคาบ (จับที่ไอคอน ⋮⋮) ไปวางวันอื่นเพื่อย้าย · แก้เวลา/สถานที่ กดปุ่ม &quot;แก้คาบ / วิทยากร&quot; · บนแท็บเล็ตใช้แท็บ &quot;รายละเอียดคาบ&quot; เปลี่ยนวันที่แทนการลาก</p>}
+      {editable && <p className="hint">ลากการ์ดคาบไปวางวันอื่นเพื่อย้าย หรือใช้ปุ่ม &quot;แก้คาบ / วิทยากร&quot;</p>}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(180px, 1fr))`, overflowX: "auto" }}>
         {days.map((d) => (

@@ -5,6 +5,7 @@ import { requireTrustedDevice, getAuth } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { PROFESSIONS } from "@/lib/auth/permissions";
 import { initials } from "@/components/avatar";
+import { StepDots } from "@/components/step-dots";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,8 @@ export default async function LoginPage() {
   return (
     <div className="w-full">
       <p lang="en" className="text-center font-display text-sm font-medium uppercase tracking-[0.18em] text-navy">Our Team</p>
-      <p className="mb-6 text-center text-lg text-muted">ขั้นที่ 2 จาก 2 — กดที่ชื่อของคุณ</p>
+      <h2 className="mb-3 mt-1 text-center text-2xl">เลือกชื่อผู้ใช้งาน</h2>
+      <div className="mb-6"><StepDots current={2} total={2} /></div>
       <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         {users.map((u) => (
           <li key={u.id}>
@@ -52,7 +54,7 @@ export default async function LoginPage() {
           </li>
         ))}
       </ul>
-      {users.length === 0 && <p className="card text-center">ยังไม่มีบัญชีผู้ใช้ กรุณารันสคริปต์ติดตั้งเพื่อสร้างบัญชีหัวหน้าคนแรก</p>}
+      {users.length === 0 && <p className="card text-center">ยังไม่มีบัญชีผู้ใช้ กรุณาติดต่อผู้ดูแลระบบ</p>}
     </div>
   );
 }

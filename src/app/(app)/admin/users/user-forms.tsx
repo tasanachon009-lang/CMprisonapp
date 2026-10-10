@@ -44,7 +44,7 @@ export function NewUserButton() {
       <Modal open={open} onClose={() => setOpen(false)} title="เพิ่มผู้ใช้" wide>
         <Fields f={f} setF={setF} />
         <label className="mt-3 block"><span className="label">รหัสผ่านชั่วคราว (ผู้ใช้ต้องเปลี่ยนเมื่อเข้าครั้งแรก)</span><input className="input" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="off" /></label>
-        <p className="hint">บัญชีผู้ควบคุม (ผู้คุม): ค่าเริ่มต้นไม่มีบัญชี — เปิดเฉพาะเมื่อจำเป็น และใช้ได้แบบดูอย่างเดียว</p>
+        <p className="hint">บัญชีผู้ควบคุมใช้ได้แบบดูอย่างเดียว</p>
         {error && <div className="mt-3"><Alert tone="danger">{error}</Alert></div>}
         <div className="mt-4 flex justify-end gap-2"><button className="btn-ghost" onClick={() => setOpen(false)}>ยกเลิก</button>
           <button className="btn-primary" disabled={pending} onClick={() => start(async () => { const r = await createUser({ ...f, tempPassword: pw }); if (!r.ok) return setError(r.error); setOpen(false); router.push(`/admin/users/${r.data!.id}`); })}>สร้างบัญชี</button>
@@ -87,7 +87,7 @@ export function EditUserPanel({ id, user, roles, isSelf, isAdmin, adminCount, ot
         <button className="btn-primary" disabled={pending} onClick={() => start(async () => done(await setUserRoles(id, [...r])))}>บันทึกบทบาท</button>
         <div className="rounded-2xl bg-cream p-3">
           <p className="font-semibold">ผู้ดูแลระบบ (มีได้ไม่เกิน 2 คน — ปัจจุบัน {adminCount} คน)</p>
-          <p className="text-sm text-muted">การให้/ถอนสิทธิ์ผู้ดูแล ต้องให้ผู้ดูแลอีกคนกดยืนยัน</p>
+          <p className="text-sm text-muted">การให้/ถอนสิทธิ์ผู้ดูแลต้องมีผู้ดูแลระบบอีกหนึ่งคนยืนยัน</p>
           <input className="input mt-2" placeholder="เหตุผล" value={reason} onChange={(e) => setReason(e.target.value)} />
           {isAdmin && !isSelf && otpEnabled && <button className="btn-ghost mt-2 mr-2" disabled={pending || !reason.trim()} onClick={() => start(async () => done(await resetOtp(id, reason)))}>รีเซ็ต OTP (โทรศัพท์หาย)</button>}
           {isAdmin
@@ -156,7 +156,7 @@ export function GrantsPanel({ userId, grants, cohorts }: { userId: number; grant
         setError(null);
         router.refresh();
       })}>เพิ่มการปรับสิทธิ์</button>
-      <p className="hint">สิทธิ์ที่มีช่วงวันที่จะกลับเป็นค่าเดิมอัตโนมัติเมื่อหมดเวลา · มอบหมายรายรุ่นได้เฉพาะ: {SCOPABLE.map((p) => PERMISSIONS[p]).join(", ")}</p>
+      <p className="hint">มอบหมายรายรุ่นได้เฉพาะ: {SCOPABLE.map((p) => PERMISSIONS[p]).join(", ")}</p>
     </section>
   );
 }

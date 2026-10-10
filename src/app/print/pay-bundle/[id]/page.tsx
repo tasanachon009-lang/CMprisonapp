@@ -21,7 +21,7 @@ export default async function PayBundle({ params, searchParams }: PageProps<"/pr
   try { c = docContext(db, Number(id)); } catch { notFound(); }
   const b = c.batch;
   if (b.status !== "approved") {
-    return <div className="sheet"><h1>ยังพิมพ์ไม่ได้</h1><p>รอบเบิกนี้ยังไม่ได้อนุมัติ — เอกสารการเงินพิมพ์ได้เฉพาะรอบที่หัวหน้า/รองอนุมัติแล้ว (ยอดคงที่)</p><p><Link href={`/pay/batches/${b.id}`}>กลับไปที่รอบเบิก</Link></p></div>;
+    return <div className="sheet"><h1>ยังพิมพ์ไม่ได้</h1><p>รอบเบิกนี้ยังไม่ได้อนุมัติ เอกสารการเงินพิมพ์ได้เฉพาะรอบที่อนุมัติแล้ว</p><p><Link href={`/pay/batches/${b.id}`}>กลับไปที่รอบเบิก</Link></p></div>;
   }
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const who = str("who") === "internal" || str("who") === "external" ? str("who") : "all";
@@ -75,7 +75,7 @@ export default async function PayBundle({ params, searchParams }: PageProps<"/pr
           )}
           <p className="flex flex-wrap items-center gap-3">
             <a href={pdfUrl} target="_blank" className="inline-flex min-h-11 items-center rounded bg-black px-4 font-semibold text-white">เปิด PDF เพื่อพิมพ์</a>
-            <span className="text-gray-600">เปิด PDF = บันทึกว่า &quot;พิมพ์แล้ว&quot; · ตำแหน่งเยื้อง? ให้ผู้ดูแลปรับที่ ตั้งค่า → ปรับตำแหน่งการพิมพ์</span>
+            <span className="text-gray-600">เปิด PDF = บันทึกว่า &quot;พิมพ์แล้ว&quot; · ปรับตำแหน่งได้ที่ ตั้งค่า → ปรับตำแหน่งการพิมพ์</span>
           </p>
           <iframe title="ตัวอย่าง PDF" src={pdfUrl} className="h-[80vh] w-full rounded border" />
         </>

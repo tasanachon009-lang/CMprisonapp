@@ -6,6 +6,7 @@ import { getDb, schema } from "@/lib/db";
 import { requireTrustedDevice } from "@/lib/auth/session";
 import { PROFESSIONS } from "@/lib/auth/permissions";
 import { Avatar } from "@/components/avatar";
+import { StepDots } from "@/components/step-dots";
 import { PasswordForm } from "./password-form";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function PasswordPage({ params }: PageProps<"/login/[id]">)
   if (!u || u.status !== "active" || u.deletedAt) notFound();
   return (
     <div className="card w-full max-w-md">
-      <Link href="/login" className="btn-ghost btn-sm mb-4"><ArrowLeft size={18} aria-hidden /> ไม่ใช่ฉัน / เลือกชื่ออื่น</Link>
+      <Link href="/login" className="btn-ghost btn-sm mb-4"><ArrowLeft size={18} aria-hidden /> เลือกชื่ออื่น</Link>
       <div className="flex items-center gap-4">
         <Avatar first={u.firstName} last={u.lastName} src={u.photoPath ? `/api/files/user/${u.id}` : null} color={u.color} size={64} />
         <div>
@@ -26,6 +27,7 @@ export default async function PasswordPage({ params }: PageProps<"/login/[id]">)
         </div>
       </div>
       <PasswordForm userId={u.id} />
+      <div className="mt-5"><StepDots current={2} total={2} /></div>
     </div>
   );
 }

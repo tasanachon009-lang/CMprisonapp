@@ -58,7 +58,7 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
     const t = tx as unknown as DB;
     const form = getForm(t, input.formId);
     if (!form) throw new RuleError("ไม่พบแบบประเมิน");
-    if (!formAccess(actor.can, form).edit) throw new RuleError("คุณไม่มีสิทธิ์บันทึกแบบประเมินนี้");
+    if (!formAccess(actor.can, form).edit) throw new RuleError("ไม่มีสิทธิ์บันทึกแบบประเมินนี้");
     if (!(form.rounds as string[]).includes(input.round)) throw new RuleError("แบบประเมินนี้ไม่ใช้ในรอบที่เลือก");
     const enr = tx.select().from(schema.enrollments).where(eq(schema.enrollments.id, input.enrollmentId)).get();
     if (!enr || enr.deletedAt) throw new RuleError("ไม่พบการลงทะเบียน");
@@ -77,7 +77,7 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
       .where(and(eq(schema.assessmentResults.enrollmentId, enr.id), eq(schema.assessmentResults.formId, form.id), eq(schema.assessmentResults.round, input.round), eq(schema.assessmentResults.period, period), isNull(schema.assessmentResults.deletedAt)))
       .get();
     if (prev && loadedVersion !== undefined && prev.version !== loadedVersion) {
-      throw new RuleError("มีผู้อื่นบันทึกแบบประเมินนี้ไปแล้วระหว่างที่คุณเปิดอยู่ — กรุณาโหลดหน้าใหม่", undefined, "conflict");
+      throw new RuleError("แบบประเมินนี้ถูกบันทึกโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่", undefined, "conflict");
     }
     const values = {
       versionId: v.id, assessedDate: input.assessedDate, assessorId: input.assessorId ?? actor.userId, answers: input.answers as object,

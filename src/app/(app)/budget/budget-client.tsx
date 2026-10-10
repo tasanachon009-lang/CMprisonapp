@@ -75,7 +75,7 @@ export function EditAllocation(props: Parameters<typeof AllocationForm>[0] & { c
       <AllocationForm {...props} onDone={() => setOpen(false)} />
       <div className="mt-2 flex gap-2">
         <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>ปิด</button>
-        {props.canDelete && props.initial && <button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ลบการจัดสรรนี้?")) run(() => deleteAllocationAction(props.initial!.id)); }}>ลบ</button>}
+        {props.canDelete && props.initial && <button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ยืนยันการลบการจัดสรรนี้")) run(() => deleteAllocationAction(props.initial!.id)); }}>ลบ</button>}
       </div>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
     </div>
@@ -101,7 +101,7 @@ export function LineForm({ cohortId, allocations, items, initial, onDone }: { co
     return Number.isFinite(u * p) ? (u * p).toLocaleString("th-TH", { maximumFractionDigits: 2 }) : "-";
   })();
   const submit = () => run(() => saveLineAction(cohortId, initial?.id ?? null, { allocationId: Number(f.allocationId), item: f.item, label: f.label || null, unit: f.unit, factors: f.factors.map((x) => ({ qty: Number(x.qty), unit: x.unit })) }), (r) => { if (r.ok) onDone?.(); });
-  if (!allocations.length) return <Alert tone="warn">ยังไม่มีการจัดสรรงบของปีงบนี้ — ให้หัวหน้า/รองเพิ่มที่เมนู งบประมาณ ก่อน</Alert>;
+  if (!allocations.length) return <Alert tone="warn">ยังไม่มีการจัดสรรงบของปีงบนี้ กรุณาเพิ่มการจัดสรรที่เมนูงบประมาณ</Alert>;
   return (
     <div className="space-y-2">
       <div className="grid gap-2 md:grid-cols-3">
@@ -135,7 +135,7 @@ export function LineRowActions(props: Parameters<typeof LineForm>[0] & { initial
     <>
       <span className="flex gap-1">
         <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(!open)}>แก้</button>
-        <button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ลบรายการงบนี้?")) run(() => deleteLineAction(props.cohortId, props.initial.id)); }}>ลบ</button>
+        <button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ยืนยันการลบรายการงบนี้")) run(() => deleteLineAction(props.cohortId, props.initial.id)); }}>ลบ</button>
       </span>
       {open && <div className="mt-2 w-full rounded-2xl border border-line bg-cream p-3"><LineForm {...props} onDone={() => setOpen(false)} /></div>}
       {msg && msg.tone !== "ok" && <Alert tone={msg.tone}>{msg.text}</Alert>}
@@ -190,7 +190,7 @@ export function ExpenseForm({ cohortId, allocations, items, today, canConfirm }:
         <label><span className="label">จำนวนเงิน (บาท)</span><input className="input text-right" inputMode="decimal" value={f.amount} onChange={(e) => { setF({ ...f, amount: e.target.value }); setAsk(false); setMsg(null); }} /></label>
         <label><span className="label">เลขที่เอกสาร</span><input className="input" value={f.docNo} maxLength={100} onChange={(e) => setF({ ...f, docNo: e.target.value })} /></label>
       </div>
-      <p className="hint">ค่าวิทยากรไม่ต้องบันทึก — ระบบตัดงบจากรอบเบิกที่อนุมัติแล้วให้อัตโนมัติ</p>
+      <p className="hint">ค่าวิทยากรตัดงบอัตโนมัติจากรอบเบิกที่อนุมัติ</p>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {ask && (
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border-2 border-danger/50 bg-danger/5 p-3">
@@ -226,7 +226,7 @@ export function RefundForm({ cohortId, allocations, today }: { cohortId: number;
 
 export function DeleteExpense({ cohortId, id }: { cohortId: number; id: number }) {
   const { msg, pending, run } = useAct();
-  return <>{msg && msg.tone !== "ok" && <span className="text-sm text-danger">{msg.text}</span>}<button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ลบรายการนี้?")) run(() => deleteExpenseAction(cohortId, id)); }}>ลบ</button></>;
+  return <>{msg && msg.tone !== "ok" && <span className="text-sm text-danger">{msg.text}</span>}<button type="button" className="btn-ghost btn-sm text-danger" disabled={pending} onClick={() => { if (confirm("ยืนยันการลบรายการนี้")) run(() => deleteExpenseAction(cohortId, id)); }}>ลบ</button></>;
 }
 
 export function ConfirmOverrun({ cohortId, allocationId, category, label, advance = false }: { cohortId: number; allocationId: number; category: string; label: string; advance?: boolean }) {

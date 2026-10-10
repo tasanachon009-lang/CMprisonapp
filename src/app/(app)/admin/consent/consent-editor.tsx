@@ -22,7 +22,7 @@ export function ConsentEditor({ initialTitle, initialParagraphs, isDefault, org,
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="card space-y-3">
         <h2 className="text-xl">แก้ข้อความ {isDefault && <span className="tag-muted ml-1 align-middle text-sm">ข้อความเริ่มต้น</span>}</h2>
-        <p className="hint">ใช้ <code>{"{org}"}</code> = ชื่อเรือนจำ และ <code>{"{unit}"}</code> = ชื่อหน่วย (ระบบเติมจากตั้งค่าหน่วยงานให้) · ชื่อผู้ต้องขัง เลขประจำตัว ช่องยินยอม/ไม่ยินยอม และช่องลงชื่อ ระบบใส่ให้เอง</p>
+        <p className="hint">ใช้ <code>{"{org}"}</code> = ชื่อเรือนจำ และ <code>{"{unit}"}</code> = ชื่อหน่วย</p>
         <label className="block"><span className="label">ชื่อแบบฟอร์ม</span><input className="input" value={title} maxLength={CONSENT_LIMITS.titleMax} onChange={(e) => setTitle(e.target.value)} /></label>
         {paras.map((p, i) => (
           <div key={i}>
@@ -38,7 +38,7 @@ export function ConsentEditor({ initialTitle, initialParagraphs, isDefault, org,
         <div className="flex flex-wrap gap-2">
           <button className="btn-primary" disabled={pending} onClick={() => start(async () => done(await saveConsentText({ title, paragraphs: paras })))}><Save size={20} aria-hidden /> บันทึก</button>
           {!isDefault && (
-            <button className="btn-ghost" disabled={pending} onClick={() => { if (confirm("กลับเป็นข้อความเริ่มต้นของระบบ?")) start(async () => { const r = await saveConsentText({ reset: true }); done(r); if (r.ok) window.location.reload(); }); }}>
+            <button className="btn-ghost" disabled={pending} onClick={() => { if (confirm("ยืนยันการกลับเป็นข้อความเริ่มต้นของระบบ")) start(async () => { const r = await saveConsentText({ reset: true }); done(r); if (r.ok) window.location.reload(); }); }}>
               <RotateCcw size={18} aria-hidden /> กลับเป็นข้อความเริ่มต้น
             </button>
           )}
@@ -55,7 +55,7 @@ export function ConsentEditor({ initialTitle, initialParagraphs, isDefault, org,
           <p className="mt-4 text-right">ลงชื่อ .............................. ผู้ให้ความยินยอม</p>
           <p className="text-right">ลงชื่อ .............................. เจ้าหน้าที่ผู้รับเอกสาร</p>
         </div>
-        {(!org || !unit) && <p className="hint mt-2">ยังไม่ได้ตั้งชื่อเรือนจำ/ชื่อหน่วย — ตั้งได้ที่ ตั้งค่า → ตั้งค่าระบบ</p>}
+        {(!org || !unit) && <p className="hint mt-2">ยังไม่ได้ตั้งชื่อเรือนจำ/ชื่อหน่วย (ตั้งค่า → ตั้งค่าระบบ)</p>}
       </section>
     </div>
   );

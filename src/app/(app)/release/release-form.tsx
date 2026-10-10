@@ -102,7 +102,7 @@ export function ReleaseForm({ reasons, today }: { reasons: Array<{ code: string;
 
       <Modal open={confirming} onClose={() => setConfirming(false)} title="ยืนยันการบันทึก">
         <p>บันทึกว่า <b>{selected.size} คน</b> ออกจากเรือนจำเมื่อ <b>{date}</b> เหตุผล <b>{reasons.find((r) => r.code === reason)?.label}</b></p>
-        <p className="mt-2 text-sm text-muted">ผู้ที่กำลังอบรมจะเปลี่ยนเป็น &quot;ออกก่อนกำหนด&quot; และถูกตัดออกจากการเช็คชื่อตั้งแต่วันนั้น (ยกเลิกภายหลังได้ ระบบย้อนให้)</p>
+        <p className="mt-2 text-sm text-muted">ผู้ที่กำลังอบรมจะเปลี่ยนเป็น &quot;ออกก่อนกำหนด&quot; และไม่อยู่ในการเช็คชื่อตั้งแต่วันดังกล่าว</p>
         <div className="mt-4 flex justify-end gap-2"><button className="btn-ghost" onClick={() => setConfirming(false)}>ยกเลิก</button><button className="btn-primary" disabled={pending} onClick={submit}>ยืนยัน</button></div>
       </Modal>
     </section>
@@ -119,7 +119,7 @@ export function CancelReleaseButton({ eventId, label }: { eventId: number; label
     <>
       <button className="btn-ghost btn-sm" onClick={() => setOpen(true)}><Undo2 size={16} aria-hidden /> ยกเลิก</button>
       <Modal open={open} onClose={() => setOpen(false)} title={`ยกเลิกบันทึกออกของ ${label}`}>
-        <p className="text-sm text-muted">ระบบจะคืนสถานะการอบรมและผลเช็คชื่อที่ถูกตัดไปให้</p>
+        <p className="text-sm text-muted">ระบบจะคืนสถานะการอบรมและผลเช็คชื่อเดิม</p>
         <label className="mt-3 block"><span className="label">เหตุผลการยกเลิก</span><textarea className="input" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></label>
         {msg && <div className="mt-2"><Alert tone="danger">{msg}</Alert></div>}
         <div className="mt-4 flex justify-end gap-2">

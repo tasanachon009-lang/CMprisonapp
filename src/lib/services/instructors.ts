@@ -87,7 +87,7 @@ export function saveInstructor(db: DB, id: number | null, input: InstructorInput
   if (id) {
     const prev = db.select().from(schema.instructors).where(eq(schema.instructors.id, id)).get();
     if (!prev || prev.deletedAt) throw new RuleError("ไม่พบวิทยากร");
-    if (loadedVersion !== undefined && prev.version !== loadedVersion) throw new RuleError("มีผู้อื่นแก้ข้อมูลวิทยากรนี้ระหว่างที่คุณเปิดอยู่ — โหลดหน้าใหม่ก่อนแก้", undefined, "conflict");
+    if (loadedVersion !== undefined && prev.version !== loadedVersion) throw new RuleError("ข้อมูลวิทยากรถูกแก้ไขโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่", undefined, "conflict");
     const { kind: _k, ...rest } = v;
     db.update(schema.instructors).set({ ...rest, kind: prev.kind, updatedBy: actor.userId, updatedAt: new Date(), version: prev.version + 1 }).where(eq(schema.instructors.id, id)).run();
     const changed = Object.keys(rest).filter((k) => JSON.stringify((prev as Record<string, unknown>)[k] ?? null) !== JSON.stringify((rest as Record<string, unknown>)[k] ?? null));

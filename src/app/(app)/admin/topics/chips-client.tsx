@@ -66,7 +66,7 @@ export function ReportChoicesEditor({ generalChips, reasons }: { generalChips: s
         <label className="block"><span className="label">เหตุผล &quot;ทำได้บางส่วน&quot;</span><textarea className="input" rows={5} value={p} onChange={(e) => setP(e.target.value)} /></label>
         <label className="block"><span className="label">เหตุผล &quot;ไม่ได้ทำ&quot;</span><textarea className="input" rows={5} value={n} onChange={(e) => setN(e.target.value)} /></label>
       </div>
-      <p className="hint">1 บรรทัด = 1 รายการ · ชิป &quot;มีเหตุการณ์ต้องแจ้งเวร&quot; และเหตุผล &quot;อื่นๆ (พิมพ์เอง)&quot; มีให้เสมอ</p>
+      <p className="hint">1 บรรทัด = 1 รายการ</p>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <button type="button" className="btn-primary" disabled={pending} onClick={save}>{pending ? "กำลังบันทึก..." : "บันทึก"}</button>
     </div>

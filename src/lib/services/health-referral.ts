@@ -50,8 +50,8 @@ const clean = (s: string | null | undefined, max: number) => s?.trim().slice(0, 
 export function normalizeReferral(input: ReferralInput) {
   if (!isValidISODate(input.recordedDate)) throw new RuleError("กรุณาใส่วันที่บันทึก");
   const physical = Array.from(new Set(input.physical ?? []));
-  if (physical.some((c) => !PHYSICAL_PROBLEMS.some((p) => p.code === c))) throw new RuleError("รายการปัญหาสุขภาพไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่");
-  if (input.coverage && !COVERAGE.some((c) => c.code === input.coverage)) throw new RuleError("สิทธิการรักษาไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่");
+  if (physical.some((c) => !PHYSICAL_PROBLEMS.some((p) => p.code === c))) throw new RuleError("รายการปัญหาสุขภาพไม่ถูกต้อง กรุณาโหลดหน้าใหม่");
+  if (input.coverage && !COVERAGE.some((c) => c.code === input.coverage)) throw new RuleError("สิทธิการรักษาไม่ถูกต้อง กรุณาโหลดหน้าใหม่");
   const v = {
     recordedDate: input.recordedDate,
     needsReferral: input.needsReferral,
@@ -91,7 +91,7 @@ export function saveReferral(db: DB, enrollmentId: number, input: ReferralInput,
     if (enr.e.status === "draft" || enr.e.status === "withdrawn") throw new RuleError("ยังไม่ได้ยืนยันรับเข้ารุ่น — ให้เจ้าหน้าที่ฟื้นฟูยืนยันรับเข้าก่อน แล้วจึงบันทึกส่งต่อ");
     const prev = tx.select().from(schema.healthReferrals).where(and(eq(schema.healthReferrals.enrollmentId, enrollmentId), isNull(schema.healthReferrals.deletedAt))).get();
     if (prev && loadedVersion !== undefined && prev.version !== loadedVersion) {
-      throw new RuleError("มีผู้อื่นบันทึกรายการนี้ไปแล้วระหว่างที่คุณเปิดอยู่ — กรุณาโหลดหน้าใหม่", undefined, "conflict");
+      throw new RuleError("รายการนี้ถูกบันทึกโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่", undefined, "conflict");
     }
     let id: number;
     if (prev) {

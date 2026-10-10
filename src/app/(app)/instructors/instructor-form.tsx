@@ -76,7 +76,7 @@ export function InstructorForm({ id, initial, version, users, canSensitive, toda
             </label>
             {text("position", "ตำแหน่ง (ถ้าไม่ระบุ ใช้จากบัญชีผู้ใช้)", { span: "sm:col-span-3", placeholder: user?.position ?? "" })}
             {text("organization", "ฝ่าย/งาน", { span: "sm:col-span-3" })}
-            <p className="hint sm:col-span-6">ชื่อ-สกุลดึงจากบัญชีผู้ใช้ — เติมเฉพาะเลขบัตร ที่อยู่ และบัญชีรับเงินโอน</p>
+            <p className="hint sm:col-span-6">ชื่อ-สกุลใช้ข้อมูลจากบัญชีผู้ใช้</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-6">
@@ -102,7 +102,7 @@ export function InstructorForm({ id, initial, version, users, canSensitive, toda
 
       <section className="card space-y-3">
         <h2 className="text-xl">ที่อยู่ (ใช้ในใบสำคัญรับเงินและแบบ KTB)</h2>
-        {lockSensitive && <Alert tone="info">ที่อยู่บางส่วนเป็นข้อมูลอ่อนไหว — แก้ได้เฉพาะการเงิน/ผู้ดูแล</Alert>}
+        {lockSensitive && <Alert tone="info">ข้อมูลอ่อนไหว แก้ไขได้เฉพาะการเงินและผู้ดูแลระบบ</Alert>}
         <div className="grid gap-3 sm:grid-cols-6">
           {text("addrHouseNo", "บ้านเลขที่", { span: "sm:col-span-2", disabled: lockSensitive })}
           {text("addrMoo", "หมู่ที่", { span: "sm:col-span-1", disabled: lockSensitive })}
@@ -173,7 +173,7 @@ function AddressPicker({ value, onPick }: { value: InstructorFormValue; onPick: 
   }, [q]);
   return (
     <div className="rounded-2xl border border-line bg-cream p-3">
-      <label className="block"><span className="label flex items-center gap-1"><MapPin size={16} aria-hidden /> ค้นหาตำบล/แขวง (พิมพ์ชื่อตำบล แล้วเว้นวรรคตามด้วยอำเภอหรือจังหวัดได้ หรือพิมพ์รหัสไปรษณีย์)</span>
+      <label className="block"><span className="label flex items-center gap-1"><MapPin size={16} aria-hidden /> ค้นหาตำบล/แขวง หรือรหัสไปรษณีย์</span>
         <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="เช่น ช้างเผือก เชียงใหม่" />
       </label>
       {hits.length > 0 && (

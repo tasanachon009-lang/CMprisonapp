@@ -36,7 +36,7 @@ export function TestButtons() {
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         <button type="button" className="btn-secondary" disabled={pending} onClick={() => run("ping")}><Send size={18} aria-hidden /> ส่งข้อความทดสอบ</button>
-        <button type="button" className="btn-ghost" disabled={pending} onClick={() => { if (confirm("ส่งตารางวันทำการถัดไปถึงทุกคนที่เพิ่มเพื่อนตอนนี้?")) run("tomorrow"); }}>ส่งตารางวันทำการถัดไปตอนนี้</button>
+        <button type="button" className="btn-ghost" disabled={pending} onClick={() => { if (confirm("ยืนยันการส่งตารางวันทำการถัดไปถึงผู้รับทุกคน")) run("tomorrow"); }}>ส่งตารางวันทำการถัดไปตอนนี้</button>
       </div>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
     </div>

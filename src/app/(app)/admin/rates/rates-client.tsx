@@ -72,7 +72,7 @@ export function PaySettingsForm({ maxPayableByType }: { maxPayableByType: Record
   return (
     <section className="card space-y-3">
       <h2 className="text-xl">เกณฑ์การเบิก</h2>
-      <p className="hint">จำนวนวิทยากรที่เบิกได้ต่อคาบตามลักษณะกิจกรรม — ค่าเริ่มต้นเป็นตัวอย่างตามแนวระเบียบค่าใช้จ่ายในการฝึกอบรม กรุณาให้การเงินตรวจ (ระบบเตือนเมื่อเกิน)</p>
+      <p className="hint">จำนวนวิทยากรที่เบิกได้ต่อคาบตามลักษณะกิจกรรม (ค่าเริ่มต้นเป็นตัวอย่าง)</p>
       <div className="grid gap-3 sm:grid-cols-5">
         {ACT.map(([k, l]) => (
           <label key={k}><span className="label">{l} (คน)</span><input className="input" inputMode="numeric" value={String(max[k] ?? 1)} onChange={(e) => setMax({ ...max, [k]: Number(e.target.value.replace(/\D/g, "")) || 0 })} /></label>

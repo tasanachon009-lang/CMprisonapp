@@ -21,7 +21,7 @@ export default async function FormsPage({ searchParams }: PageProps<"/admin/form
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "คลังแบบประเมิน" }]} />
-      <PageHeader en="Assessment Library" title="คลังแบบประเมิน" subtitle="แก้ข้อคำถาม เฉลย และเกณฑ์แปลผล — ระบบบันทึกเป็นเวอร์ชันใหม่ ผลที่ประเมินไปแล้วยังใช้เกณฑ์เดิม (แช่แข็ง ณ วันประเมิน)" />
+      <PageHeader en="Assessment Library" title="คลังแบบประเมิน" help="การแก้ไขข้อคำถาม เฉลย และเกณฑ์แปลผล จะบันทึกเป็นเวอร์ชันใหม่ ผลที่ประเมินแล้วใช้เกณฑ์เดิม ณ วันประเมิน" />
       <div className="flex flex-wrap gap-2">
         {forms.map((f) => (
           <Link key={f.id} href={`?form=${f.code}`} className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 font-semibold ${selected?.id === f.id ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>
@@ -35,7 +35,7 @@ export default async function FormsPage({ searchParams }: PageProps<"/admin/form
             <h2 className="text-xl">{selected.name}</h2>
             <p className="text-muted">หมวด{CATEGORY_LABEL[selected.category]} · ชนิด {selected.kind} · รอบ {(selected.rounds as string[]).join(", ")} · หลักสูตร {(selected.courseCodes as string[]).join(", ")}{selected.sensitive ? " · ข้อมูลอ่อนไหว (สถานพยาบาล)" : ""}</p>
             <p className="mt-1 text-sm">เวอร์ชันปัจจุบัน {latest.version} (เริ่มใช้ {formatThaiDate(latest.effectiveFrom)}){latest.note ? ` — ${latest.note}` : ""}</p>
-            {selected.code === "PMHQ" && <div className="mt-2"><Alert tone="warn">PMHQ-Thai สงวนลิขสิทธิ์โดยกรมราชทัณฑ์ — ใช้ภายในหน่วยงานตามที่ได้รับ ไม่เผยแพร่ภายนอก</Alert></div>}
+            {selected.code === "PMHQ" && <div className="mt-2"><Alert tone="warn">PMHQ-Thai สงวนลิขสิทธิ์โดยกรมราชทัณฑ์ ใช้ภายในหน่วยงานเท่านั้น</Alert></div>}
           </section>
           {["items", "depression"].includes(selected.kind) ? (
             <FormEditor

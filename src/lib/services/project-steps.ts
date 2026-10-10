@@ -31,7 +31,7 @@ export function projectStepsView(steps: Record<string, ProjectStepState> | null 
 }
 
 export function setProjectStep(db: DB, cohortId: number, code: string, input: { done: boolean; date?: string | null; note?: string | null }, actor: { userId: number; ip?: string | null }) {
-  if (!PROJECT_STEPS.some((p) => p.code === code)) throw new RuleError("ไม่พบขั้นตอนนี้ — รีเฟรชหน้าแล้วลองใหม่");
+  if (!PROJECT_STEPS.some((p) => p.code === code)) throw new RuleError("ไม่พบขั้นตอนนี้ กรุณาโหลดหน้าใหม่");
   if (input.date && !isValidISODate(input.date)) throw new RuleError("วันที่ไม่ถูกต้อง — เลือกวันที่ใหม่หรือเว้นว่าง");
   const c = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cohortId)).get();
   if (!c) throw new RuleError("ไม่พบรุ่นนี้");

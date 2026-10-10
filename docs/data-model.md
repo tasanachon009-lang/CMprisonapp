@@ -34,6 +34,7 @@
 |---|---|---|
 | แบบประเมิน | assessment_forms, assessment_form_versions, assessment_results | เกณฑ์/ข้อความแช่แข็งเป็นเวอร์ชัน (ผลเก่าผูก `version_id` เดิม) · ผล 1 แถวต่อ `(enrollment, form, round, period)` · `channel` (paper/system) + `paper_location` (migration 0006) |
 | สถานพยาบาล | medical_notes | ข้อมูลอ่อนไหว — เห็นเฉพาะสิทธิ์สุขภาพ |
+| ส่งต่อสุขภาพก่อนพ้นโทษ (ขั้น 4) | health_referrals | 1 แถวต่อการลงทะเบียน (หลักสูตร 3 วัน กิจกรรม 11) — ข้อมูลอ่อนไหว · ประวัติการแก้ไขไม่เก็บชื่อโรค · ไม่เชื่อมระบบ HIV |
 | บสต./รท.101 | bst_tasks, external_ids, followups | **แยกระบบด้วย `system`**: `bst` = ลงทะเบียน→คัดกรอง→บำบัด→จำหน่าย→ติดตาม 1–4 · `rt101` = งานเดียว `record` เมื่อครบหลักสูตร (migration 0004 แปลงข้อมูลเดิม) · followups นับจากวันจำหน่าย |
 | จดหมายเวร | shift_messages, shift_message_acks | ผู้รับ: `next_shift` / `all` / `user` / `cohort` (`recipient_cohort_id`, migration 0003) |
 | พฤติกรรม | behavior_notes | ผูกการต้องโทษ (+ การลงทะเบียน ถ้ามี) |

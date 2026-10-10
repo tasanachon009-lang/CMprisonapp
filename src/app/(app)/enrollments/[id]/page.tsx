@@ -136,6 +136,13 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
       </section>
       </>}
 
+      {canHealth && course.code === "PRE3" && (
+        <section className="card flex flex-wrap items-center gap-3">
+          <h2 className="text-xl">ส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ <span className="tag-orange ml-1 align-middle text-sm">ข้อมูลอ่อนไหว</span></h2>
+          <Link href={`/enrollments/${e.id}/referral`} className="btn-ghost ml-auto">เปิดแบบบันทึกส่งต่อ (กิจกรรม 11)</Link>
+        </section>
+      )}
+
       {canHealth && (
         <section className="card">
           <h2 className="text-xl">ความเห็นเจ้าหน้าที่สถานพยาบาล <span className="tag-orange ml-1 align-middle text-sm">ข้อมูลอ่อนไหว</span></h2>

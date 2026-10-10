@@ -1144,6 +1144,35 @@ export const medicalNotes = sqliteTable(
   (t) => [index("medical_notes_enr_idx").on(t.enrollmentId)],
 );
 
+/**
+ * ส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ (สเปก 17 กิจกรรม 11) — ข้อมูลอ่อนไหว เห็นเฉพาะสถานพยาบาล/ผู้ดูแล
+ * 1 แถวต่อการลงทะเบียน · ไม่เชื่อมกับระบบ HIV ภายนอก
+ */
+export const healthReferrals = sqliteTable(
+  "health_referrals",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    recordedDate: text("recorded_date").notNull(),
+    /** true = ต้องส่งต่อ · false = ไม่มีปัญหาสุขภาพที่ต้องส่งต่อ */
+    needsReferral: integer("needs_referral", { mode: "boolean" }).notNull(),
+    /** รหัสปัญหาสุขภาพกาย — ดู PHYSICAL_PROBLEMS */
+    physical: text("physical", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+    physicalOther: text("physical_other"),
+    mental: text("mental"),
+    treatmentPlan: text("treatment_plan"),
+    /** สิทธิการรักษา — ดู COVERAGE */
+    coverage: text("coverage"),
+    coverageNote: text("coverage_note"),
+    hospital: text("hospital"),
+    medications: text("medications"),
+    printedAt: ts("printed_at"),
+    printedBy: integer("printed_by"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("health_referrals_enr_unique").on(t.enrollmentId).where(sql`deleted_at IS NULL`)],
+);
+
 // ───────── บสต. / รท.101 และการติดตามหลังบำบัด (สเปก 14) ─────────
 
 /** เลขประจำตัวในระบบภายนอก (บสต./รท.101) ต่อการลงทะเบียน */

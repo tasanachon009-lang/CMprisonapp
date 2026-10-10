@@ -15,6 +15,7 @@ import { eq, and, lte, inArray, or } from "drizzle-orm";
 import { getForm, saveAssessment } from "../src/lib/services/assessments";
 import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from "../src/lib/services/followup";
 import { FORM_DEFS } from "../src/lib/assessments/forms";
+import { saveReferral } from "../src/lib/services/health-referral";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
 import { bootstrapReferenceData, setSetting } from "../src/lib/bootstrap";
@@ -499,6 +500,25 @@ async function main() {
       }
     }
   }
+  // หลักสูตร 3 วันปีงบ 2569: ส่งต่อข้อมูลสุขภาพ (กิจกรรม 11) — ข้อมูลปลอมทั้งหมด · รุ่นล่าสุดยังบันทึกไม่ครบ
+  pre3Cohorts.forEach((cid, idx) => {
+    const c = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cid)).get()!;
+    if (c.startDate > today) return;
+    const last = idx === pre3Cohorts.length - 1;
+    for (const e of db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, cid)).all().filter((x) => x.status === "active" || x.status === "completed")) {
+      if (last && rand() < 0.3) continue;
+      const needs = rand() < 0.2;
+      const physical = needs ? [pick(["tb", "diabetes", "hypertension", "hiv", "communicable", "other"])] : [];
+      saveReferral(db, e.id, {
+        recordedDate: c.endDate, needsReferral: needs, physical, physicalOther: physical.includes("other") ? "หอบหืด (สมมติ)" : null,
+        mental: needs && rand() < 0.25 ? "นอนไม่หลับ วิตกกังวล (สมมติ)" : null,
+        treatmentPlan: needs ? "รับยาต่อเนื่องและพบแพทย์ตามนัดภายใน 1 เดือนหลังพ้นโทษ (สมมติ)" : null,
+        coverage: needs ? pick(["uc", "uc", "sss", "none"]) : null,
+        hospital: needs ? pick(["รพ.สมมติ 1", "รพ.สต.สมมติ", "รพ.สมมติ 2"]) : null,
+        medications: needs && rand() < 0.7 ? "ยาสมมติ ก วันละ 1 เม็ด 30 วัน" : null,
+      }, { userId: headId });
+    }
+  });
   // รุ่นที่จบแบบไม่ผ่านบริการ (2568 และ 3 วัน): สร้างงานเมื่อครบหลักสูตร (บสต. จำหน่าย/ติดตาม, รท.101)
   const otherDone = db.select().from(schema.cohorts).where(or(eq(schema.cohorts.fiscalYear, 2568), eq(schema.cohorts.courseId, pre3.id))).all();
   for (const c of otherDone) {

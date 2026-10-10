@@ -10,6 +10,7 @@ import { toError, type ActionResult } from "@/lib/action-result";
 import { saveAssessment } from "@/lib/services/assessments";
 import { markTask, recordFollowup, completeEnrollments } from "@/lib/services/followup";
 import { writeAudit } from "@/lib/audit";
+import { saveReferral, referralOf, type ReferralInput } from "@/lib/services/health-referral";
 import { isValidISODate, todayISO } from "@/lib/thai-date";
 
 export async function saveAssessmentAction(input: { enrollmentId: number; formId: number; round: string; period?: string; assessedDate: string; answers: unknown; source?: string; channel?: "paper" | "system"; paperLocation?: string | null }, loadedVersion?: number): Promise<ActionResult<{ id: number; level: string | null; alerts: string[] }>> {
@@ -290,3 +291,35 @@ export async function restoreContactAction(id: number): Promise<ActionResult> {
   }
 }
 
+
+const ReferralSchema = z.object({
+  recordedDate: z.string().max(10),
+  needsReferral: z.boolean(),
+  physical: z.array(z.string().max(20)).max(10).optional(),
+  physicalOther: z.string().max(500).nullish(),
+  mental: z.string().max(2000).nullish(),
+  treatmentPlan: z.string().max(4000).nullish(),
+  coverage: z.string().max(20).nullish(),
+  coverageNote: z.string().max(500).nullish(),
+  hospital: z.string().max(500).nullish(),
+  medications: z.string().max(2000).nullish(),
+});
+
+/** ส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ (สเปก 17 กิจกรรม 11) — ข้อมูลอ่อนไหว เฉพาะสถานพยาบาล/ผู้ดูแล */
+export async function saveHealthReferralAction(enrollmentId: number, input: ReferralInput, loadedVersion?: number): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("health.edit", "health.mental_edit");
+    const parsed = ReferralSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "ข้อมูลไม่ถูกต้องหรือยาวเกินไป — ตรวจช่องที่กรอกแล้วลองใหม่" };
+    input = parsed.data;
+    const db = getDb();
+    const prev = referralOf(db, Number(enrollmentId));
+    // ปัญหาสุขภาพกาย แก้ได้เฉพาะพยาบาล/สถานพยาบาล (health.edit) — ผู้มีสิทธิ์สุขภาพจิตอย่างเดียวคงค่าเดิมไว้
+    const data: ReferralInput = auth.can("health.edit") ? input : { ...input, physical: prev?.physical ?? [], physicalOther: prev?.physicalOther ?? null };
+    saveReferral(db, Number(enrollmentId), data, { userId: auth.user.id, ip: await clientIp() }, loadedVersion);
+    revalidatePath(`/enrollments/${enrollmentId}`);
+    return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}

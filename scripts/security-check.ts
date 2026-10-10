@@ -360,6 +360,32 @@ async function main() {
       check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม", allowed(asFinance) && asFinance.text.includes(digits), `HTTP ${asFinance.status}`);
     }
   }
+  // ขั้น 4: ส่งต่อข้อมูลสุขภาพ (สเปก 17 กิจกรรม 11) — เฉพาะสถานพยาบาล/ผู้ดูแล · ผู้บริหารเห็นแค่ยอดรวม
+  {
+    const ref = db.select({ r: schema.healthReferrals, e: schema.enrollments, p: schema.persons }).from(schema.healthReferrals)
+      .innerJoin(schema.enrollments, eq(schema.enrollments.id, schema.healthReferrals.enrollmentId))
+      .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId))
+      .innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId))
+      .where(eq(schema.healthReferrals.needsReferral, true)).get();
+    if (!ref) check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ส่งต่อข้อมูลสุขภาพ: มีข้อมูลปลอมให้ตรวจ", false, "ไม่พบรายการส่งต่อในฐานปลอม — รัน npm run seed ใหม่");
+    else {
+      const G = "2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ";
+      for (const p of [`/enrollments/${ref.e.id}/referral`, `/print/referral/${ref.e.id}`, `/print/referral-list/${ref.e.cohortId}`]) {
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: false, finance: false, assistant: false, warden: false })) {
+          const r = await get(p, C[role as keyof typeof U]);
+          check(G, `${role} → ${p}`, should ? allowed(r) : denied(r), `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+      }
+      const exec = await get(`/cohorts/${ref.e.cohortId}/health`, C.executive);
+      check(G, "ผู้บริหาร → แท็บสถานพยาบาลรุ่น 3 วัน เห็นยอดส่งต่อ แต่ไม่มีชื่อ/โรค/ปุ่มพิมพ์", exec.status === 200 && exec.text.includes("ส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ") && !exec.text.includes(ref.p.lastName) && !exec.text.includes("/print/referral") && !exec.text.includes("วัณโรค"), `HTTP ${exec.status}`);
+      const before = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "view_sensitive"), eq(schema.auditLogs.entity, "health_referral"))).all().length;
+      await get(`/enrollments/${ref.e.id}/referral`, C.rehab);
+      const after = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "view_sensitive"), eq(schema.auditLogs.entity, "health_referral"))).all().length;
+      check(G, "เปิดดูรายการส่งต่อ → บันทึกการเปิดดูข้อมูลสุขภาพ", after > before, `บันทึก ${before} → ${after}`);
+      const notes = db.select().from(schema.notifications).all().filter((n) => /HIV|วัณโรค|เบาหวาน/.test(n.message));
+      check(G, "แจ้งเตือนไม่มีชื่อโรคจากรายการส่งต่อ", notes.length === 0, `พบ ${notes.length} ข้อความ`);
+    }
+  }
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น
   const execHealth = await get(`/cohorts/${cohort.id}/health`, C.executive);
   check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง", execHealth.status === 200 && !execHealth.text.includes("ผู้มีผลคัดกรองเสี่ยง"), `HTTP ${execHealth.status}`);

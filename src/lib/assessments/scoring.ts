@@ -16,6 +16,12 @@ export type ItemsScoring = {
   /** ข้อกลับคะแนน: ค่าใหม่ = reverseBase − ค่าเดิม (เช่น 5–1 → 6) */
   reverseBase?: number;
   bands: Band[];
+  /** คะแนนรายด้าน (เช่น WHOQOL-26 4 องค์ประกอบ) — เก็บใน details.domains */
+  domains?: Array<{ code: string; name: string; items: number[]; bands: Band[] }>;
+  /** แจ้งเตือนจากคำตอบรายข้อ (เช่น SCL-90-R ข้อ 15, 59 ตอบ ≥ 1) */
+  itemAlerts?: Array<{ items: number[]; min: number; severity: "warning" | "danger"; message: string }>;
+  /** ค่าเฉลี่ยต่อข้อ (SCL-90-R: GSI = คะแนนรวม ÷ จำนวนข้อ) และจำนวนข้อที่ตอบมากกว่า 0 — เก็บใน details.gsi / details.positive */
+  gsi?: boolean;
 };
 export type SingleScoring = { options: Option[]; bands?: Band[] };
 
@@ -52,7 +58,25 @@ export function scoreItems(items: Item[], s: ItemsScoring, answers: Record<strin
   if (missing) errors.push(`ยังไม่ได้ตอบ ${missing} ข้อ`);
   if (errors.length) return { total: null, level: null, tone: null, details: { missing }, alerts: [], errors };
   const b = band(s.bands, total);
-  return { total, level: b?.label ?? null, tone: b?.tone ?? null, details: b?.guidance ? { guidance: b.guidance } : {}, alerts: b?.alert ? [b.alert] : [], errors };
+  const details: Record<string, unknown> = b?.guidance ? { guidance: b.guidance } : {};
+  const alerts = b?.alert ? [b.alert] : [];
+  const scoreOf = (it: Item) => { const v = answers[String(it.no)] as number; return (it.reverse && s.reverseBase != null ? s.reverseBase - v : v) * (it.weight ?? 1); };
+  if (s.domains?.length) {
+    details.domains = s.domains.map((d) => {
+      const score = items.filter((it) => d.items.includes(it.no)).reduce((t, it) => t + scoreOf(it), 0);
+      const db = band(d.bands, score);
+      return { code: d.code, name: d.name, score, level: db?.label ?? null, tone: db?.tone ?? null };
+    });
+  }
+  if (s.gsi) {
+    details.gsi = Math.round((total / items.length) * 100) / 100;
+    details.positive = items.filter((it) => (answers[String(it.no)] as number) > 0).length;
+  }
+  for (const a of s.itemAlerts ?? []) {
+    const hit = a.items.filter((no) => ((answers[String(no)] as number | undefined) ?? 0) >= a.min);
+    if (hit.length) alerts.push({ severity: a.severity, message: `${a.message} (ข้อ ${hit.join(", ")})` });
+  }
+  return { total, level: b?.label ?? null, tone: b?.tone ?? null, details, alerts, errors };
 }
 
 export function scoreSingle(s: SingleScoring, value: number | null | undefined): Result {

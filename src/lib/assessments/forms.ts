@@ -23,6 +23,8 @@ export type FormDef = {
   sortOrder: number;
   /** รุ่นของเนื้อหาค่าเริ่มต้น (เริ่ม 1) */
   rev: number;
+  /** false = ใส่ไว้ในคลังแต่ปิดใช้งาน (ไม่ขึ้นในรายการที่ต้องทำ) จนกว่าผู้ดูแลจะเปิด */
+  active?: boolean;
   items: Item[];
   scoring: Record<string, unknown>;
 };
@@ -190,6 +192,23 @@ const SAT_ITEMS: Item[] = (() => {
   return SAT_GROUPS.flatMap(([group, n]) => Array.from({ length: n }, (_, i) => ({ no: ++no, text: `${group} ข้อที่ ${i + 1} ตามแบบกระดาษ (รอข้อความจากแบบจริง)`, group })));
 })();
 
+// ───────── ชุมชนบำบัด FAST (สเปก 16B) ─────────
+// WHOQOL-26 และ SCL-90-R เป็นเครื่องมือมีลิขสิทธิ์ — ไม่คัดลอกข้อความข้อคำถามลงโปรแกรม ใช้ "ข้อที่ n ตามแบบกระดาษ"
+// (ผู้ต้องขังตอบบนแบบกระดาษของหน่วยงาน เจ้าหน้าที่กรอกตามเลขข้อ) · วิธีคิดคะแนนตามภาพ docs/forms/source/01 และสเปก 16B
+const paperItems = (n: number): Item[] => Array.from({ length: n }, (_, i) => ({ no: i + 1, text: `ข้อที่ ${i + 1} ตามแบบกระดาษ` }));
+const WHOQOL_REVERSE = [2, 9, 11];
+const whoBands = (bad: [number, number], mid: [number, number], good: [number, number]): Band[] => [
+  { min: bad[0], max: bad[1], label: "คุณภาพชีวิตไม่ดี", tone: "danger" },
+  { min: mid[0], max: mid[1], label: "คุณภาพชีวิตกลางๆ", tone: "warn" },
+  { min: good[0], max: good[1], label: "คุณภาพชีวิตดี", tone: "ok" },
+];
+export const WHOQOL_DOMAINS = [
+  { code: "physical", name: "ด้านสุขภาพกาย", items: [2, 3, 4, 10, 11, 12, 24], bands: whoBands([7, 16], [17, 26], [27, 35]) },
+  { code: "psych", name: "ด้านจิตใจ", items: [5, 6, 7, 8, 9, 23], bands: whoBands([6, 14], [15, 22], [23, 30]) },
+  { code: "social", name: "ด้านสัมพันธภาพทางสังคม", items: [13, 14, 25], bands: whoBands([3, 7], [8, 11], [12, 15]) },
+  { code: "environment", name: "ด้านสิ่งแวดล้อม", items: [15, 16, 17, 18, 19, 20, 21, 22], bands: whoBands([8, 18], [19, 29], [30, 40]) },
+];
+
 // ───────── แบบประเมินพฤติกรรม/ความก้าวหน้าสมาชิก 27 ข้อ 10 ด้าน ─────────
 const PROG_DOMAINS: Array<[string, string[]]> = [
   ["1. ความรับผิดชอบ", ["ตรงต่อเวลาในการเข้าร่วมกิจกรรม", "ทำกิจกรรม/หน้าที่ที่ได้รับมอบหมายจากวิทยากร/เจ้าหน้าที่", "ดูแลพื้นที่ทำกิจกรรมให้สะอาดเรียบร้อย"]],
@@ -353,6 +372,35 @@ export const FORM_DEFS: FormDef[] = [
     },
   },
   {
+    code: "WHOQOL", name: "แบบสอบถามคุณภาพชีวิตผู้ใช้สารเสพติด (WHOQOL-26)", shortName: "คุณภาพชีวิต",
+    category: "quality_of_life", kind: "items", sensitive: false, rounds: ["pre", "post"], courseCodes: ["FAST"], sortOrder: 21, rev: 1,
+    description: "ช่วง 2 สัปดาห์ที่ผ่านมา · 26 ข้อ: 1 = ไม่เลย … 5 = มากที่สุด · ข้อทางลบ 2, 9, 11 กลับคะแนน · รวม 26–130 และรายด้าน 4 องค์ประกอบ (ข้อ 1 และ 26 ไม่อยู่ในด้านใด) · กรอกตามเลขข้อในแบบกระดาษ",
+    items: paperItems(26).map((it) => ({ ...it, reverse: WHOQOL_REVERSE.includes(it.no) })),
+    scoring: {
+      method: "sum",
+      reverseBase: 6,
+      options: scale([[1, "ไม่เลย"], [2, "เล็กน้อย"], [3, "ปานกลาง"], [4, "มาก"], [5, "มากที่สุด"]]),
+      bands: whoBands([26, 60], [61, 95], [96, 130]),
+      domains: WHOQOL_DOMAINS,
+    },
+  },
+  {
+    code: "SCL90", name: "แบบประเมิน SCL-90-R", shortName: "SCL-90-R",
+    category: "health_mental", kind: "items", sensitive: true, rounds: ["pre"], courseCodes: ["FAST"], sortOrder: 22, rev: 1, active: false,
+    description: "ระยะแรกรับ · ช่วง 7 วันที่ผ่านมา · 90 ข้อ: 0 = ไม่เลย … 4 = มากที่สุด · แสดงคะแนนรวม GSI (รวม ÷ 90) และจำนวนข้อที่ตอบมากกว่า 0 — ยังไม่ติดป้ายระดับและไม่แบ่งด้าน (รอวิธีคิดคะแนนรายด้านจากคู่มือ) · ปิดใช้งานไว้ก่อน",
+    items: paperItems(90),
+    scoring: {
+      method: "sum",
+      options: scale([[0, "ไม่เลย"], [1, "เล็กน้อย"], [2, "ค่อนข้างมาก"], [3, "มาก"], [4, "มากที่สุด"]]),
+      bands: [] satisfies Band[],
+      gsi: true,
+      itemAlerts: [
+        { items: [15, 59], min: 1, severity: "danger", message: "SCL-90-R: มีคำตอบเกี่ยวกับความคิดอยากจบชีวิต/ความตาย — ควรประเมินต่อด้วย 8Q (เป็นสัญญาณ ไม่ใช่การวินิจฉัย)" },
+        { items: [63, 67], min: 3, severity: "warning", message: "SCL-90-R: มีคำตอบเกี่ยวกับการอยากทำร้ายผู้อื่น/ทำลายข้าวของในระดับมาก" },
+      ],
+    },
+  },
+  {
     code: "ROSE3", name: "แบบประเมิน Rosenberg Self-Esteem Scale (ฉบับหลักสูตร 3 วัน)", shortName: "Rosenberg (3 วัน)",
     category: "self_esteem", kind: "items", sensitive: false, rounds: ["pre", "post"], courseCodes: ["PRE3"], sortOrder: 17, rev: 1,
     description: "ฉบับกรมราชทัณฑ์ ใช้กับหลักสูตรฟื้นฟูก่อนพ้นโทษ 3 วัน · ข้อเชิงบวก 1,3,4,7,10: เห็นด้วยอย่างยิ่ง = 4 … ไม่เห็นด้วยอย่างยิ่ง = 1 · ข้อเชิงลบ 2,5,6,8,9 กลับคะแนน · รวม 10–40: 10–20 ต่ำ / 21–30 ปานกลาง / 31–40 สูง",
@@ -400,11 +448,13 @@ export const FORM_DEFS: FormDef[] = [
 
 /** แบบที่ทำตามรายละเอียดในสเปกไปก่อน ยังไม่ได้เทียบกับแบบฟอร์มจริงของหน่วยงาน — หน้าจอแสดงป้าย "รอตรวจกับแบบจริง" */
 export const PENDING_REVIEW_CODES = ["ROSE3", "STATUS", "STRESS", "SAT3"];
+/** แบบที่ข้อความข้อคำถามไม่ได้ใส่ในโปรแกรม (เครื่องมือมีลิขสิทธิ์) — กรอกตามเลขข้อในแบบกระดาษ */
+export const PAPER_ONLY_CODES = ["WHOQOL", "SCL90"];
 export const PENDING_REVIEW_LABEL = "รอตรวจกับแบบจริง";
 export const isPendingReview = (code: string) => PENDING_REVIEW_CODES.includes(code);
 
 /** สเปก 10.1: แบบที่ผู้ต้องขังตอบเองบนกระดาษ (เจ้าหน้าที่กรอกด้วยโหมดกรอกเร็ว) — ที่เหลือเจ้าหน้าที่ทำในระบบ */
-export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE", "ROSE3", "STRESS", "SAT3"];
+export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE", "ROSE3", "STRESS", "SAT3", "WHOQOL", "SCL90"];
 export const CHANNEL_LABEL: Record<string, string> = { paper: "กรอกจากกระดาษ", system: "ทำในระบบ" };
 export const defaultChannel = (code: string): "paper" | "system" => (SELF_REPORT_CODES.includes(code) ? "paper" : "system");
 

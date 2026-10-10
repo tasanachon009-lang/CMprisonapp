@@ -1343,6 +1343,49 @@ export const phaseRecords = sqliteTable(
   (t) => [uniqueIndex("phase_records_unique").on(t.enrollmentId, t.phase).where(sql`deleted_at IS NULL`), index("phase_records_enr_idx").on(t.enrollmentId)],
 );
 
+/**
+ * สมุดบันทึกความก้าวหน้าของสมาชิกชุมชนบำบัด (สเปก 16A) — ส่วนที่ 1 ข้อ 3 "ข้อมูลเกี่ยวข้อง" (ข้อความยาว)
+ * ข้อมูลอื่นของส่วนที่ 1 ดึงจากทะเบียน ไม่เก็บซ้ำ · 1 แถวต่อการลงทะเบียน
+ */
+export const memberBooks = sqliteTable(
+  "member_books",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    /** สภาพที่อยู่อาศัยก่อนต้องโทษ */
+    housingBefore: text("housing_before"),
+    /** ความผูกพันในครอบครัว */
+    familyBond: text("family_bond"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("member_books_enr_unique").on(t.enrollmentId)],
+);
+
+/**
+ * สมุดส่วนที่ 3 (ความก้าวหน้าของพฤติกรรมและการให้ความช่วยเหลือในแต่ละเดือน — 1 บันทึกต่อเดือน)
+ * และส่วนที่ 4 (ความเห็นของที่ปรึกษา — เขียนได้หลายครั้ง)
+ */
+export const memberBookNotes = sqliteTable(
+  "member_book_notes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    /** monthly = ส่วนที่ 3 · counselor = ส่วนที่ 4 */
+    kind: text("kind").notNull(),
+    /** ส่วนที่ 3: เดือนที่บันทึก 'YYYY-MM' · ส่วนที่ 4: '' */
+    period: text("period").notNull().default(""),
+    noteDate: text("note_date").notNull(),
+    /** ผู้บันทึก / ที่ปรึกษา */
+    authorId: integer("author_id").notNull(),
+    text: text("text").notNull(),
+    ...tracking(),
+  },
+  (t) => [
+    uniqueIndex("member_book_notes_monthly_unique").on(t.enrollmentId, t.period).where(sql`kind = 'monthly' AND deleted_at IS NULL`),
+    index("member_book_notes_enr_idx").on(t.enrollmentId, t.kind),
+  ],
+);
+
 export const behaviorNotes = sqliteTable(
   "behavior_notes",
   {

@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 10/10/2569 23:55:19
+- วันเวลา: 11/10/2569 00:05:46
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 275/275 ข้อ**
+- ผล: **ผ่าน 290/290 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -198,18 +198,18 @@
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม | HTTP 200 |
-| ✅ ผ่าน | admin → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | admin → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /enrollments/280/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /enrollments/280/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/280/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /enrollments/280/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /enrollments/280/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /enrollments/280/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/referral/280 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/referral/280 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/referral/280 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /print/referral/280 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/referral/280 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/referral/280 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | admin → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |
@@ -264,6 +264,21 @@
 | ✅ ผ่าน | ชุมชนบำบัด: ผู้บริหารเห็นเฉพาะสรุปจำนวนต่อระยะ ไม่มีรายชื่อสมาชิก | HTTP 200 |
 | ✅ ผ่าน | ชุมชนบำบัด: เจ้าหน้าที่ฟื้นฟูเห็นรายชื่อแต่ไม่มีช่องเลือกเพื่ออนุมัติเลื่อนระยะ · ผู้ดูแลมี | rehab 200 / admin 200 |
 | ✅ ผ่าน | ชุมชนบำบัด: อนุมัติ/ยกเลิกการเลื่อนระยะ ตรวจสิทธิ์ tc.approve ที่เซิร์ฟเวอร์ | ตรวจจากโค้ด server action |
+| ✅ ผ่าน | admin → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /enrollments/201/book (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/member-book/201 (สมุดของสมาชิก) | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | สมุดของสมาชิก: เปิดกับการลงทะเบียนหลักสูตรอื่นไม่ได้ | HTTP 404 |
+| ✅ ผ่าน | สมุดของสมาชิก: ทุก action ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์ | ตรวจจากโค้ด server action |
+| ✅ ผ่าน | สมุดของสมาชิก: บันทึกการพิมพ์ใน audit | 2 รายการ |
 | ✅ ผ่าน | ชุมชนบำบัด: เปิดแท็บนี้กับรุ่นหลักสูตรอื่นไม่ได้ | HTTP 404 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |

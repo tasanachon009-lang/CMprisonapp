@@ -81,6 +81,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {course.code === "FAST" && auth.can("tc.view") && <Link href={`/enrollments/${e.id}/book`} className="btn-secondary">สมุดของสมาชิก</Link>}
           {auth.canIn("behavior.edit", [c.id]) && <BehaviorNoteButton incarcerationId={inc.id} enrollmentId={e.id} name={ctx.name} />}
           {auth.can("registry.edit") && e.status === "active" && <CompleteButton cohortId={c.id} enrollmentId={e.id} defaultDate={c.endDate <= today ? c.endDate : today} />}
           <Link href={`/persons/${p.id}`} className="btn-ghost">หน้าบุคคล</Link>

@@ -411,6 +411,22 @@ export async function saveLookup(category: string, code: string, label: string, 
 const BandZ = z.object({ min: z.number(), max: z.number(), label: z.string().min(1).max(200), tone: z.enum(["ok", "warn", "danger"]), alert: z.object({ severity: z.enum(["warning", "danger"]), message: z.string().max(300) }).optional() });
 const ItemZ = z.object({ no: z.number().int(), label: z.string().max(20).optional(), text: z.string().min(1).max(1000), help: z.string().max(1000).optional(), reverse: z.boolean().optional(), correct: z.boolean().optional(), weight: z.number().optional(), group: z.string().max(100).optional() });
 
+/** คลังแบบประเมิน: เปิด/ปิดใช้งานแบบ (ผลที่บันทึกไว้แล้วไม่ถูกลบ) */
+export async function setFormActive(formId: number, active: boolean): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("forms.manage");
+    const db = getDb();
+    const form = db.select().from(schema.assessmentForms).where(eq(schema.assessmentForms.id, formId)).get();
+    if (!form) return { ok: false, error: "ไม่พบแบบประเมิน" };
+    db.update(schema.assessmentForms).set({ active: !!active, updatedBy: auth.user.id, updatedAt: new Date() }).where(eq(schema.assessmentForms.id, formId)).run();
+    writeAudit(db, { userId: auth.user.id, action: "update", entity: "assessment_form", entityId: formId, before: { active: form.active }, after: { active: !!active }, note: form.code, ip: await clientIp() });
+    revalidatePath("/admin/forms");
+    return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
 /** คลังแบบประเมิน: บันทึกเป็นเวอร์ชันใหม่ (ผลเก่ายังใช้เกณฑ์เดิมที่แช่แข็งไว้) */
 export async function saveFormVersion(formId: number, items: unknown, bands: unknown, effectiveFrom: string, note: string): Promise<ActionResult<{ version: number }>> {
   try {

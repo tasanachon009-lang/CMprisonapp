@@ -1,3 +1,4 @@
+import { phaseStatus } from "../fast/phases";
 import { and, asc, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 import type { DB } from "../db";
 import { schema } from "../db";
@@ -67,6 +68,7 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
     const r = computeResult(form.kind, v.items as Item[], v.scoring as Record<string, unknown>, input.answers);
     // แบบสภาวะกาย/จิต และสมรรถภาพ ยอมให้บันทึกบางส่วนได้ แต่แบบรายข้อต้องครบและอยู่ในช่วง
     if (r.errors.length && form.kind !== "fitness") throw new RuleError(r.errors.join(" · "));
+    if (form.code === "ROSE" && r.total != null) Object.assign(r.details, fastContext(t, enr, input.assessedDate));
     const channel = input.channel ?? defaultChannel(form.code);
     if (channel !== "paper" && channel !== "system") throw new RuleError("ช่องทางการกรอกไม่ถูกต้อง");
     const paperLocation = channel === "paper" ? input.paperLocation?.trim().slice(0, 200) || null : null;
@@ -109,6 +111,15 @@ export function saveAssessment(db: DB, input: SaveInput, actor: { userId: number
     }
     return { id, result: r };
   });
+}
+
+/** ข้อมูลหัวแบบของ Rosenberg ฉบับ FAST: ระยะการบำบัดของสมาชิก ณ วันประเมิน และยาเสพติดหลัก (เติมอัตโนมัติ ไม่ต้องกรอก) */
+function fastContext(db: DB, enr: { id: number; cohortId: number; incarcerationId: number }, date: string) {
+  const cohort = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, enr.cohortId)).get();
+  if (!cohort) return {};
+  const approved = db.select().from(schema.phaseRecords).where(and(eq(schema.phaseRecords.enrollmentId, enr.id), isNull(schema.phaseRecords.deletedAt), lte(schema.phaseRecords.startDate, date))).all().map((p) => p.phase);
+  const drug = db.select().from(schema.drugUseHistory).where(and(eq(schema.drugUseHistory.incarcerationId, enr.incarcerationId), isNull(schema.drugUseHistory.deletedAt))).orderBy(asc(schema.drugUseHistory.id)).get();
+  return { phase: phaseStatus(cohort.startDate, date, approved).current.code, mainDrug: drug?.substance ?? null };
 }
 
 /** ผลประเมินทั้งหมดของการลงทะเบียน (กรองตามสิทธิ์) */

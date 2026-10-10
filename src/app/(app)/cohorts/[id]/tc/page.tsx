@@ -1,3 +1,4 @@
+import { missingMonthlyNotes } from "@/lib/services/member-book";
 import { notFound } from "next/navigation";
 import { requirePage } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -26,6 +27,7 @@ export default async function CohortTc({ params }: PageProps<"/cohorts/[id]/tc">
   const sched = scheduledPhase(cohort.startDate, today);
   const week = weekOf(cohort.startDate, today);
 
+  const missing = summaryOnly ? [] : missingMonthlyNotes(db, cohort.id, today);
   let rows: MemberRow[] = [];
   if (!summaryOnly) {
     const phases = new Map(cohortPhases(db, cohort.id, today).map((m) => [m.enrollmentId, m]));
@@ -37,7 +39,7 @@ export default async function CohortTc({ params }: PageProps<"/cohorts/[id]/tc">
         enrollmentId: r.enrollment.id, name: `${r.person.prefix ?? ""}${r.person.firstName} ${r.person.lastName}`, inmateNo: r.inc.inmateNo,
         thumb: r.inc.thumbPath ? `/api/files/photo/${r.inc.id}?s=thumb` : null, zone: r.inc.zone,
         phaseNo: m.status.current.no, phaseLabel: phaseLabel(m.status.current.code), since: formatThaiDate(last?.startDate ?? r.enrollment.enrolledDate),
-        nextCode: next?.code ?? null, nextLabel: next ? phaseLabel(next.code) : null, due: !!m.status.due, ahead: m.status.ahead, lastNote: last?.note ?? null,
+        nextCode: next?.code ?? null, nextLabel: next ? phaseLabel(next.code) : null, due: !!m.status.due, ahead: m.status.ahead, lastNote: last?.note ?? null, missingNotes: missing.filter((x) => x.enrollmentId === r.enrollment.id).length,
       };
     });
   }
@@ -56,6 +58,7 @@ export default async function CohortTc({ params }: PageProps<"/cohorts/[id]/tc">
       {!summaryOnly && (
         <section className="card">
           <h2 className="text-xl">ระยะของสมาชิก</h2>
+          {missing.length > 0 && <div className="mt-3"><Alert tone="warn">สมุดส่วนที่ 3 (บันทึกรายเดือน) ยังไม่เขียน {missing.length} รายการ ของสมาชิก {new Set(missing.map((x) => x.enrollmentId)).size} คน</Alert></div>}
           {rows.length === 0 ? <EmptyState title="ยังไม่มีสมาชิกที่ยืนยันรับเข้า" /> : (
             <div className="mt-3"><PhaseTable cohortId={cohort.id} rows={rows} today={today} canApprove={auth.can("tc.approve") && cohort.status !== "closed"} /></div>
           )}

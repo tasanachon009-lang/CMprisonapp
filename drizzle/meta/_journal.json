@@ -134,6 +134,13 @@
       "when": 1791650866232,
       "tag": "0018_step5_fast_phases",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1791651527413,
+      "tag": "0019_step5_member_book",
+      "breakpoints": true
     }
   ]
 }

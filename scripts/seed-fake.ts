@@ -17,6 +17,7 @@ import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from ".
 import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { saveReferral } from "../src/lib/services/health-referral";
 import { advancePhase } from "../src/lib/services/fast-phase";
+import { saveGeneral, saveMonthlyNote, addCounselorOpinion, bookMonths } from "../src/lib/services/member-book";
 import { createDocument, updateDocument, setDocumentStatus } from "../src/lib/services/documents";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
@@ -516,6 +517,17 @@ async function main() {
     const members = db.select().from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, cf.id), eq(schema.enrollments.status, "active"))).all();
     // คาบย้อนหลังของชุมชนบำบัด (เกิน 2 วัน): ถือว่าเช็คชื่อและปิดคาบแล้ว เพื่อไม่ให้หน้าแรกเต็มไปด้วยงานค้างปลอม
     db.update(schema.cohortSessions).set({ attendanceCheckedAt: new Date(), attendanceCheckedBy: headId, taughtAt: new Date(), taughtBy: headId, status: "done" }).where(and(eq(schema.cohortSessions.cohortId, cf.id), lte(schema.cohortSessions.date, addDays(today, -3)))).run();
+    // สมุดของสมาชิก + แบบประเมินแรกรับของชุมชนบำบัด (ข้อมูลปลอม): Rosenberg ฉบับ FAST, WHOQOL-26, บันทึกรายเดือน, ความเห็นที่ปรึกษา
+    const fdef = (code: string) => FORM_DEFS.find((x) => x.code === code)!;
+    members.forEach((m, idx) => {
+      for (const code of ["ROSE", "WHOQOL"]) {
+        try { saveAssessment(db, { enrollmentId: m.id, formId: form(code).id, round: "pre", assessedDate: addDays(cf.startDate, 2), answers: Object.fromEntries(fdef(code).items.map((i) => [String(i.no), code === "ROSE" ? int(1, 4) : int(2, 5)])) }, { userId: pick(rehabStaff), can: can as never }); } catch { /* ข้าม */ }
+      }
+      saveGeneral(db, m.id, { housingBefore: pick(["อาศัยกับบิดามารดา บ้านของตนเอง", "เช่าห้องพักอยู่คนเดียว", "อาศัยกับญาติ"]), familyBond: pick(["ติดต่อมารดาสม่ำเสมอ", "ห่างเหินกับครอบครัว", "ครอบครัวมาเยี่ยมเดือนละครั้ง"]) }, { userId: pick(rehabStaff) });
+      // 2 คนสุดท้ายยังไม่เขียนบันทึกรายเดือน → เห็นป้ายเตือน
+      if (idx < members.length - 2) for (const period of bookMonths(m, cf, addDays(today, -31))) saveMonthlyNote(db, m.id, { period, text: "เข้าร่วมกิจกรรมสม่ำเสมอ ปฏิบัติตามกฎของบ้าน (ข้อมูลปลอม)", noteDate: `${period}-28` }, { userId: pick(rehabStaff) });
+      if (idx % 3 === 0) addCounselorOpinion(db, m.id, { text: "มีความรับผิดชอบต่องานที่ได้รับมอบหมายมากขึ้น (ข้อมูลปลอม)", noteDate: addDays(cf.startDate, 30) }, { userId: pick(rehabStaff) });
+    });
     const rehabStart = addDays(cf.startDate, 14);
     if (rehabStart <= today) advancePhase(db, { enrollmentIds: members.slice(0, Math.max(0, members.length - 3)).map((m) => m.id), toPhase: "rehab", date: rehabStart, note: "ผ่านการประเมินระยะแรกรับ (ข้อมูลปลอม)" }, { userId: headId });
   }

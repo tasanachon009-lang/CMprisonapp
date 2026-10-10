@@ -117,6 +117,8 @@ export function AssessmentForm(p: Props) {
             {result.total != null && <span className="font-display text-2xl font-bold text-navy">{result.total}</span>}
             {result.level && <span className={TONE[result.tone ?? ""] ?? "tag-muted"}>{result.level}</span>}
             {typeof result.details.guidance === "string" && <span className="text-sm">แนวทาง: {result.details.guidance}</span>}
+            {Array.isArray(result.details.domains) && (result.details.domains as Array<{ code: string; name: string; score: number; level: string | null }>).map((d) => <span key={d.code} className="tag-muted">{d.name} {d.score}{d.level ? ` · ${d.level}` : ""}</span>)}
+            {typeof result.details.gsi === "number" && <span className="tag-muted">GSI {result.details.gsi} · ตอบมากกว่า 0 จำนวน {String(result.details.positive)} ข้อ</span>}
             {result.errors.length > 0 && <span className="text-sm text-muted">{result.errors.join(" · ")}</span>}
             <DraftSavedHint savedAt={dirty ? autosave.savedAt : null} />
           </div>

@@ -458,6 +458,21 @@ async function main() {
       const tcSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/actions.ts", "utf8");
       const fn = (src: string, name: string) => src.slice(src.indexOf(`export async function ${name}`)).split("export async function")[1] ?? "";
       check(G, "ชุมชนบำบัด: อนุมัติ/ยกเลิกการเลื่อนระยะ ตรวจสิทธิ์ tc.approve ที่เซิร์ฟเวอร์", fn(tcSrc, "advancePhaseAction").includes('requireAction("tc.approve")') && fn(tcSrc, "revertPhaseAction").includes('requireAction("tc.approve")'), "ตรวจจากโค้ด server action");
+      // สมุดของสมาชิก (สเปก 16A)
+      const fe = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get()!;
+      for (const bp of [`/enrollments/${fe.id}/book`, `/print/member-book/${fe.id}`]) {
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: false, finance: false, assistant: false, warden: false })) {
+          const r = await get(bp, C[role as keyof typeof U]);
+          check(G, `${role} → ${bp} (สมุดของสมาชิก)`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+      }
+      const b12e = db.select({ id: schema.enrollments.id }).from(schema.enrollments).innerJoin(schema.courses, eq(schema.courses.id, schema.enrollments.courseId)).where(eq(schema.courses.code, "B12")).get()!;
+      const wrongBook = await get(`/enrollments/${b12e.id}/book`, C.admin);
+      check(G, "สมุดของสมาชิก: เปิดกับการลงทะเบียนหลักสูตรอื่นไม่ได้", wrongBook.status === 404, `HTTP ${wrongBook.status}`);
+      const bookSrc = fs.readFileSync("src/app/(app)/enrollments/[id]/book/actions.ts", "utf8");
+      check(G, "สมุดของสมาชิก: ทุก action ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์", (bookSrc.match(/export async function \w+Action/g) ?? []).length === (bookSrc.match(/await actor\(\)/g) ?? []).length && bookSrc.includes('requireAction("tc.edit")'), "ตรวจจากโค้ด server action");
+      const prints = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "print"), eq(schema.auditLogs.entity, "member_book"))).all().length;
+      check(G, "สมุดของสมาชิก: บันทึกการพิมพ์ใน audit", prints > 0, `${prints} รายการ`);
       const other = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.courses.code, "B12")).get()!;
       const wrong = await get(`/cohorts/${other.id}/tc`, C.admin);
       check(G, "ชุมชนบำบัด: เปิดแท็บนี้กับรุ่นหลักสูตรอื่นไม่ได้", wrong.status === 404, `HTTP ${wrong.status}`);

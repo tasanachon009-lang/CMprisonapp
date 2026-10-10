@@ -31,7 +31,7 @@ export function bootstrapReferenceData(db: DB) {
       }
       const form = tx
         .insert(schema.assessmentForms)
-        .values({ code: f.code, name: f.name, shortName: f.shortName, category: f.category, kind: f.kind, sensitive: f.sensitive, rounds: f.rounds, courseCodes: f.courseCodes, description: f.description ?? null, sortOrder: f.sortOrder })
+        .values({ code: f.code, name: f.name, shortName: f.shortName, category: f.category, kind: f.kind, sensitive: f.sensitive, rounds: f.rounds, courseCodes: f.courseCodes, description: f.description ?? null, sortOrder: f.sortOrder, active: f.active ?? true })
         .returning()
         .get();
       tx.insert(schema.assessmentFormVersions).values({ formId: form.id, version: 1, items: f.items, scoring: f.scoring, effectiveFrom: "2000-01-01", note: defaultNote(f.rev) }).run();

@@ -11,7 +11,7 @@ import { advancePhaseAction, revertPhaseAction } from "./actions";
 
 export type MemberRow = {
   enrollmentId: number; name: string; inmateNo: string; thumb: string | null; zone: string | null;
-  phaseNo: number; phaseLabel: string; since: string | null; nextCode: string | null; nextLabel: string | null; due: boolean; ahead: boolean; lastNote: string | null;
+  phaseNo: number; phaseLabel: string; since: string | null; nextCode: string | null; nextLabel: string | null; due: boolean; ahead: boolean; lastNote: string | null; missingNotes: number;
 };
 
 /** รายชื่อสมาชิกพร้อมระยะปัจจุบัน — เลือกหลายคนแล้วอนุมัติเลื่อนระยะครั้งเดียว (สเปก 22A: ทำกับหลายคนพร้อมกัน) */
@@ -62,7 +62,7 @@ export function PhaseTable({ cohortId, rows, today, canApprove }: { cohortId: nu
                 <td>
                   <div className="flex items-center gap-2">
                     <PersonThumb name={r.name} thumb={r.thumb} inmateNo={r.inmateNo} zone={r.zone} />
-                    <Link href={`/enrollments/${r.enrollmentId}`} className="hover:underline">{r.name}</Link>
+                    <Link href={`/enrollments/${r.enrollmentId}/book`} className="hover:underline" title="เปิดสมุดของสมาชิก">{r.name}</Link>{r.missingNotes > 0 && <span className="tag-warn">ค้างบันทึกรายเดือน {r.missingNotes}</span>}
                   </div>
                 </td>
                 <td><span className="tag-navy">{r.phaseLabel}</span></td>

@@ -409,6 +409,33 @@ async function main() {
       check(G, "ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง)", okDocx.status === 200 && bytes[0] === 0x50 && bytes[1] === 0x4b, `HTTP ${okDocx.status} · ${bytes.length} ไบต์`);
       const fin = await get(`/documents/${d.id}`, C.finance);
       check(G, "การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ)", allowed(fin) && fin.text.includes("ดูอย่างเดียว") && !fin.text.includes("ล็อกเป็นฉบับจริง"), `HTTP ${fin.status}`);
+      // เอกสารหลังจบรุ่น (สเปก 18.4): รายชื่อพร้อมเลขบัตร + แบบรายงานผล
+      const pre3Id = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.courses.code, "PRE3")).all()
+        .map((c) => c.id).find((id) => db.select().from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, id), inArray(schema.enrollments.status, ["active", "completed"]))).get());
+      if (!pre3Id) check(G, "เอกสารหลังจบรุ่น: มีรุ่น 3 วันที่มีผู้เข้าอบรมให้ตรวจ", false, "รัน npm run seed ใหม่");
+      else {
+        const who = db.select({ no: schema.incarcerations.inmateNo, nid: schema.persons.nationalId, last: schema.persons.lastName }).from(schema.enrollments)
+          .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId)).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId))
+          .where(and(eq(schema.enrollments.cohortId, pre3Id), inArray(schema.enrollments.status, ["active", "completed"]))).all().find((x) => x.nid)!;
+        const pp = `/print/participants/${pre3Id}`;
+        const notAllowed = (r: { status: number; location: string; text: string }) => denied(r) || r.status === 404;
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, finance: false, executive: false, assistant: false, warden: false })) {
+          const r = await get(pp, C[role as keyof typeof U]);
+          check(G, `${role} → ${pp} (รายชื่อพร้อมเลขบัตร)`, should ? allowed(r) : notAllowed(r), `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+        const asAdmin = await get(pp, C.admin), asRehab = await get(pp, C.rehab);
+        const ppSrc = fs.readFileSync("src/app/print/participants/[cohortId]/page.tsx", "utf8");
+        check(G, "รายชื่อพร้อมเลขบัตร: ผู้มีสิทธิ์ national_id.view_full (ผู้ดูแล/ฟื้นฟู) เห็นเลขเต็ม · ผู้ไม่มีสิทธิ์นี้ได้เลขแบบปิดบัง (ตรวจจากโค้ด)", asAdmin.text.includes(who.nid!) && asRehab.text.includes(who.nid!) && ppSrc.includes('auth.can("national_id.view_full")') && ppSrc.includes("full ? p.person.nationalId : maskNationalId(p.person.nationalId)"), `admin ${asAdmin.status} / rehab ${asRehab.status}`);
+        const lastPrint = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "print"), eq(schema.auditLogs.entity, "participants_national_id"))).all().length;
+        check(G, "รายชื่อพร้อมเลขบัตร: บันทึกการพิมพ์ใน audit", lastPrint > 0, `${lastPrint} รายการ`);
+        const rp = `/print/course-report/${pre3Id}`;
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: true, assistant: false, warden: false })) {
+          const r = await get(rp, C[role as keyof typeof U]);
+          check(G, `${role} → ${rp} (แบบรายงานผล)`, should ? allowed(r) : notAllowed(r), `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+        const rep = await get(rp, C.executive);
+        check(G, "แบบรายงานผล: ไม่มีเลขประจำตัว/เลขบัตร/นามสกุลผู้ต้องขัง (ตัวเลขรวมเท่านั้น)", allowed(rep) && !rep.text.includes(who.no) && !rep.text.includes(who.nid!) && !rep.text.includes(who.last), `HTTP ${rep.status}`);
+      }
     }
   }
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น

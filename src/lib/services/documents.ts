@@ -67,6 +67,12 @@ export function cohortVariables(db: DB, cohortId: number): Record<string, string
   const users = userIds.length ? db.select().from(schema.users).where(inArray(schema.users.id, userIds)).all().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id) : [];
   const insIds = Array.from(new Set(staff.map((x) => x.instructorId).filter((x): x is number => x != null)));
   const ins = insIds.length ? db.select().from(schema.instructors).where(and(inArray(schema.instructors.id, insIds), eq(schema.instructors.kind, "external"))).all() : [];
+  const completed = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, cohortId), eq(schema.enrollments.status, "completed"), isNull(schema.enrollments.deletedAt))).all().length;
+  // ค่าตอบแทน: เฉพาะรอบเบิกที่อนุมัติแล้ว (ยอดเดียวกับใบสำคัญรับเงิน)
+  const pay = db.select({ a: schema.payLines.amountSatang, u: schema.payLines.userId, i: schema.payLines.instructorId }).from(schema.payLines).innerJoin(schema.payBatches, eq(schema.payBatches.id, schema.payLines.batchId))
+    .where(and(eq(schema.payBatches.cohortId, cohortId), eq(schema.payBatches.status, "approved"), isNull(schema.payBatches.deletedAt))).all();
+  const payTotal = pay.reduce((t, x) => t + x.a, 0);
+  const payPeople = new Set(pay.filter((x) => x.a > 0).map((x) => (x.u != null ? `u${x.u}` : `i${x.i}`))).size;
   const external = Array.from(new Set([...ins.map(person), ...staff.map((x) => x.externalName?.trim()).filter((x): x is string => !!x)]));
   return {
     "ชื่อเรือนจำ": s("org.name"), "ชื่อหน่วย": s("org.unitName"), "ตำแหน่งผู้บริหาร": s("org.headTitle"), "ชื่อผู้บริหาร": s("org.headName"),
@@ -77,6 +83,8 @@ export function cohortVariables(db: DB, cohortId: number): Record<string, string
     "จำนวนเป้าหมาย": c.targetCount ? String(c.targetCount) : "", "จำนวนผู้เข้าอบรม": String(enrolled),
     "งบประมาณ": budget ? money(budget) : "", "งบประมาณตัวอักษร": budget ? bahtText(budget) : "",
     "จำนวนวิทยากรภายนอก": String(external.length), "รายชื่อวิทยากรภายนอก": external.join(", "),
+    "จำนวนผู้ผ่านการอบรม": String(completed),
+    "ค่าตอบแทนวิทยากร": payTotal ? money(payTotal) : "", "ค่าตอบแทนวิทยากรตัวอักษร": payTotal ? bahtText(payTotal) : "", "จำนวนวิทยากรที่เบิก": payPeople ? String(payPeople) : "",
     "รายชื่อคณะทำงาน": users.map((u, i) => `${i + 1}. ${person(u)}${u.position ? ` ตำแหน่ง ${u.position}` : ""}`).join("\n"),
   };
 }
@@ -95,15 +103,15 @@ export function createDocument(db: DB, cohortId: number, templateCode: string, a
   const vars = cohortVariables(db, cohortId);
   const course = db.select({ code: schema.courses.code }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.cohorts.id, cohortId)).get()!;
   if (t.courseCodes && !t.courseCodes.includes(course.code)) throw new RuleError("แม่แบบนี้ไม่ได้ใช้กับหลักสูตรของรุ่นนี้");
-  const head = t.signer === "head";
+  const head = t.signer === "head", blank = t.signer === "blank";
   const prefix = getSetting<string>(db, "org.docPrefix", "") ?? "";
   const row = db.insert(schema.documents).values({
     cohortId, templateCode, kind: t.kind, title: t.name,
     docNo: t.kind === "order" ? null : prefix || null,
     docDate: null,
     subject: fillTemplate(t.subject, vars), toLine: fillTemplate(t.toLine, vars), body: fillTemplate(t.body, vars),
-    signerName: vars[head ? "ชื่อผู้บริหาร" : "ชื่อหัวหน้าหน่วย"] || null,
-    signerTitle: vars[head ? "ตำแหน่งผู้บริหาร" : "ตำแหน่งหัวหน้าหน่วย"] || null,
+    signerName: blank ? null : vars[head ? "ชื่อผู้บริหาร" : "ชื่อหัวหน้าหน่วย"] || null,
+    signerTitle: blank ? null : vars[head ? "ตำแหน่งผู้บริหาร" : "ตำแหน่งหัวหน้าหน่วย"] || null,
     createdBy: actor.userId, updatedBy: actor.userId,
   }).returning().get();
   writeAudit(db, { userId: actor.userId, action: "create", entity: "document", entityId: row.id, note: templateCode, ip: actor.ip ?? null });

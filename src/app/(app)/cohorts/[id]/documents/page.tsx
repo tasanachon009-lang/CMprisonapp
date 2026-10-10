@@ -41,6 +41,15 @@ export default async function CohortDocuments({ params }: PageProps<"/cohorts/[i
         </section>
       )}
       <section className="card">
+        <h2 className="text-xl">เอกสารพิมพ์จากข้อมูลของรุ่น</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {auth.can("reports.view") && <Link href={`/print/certificates/${row.cohort.id}`} target="_blank" className="btn-ghost">เกียรติบัตรทั้งรุ่น</Link>}
+          {auth.can("reports.view") && <Link href={`/print/course-report/${row.cohort.id}`} target="_blank" className="btn-ghost">แบบรายงานผลและการใช้จ่ายงบประมาณ</Link>}
+          {row.course.code === "PRE3" && auth.can("registry.view") && <Link href={`/print/participants/${row.cohort.id}`} target="_blank" className="btn-ghost">รายชื่อพร้อมเลขบัตรประชาชน</Link>}
+          <Link href={`/print/sign-sheet/${row.cohort.id}`} target="_blank" className="btn-ghost">ใบลงทะเบียน/ลงลายมือชื่อ</Link>
+        </div>
+      </section>
+      <section className="card">
         <h2 className="text-xl">เอกสารของรุ่นนี้</h2>
         {docs.length === 0 ? <EmptyState title="ยังไม่มีเอกสาร">{canManage ? "เลือกแม่แบบด้านบนเพื่อสร้างฉบับแรก" : undefined}</EmptyState> : (
           <div className="mt-3 overflow-x-auto">

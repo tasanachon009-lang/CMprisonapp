@@ -176,6 +176,20 @@ const ROSE3_TEXT = ROSE_TEXT.map((text, i) => (i === 7 ? "ฉันอยาก�
 const ROSE3_REVERSE = [2, 5, 6, 8, 9];
 const ROSE_OPTIONS = scale([[4, "เห็นด้วยอย่างยิ่ง"], [3, "เห็นด้วย"], [2, "ไม่เห็นด้วย"], [1, "ไม่เห็นด้วยอย่างยิ่ง"]]);
 
+// ───────── หลักสูตร 3 วัน (สเปก 17) — ยังไม่มีภาพแบบฟอร์มจริง: ทำตามรายละเอียดในสเปก ติดป้าย "รอตรวจกับแบบจริง" ─────────
+// ทบทวนสถานภาพ 11 ด้าน (ชื่อด้านตามสเปก 17)
+const STATUS_DOMAINS = ["อาชีพ", "เพื่อน", "ครอบครัว", "สัมพันธภาพ", "การควบคุมตนเองเมื่ออยากยา", "การควบคุมตนเองเมื่ออยากเหล้า", "คุณค่าในตนเอง", "สุขภาพกาย", "สุขภาพจิต", "ความพึงพอใจทางเพศ", "ความพึงพอใจในชีวิต"];
+/** ชื่อย่อของแต่ละด้านสำหรับกราฟเรดาร์ */
+export const STATUS_SHORT = ["อาชีพ", "เพื่อน", "ครอบครัว", "สัมพันธภาพ", "อยากยา", "อยากเหล้า", "คุณค่าตนเอง", "สุขภาพกาย", "สุขภาพจิต", "ทางเพศ", "ชีวิต"];
+// รับรู้ความเครียด: สเปกระบุเพียง "อาการ 11 ข้อ" ไม่มีข้อความ — ใช้เลขข้อตามแบบกระดาษไปก่อน (ไม่แต่งข้อความอาการเอง)
+const STRESS_ITEMS: Item[] = Array.from({ length: 11 }, (_, i) => ({ no: i + 1, text: `อาการข้อที่ ${i + 1} ตามแบบกระดาษ (รอข้อความจากแบบจริง)` }));
+// ความพึงพอใจ 9 ข้อ: สเปกระบุเพียงจำนวนข้อต่อด้าน (วิทยากร 3 / สถานที่ 4 / ความเข้าใจ 2)
+const SAT_GROUPS: Array<[string, number]> = [["ด้านวิทยากร", 3], ["ด้านสถานที่", 4], ["ด้านความรู้ความเข้าใจ", 2]];
+const SAT_ITEMS: Item[] = (() => {
+  let no = 0;
+  return SAT_GROUPS.flatMap(([group, n]) => Array.from({ length: n }, (_, i) => ({ no: ++no, text: `${group} ข้อที่ ${i + 1} ตามแบบกระดาษ (รอข้อความจากแบบจริง)`, group })));
+})();
+
 // ───────── แบบประเมินพฤติกรรม/ความก้าวหน้าสมาชิก 27 ข้อ 10 ด้าน ─────────
 const PROG_DOMAINS: Array<[string, string[]]> = [
   ["1. ความรับผิดชอบ", ["ตรงต่อเวลาในการเข้าร่วมกิจกรรม", "ทำกิจกรรม/หน้าที่ที่ได้รับมอบหมายจากวิทยากร/เจ้าหน้าที่", "ดูแลพื้นที่ทำกิจกรรมให้สะอาดเรียบร้อย"]],
@@ -354,10 +368,43 @@ export const FORM_DEFS: FormDef[] = [
       ] satisfies Band[],
     },
   },
+  {
+    code: "STATUS", name: "แบบทบทวนสถานภาพ 11 ด้าน", shortName: "ทบทวนสถานภาพ",
+    category: "status_review", kind: "items", sensitive: false, rounds: ["pre"], courseCodes: ["PRE3"], sortOrder: 18, rev: 1,
+    description: "กิจกรรมที่ 1 ของหลักสูตร 3 วัน · เจ้าหน้าที่ประเมินร่วมกับผู้เข้าอบรม ให้คะแนนแต่ละด้าน −10 / −5 / 0 / +5 / +10 · รวม −110 ถึง +110 แสดงกราฟเรดาร์ 11 ด้าน",
+    items: STATUS_DOMAINS.map((text, i) => ({ no: i + 1, text })),
+    scoring: { method: "sum", options: scale([[-10, "−10"], [-5, "−5"], [0, "0"], [5, "+5"], [10, "+10"]]), bands: [] satisfies Band[] },
+  },
+  {
+    code: "STRESS", name: "แบบประเมินการรับรู้ความเครียด (อาการ 11 ข้อ)", shortName: "รับรู้ความเครียด",
+    category: "stress", kind: "items", sensitive: false, rounds: ["post"], courseCodes: ["PRE3"], sortOrder: 19, rev: 1,
+    description: "กิจกรรมที่ 7 ของหลักสูตร 3 วัน (ทำระหว่างอบรม) · ติ๊กอาการที่มี · มีตั้งแต่ 2 ข้อขึ้นไป = ควรได้รับการลดความเครียด",
+    items: STRESS_ITEMS,
+    scoring: {
+      method: "sum",
+      options: scale([[1, "มี"], [0, "ไม่มี"]]),
+      bands: [
+        { min: 0, max: 1, label: "ไม่ถึงเกณฑ์", tone: "ok" },
+        { min: 2, max: 11, label: "ควรได้รับการลดความเครียด", tone: "warn" },
+      ] satisfies Band[],
+    },
+  },
+  {
+    code: "SAT3", name: "แบบประเมินความพึงพอใจต่อโครงการ (หลักสูตร 3 วัน)", shortName: "ความพึงพอใจ",
+    category: "satisfaction", kind: "items", sensitive: false, rounds: ["post"], courseCodes: ["PRE3"], sortOrder: 20, rev: 1,
+    description: "9 ข้อ: วิทยากร 3 · สถานที่ 4 · ความรู้ความเข้าใจ 2 · ระดับ 5 = มากที่สุด … 1 = น้อยที่สุด · รายงานเป็นจำนวนคนต่อคะแนนต่อข้อ",
+    items: SAT_ITEMS,
+    scoring: { method: "sum", options: scale([[5, "มากที่สุด"], [4, "มาก"], [3, "ปานกลาง"], [2, "น้อย"], [1, "น้อยที่สุด"]]), bands: [] satisfies Band[] },
+  },
 ];
 
+/** แบบที่ทำตามรายละเอียดในสเปกไปก่อน ยังไม่ได้เทียบกับแบบฟอร์มจริงของหน่วยงาน — หน้าจอแสดงป้าย "รอตรวจกับแบบจริง" */
+export const PENDING_REVIEW_CODES = ["ROSE3", "STATUS", "STRESS", "SAT3"];
+export const PENDING_REVIEW_LABEL = "รอตรวจกับแบบจริง";
+export const isPendingReview = (code: string) => PENDING_REVIEW_CODES.includes(code);
+
 /** สเปก 10.1: แบบที่ผู้ต้องขังตอบเองบนกระดาษ (เจ้าหน้าที่กรอกด้วยโหมดกรอกเร็ว) — ที่เหลือเจ้าหน้าที่ทำในระบบ */
-export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE", "ROSE3"];
+export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE", "ROSE3", "STRESS", "SAT3"];
 export const CHANNEL_LABEL: Record<string, string> = { paper: "กรอกจากกระดาษ", system: "ทำในระบบ" };
 export const defaultChannel = (code: string): "paper" | "system" => (SELF_REPORT_CODES.includes(code) ? "paper" : "system");
 

@@ -1,3 +1,4 @@
+import { isPendingReview, PENDING_REVIEW_LABEL } from "@/lib/assessments/forms";
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { requirePage } from "@/lib/auth/session";
@@ -45,6 +46,7 @@ export default async function AssessPage({ params, searchParams }: PageProps<"/e
       <Breadcrumb items={[{ href: `/cohorts/${ctx.c.id}`, label: `${ctx.course.shortName} ${ctx.label}` }, { href: `/enrollments/${ctx.e.id}`, label: ctx.name }, { label: form.shortName }]} />
       <PageHeader en="Assessment" title={form.name} subtitle={`${ctx.name} · ${ctx.inc.inmateNo} · รอบ${ROUND_LABEL[round] ?? round}${period ? ` ${period}` : ""}`} />
       {form.sensitive && <div className="mb-3"><Alert tone="warn">ข้อมูลสุขภาพ — เห็นเฉพาะสถานพยาบาลและผู้ดูแล การเปิดดูถูกบันทึกไว้</Alert></div>}
+      {isPendingReview(form.code) && <div className="mb-3"><Alert tone="warn"><b>{PENDING_REVIEW_LABEL}</b> — ข้อคำถามและเกณฑ์ของแบบนี้ทำตามรายละเอียดในสเปก ยังไม่ได้เทียบกับแบบฟอร์มของหน่วยงาน</Alert></div>}
       {!access.edit && <div className="mb-3"><Alert tone="info">ดูอย่างเดียว</Alert></div>}
       {existing && <div className="mb-3"><RecordMeta createdBy={names.get(existing.createdBy ?? 0)} createdAt={formatThaiDateTime(existing.createdAt)} updatedBy={names.get(existing.updatedBy ?? 0)} updatedAt={formatThaiDateTime(existing.updatedAt)} /></div>}
       <AssessmentForm

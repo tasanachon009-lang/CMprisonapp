@@ -75,6 +75,20 @@ export default async function CourseReportPrint({ params }: PageProps<"/print/co
           </tbody>
         </table>
       )}
+      {r.satisfaction && (
+        <>
+          <p style={{ marginTop: 6 }}>ความพึงพอใจต่อโครงการ (จำนวนคนต่อระดับคะแนน) — ผู้ตอบ {r.satisfaction.respondents} คน จากผู้เข้าอบรม {r.satisfaction.participants} คน</p>
+          <table>
+            <thead><tr><th>ข้อ</th>{r.satisfaction.options.map((o) => <th key={o.value} style={{ width: "18mm" }}>{o.value} {o.label}</th>)}<th style={{ width: "16mm" }}>รวม</th><th style={{ width: "16mm" }}>เฉลี่ย</th></tr></thead>
+            <tbody>
+              {r.satisfaction.rows.map((x) => (
+                <tr key={x.no}><td>{x.group ? `${x.group} ข้อ ${x.label}` : `ข้อ ${x.label}`}</td>{r.satisfaction!.options.map((o) => <td key={o.value} className="center">{x.counts[String(o.value)]}</td>)}<td className="center">{x.n}</td><td className="center">{x.mean ?? "-"}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          {(!r.satisfaction.consistent || r.satisfaction.respondents !== r.satisfaction.participants) && <p><b>ตรวจสอบ:</b> {!r.satisfaction.consistent ? `ผลรวมข้อ ${r.satisfaction.mismatched.join(", ")} ไม่เท่าจำนวนผู้ตอบ ` : ""}{r.satisfaction.respondents !== r.satisfaction.participants ? "จำนวนผู้ตอบไม่เท่าจำนวนผู้เข้าอบรม" : ""}</p>}
+        </>
+      )}
       {r.referral && <p>การส่งต่อข้อมูลสุขภาพก่อนพ้นโทษ: บันทึกแล้ว {r.referral.recorded} จาก {r.referral.total} คน · ต้องส่งต่อ {r.referral.needs} คน</p>}
 
       <h2>{++n}. การนำเข้าข้อมูล บสต. และ รท.101</h2>

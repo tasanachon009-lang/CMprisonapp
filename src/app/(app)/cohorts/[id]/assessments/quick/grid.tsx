@@ -127,7 +127,7 @@ export function AssessmentGrid({ cohortId, formId, round, today, kind, items, sc
                         <input
                           ref={(el) => { refs.current[`${p.enrollmentId}:${it.no}`] = el; }}
                           value={v} inputMode="numeric" aria-label={`${p.name} ${kind === "single" ? "คำตอบ" : `ข้อ ${it.label ?? it.no}`}`}
-                          onChange={(e) => setGrid({ ...grid, [p.enrollmentId]: { ...row, [String(it.no)]: e.target.value.trim().slice(0, 2) } })}
+                          onChange={(e) => setGrid({ ...grid, [p.enrollmentId]: { ...row, [String(it.no)]: e.target.value.trim().slice(0, 3) } })}
                           onKeyDown={(e) => onKey(e, pi, ii)} onPaste={(e) => onPaste(e, pi, ii)}
                           className={`h-9 w-10 rounded-md border text-center ${bad ? "border-danger bg-danger/10 text-danger" : v ? "border-navy bg-lime-soft" : "border-line"}`}
                         />

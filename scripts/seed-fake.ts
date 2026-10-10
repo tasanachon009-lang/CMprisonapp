@@ -508,6 +508,26 @@ async function main() {
       }
     }
   }
+  // หลักสูตร 3 วันปีงบ 2569: ทบทวนสถานภาพ (ก่อน) · รับรู้ความเครียด · ความพึงพอใจ (หลัง) — ข้อมูลปลอม
+  for (const cid of pre3Cohorts) {
+    const c = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cid)).get()!;
+    if (c.startDate > today) continue;
+    const def = (code: string) => FORM_DEFS.find((x) => x.code === code)!;
+    for (const e of db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, cid)).all().filter((x) => x.status !== "draft")) {
+      const sets: Array<[string, string, string, () => number]> = [
+        ["STATUS", "pre", c.startDate, () => pick([-10, -5, -5, 0, 0, 5, 5, 10])],
+        ["STRESS", "post", c.endDate, () => (rand() < 0.18 ? 1 : 0)],
+        ["SAT3", "post", c.endDate, () => pick([3, 4, 4, 4, 5, 5])],
+      ];
+      for (const [code, round, date, gen] of sets) {
+        if (round === "post" && !["active", "completed"].includes(e.status)) continue;
+        if (code === "SAT3" && rand() < 0.04) continue; // บางคนไม่ได้ส่งแบบ → ระบบเตือนผู้ตอบไม่เท่าผู้เข้าอบรม
+        try {
+          saveAssessment(db, { enrollmentId: e.id, formId: form(code).id, round, assessedDate: date, answers: Object.fromEntries(def(code).items.map((i) => [String(i.no), gen()])) }, { userId: pick(rehabStaff), can: can as never });
+        } catch { /* ข้าม */ }
+      }
+    }
+  }
   // เอกสารราชการของรุ่น 3 วันถัดไป (ข้อมูลปลอม): บันทึกขออนุมัติจัด = ล็อกแล้ว · หนังสือเชิญ = ร่าง
   {
     const memo = createDocument(db, pre3Next.id, "memo_run_approval", { userId: headId });

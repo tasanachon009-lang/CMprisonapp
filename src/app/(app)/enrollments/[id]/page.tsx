@@ -1,3 +1,5 @@
+import { RadarChart } from "@/components/radar-chart";
+import { isPendingReview, PENDING_REVIEW_LABEL, STATUS_SHORT } from "@/lib/assessments/forms";
 import { HelpButton } from "@/components/help-button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -51,6 +53,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
     return [f.id, maxScore(f.kind, v.items as Item[], v.scoring as Record<string, unknown>)] as const;
   }));
   const chartRows = individualPrePost(results, e.id, maxOf);
+  const statusReview = results.find((x) => x.f.code === "STATUS" && x.r.total != null)?.r ?? null;
   const att = cohortAttendanceSummary(db, c.id, course.passAttendancePct, course.totalHours).get(e.id);
   const canHealth = auth.can("health.view");
   const bst = bstOf(db, e.id);
@@ -110,7 +113,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
             <tbody>
               {forms.map(({ f, access }) => (
                 <tr key={f.id}>
-                  <td className="font-medium">{f.shortName} {f.sensitive && <span className="tag-orange ml-1">สุขภาพ</span>}</td>
+                  <td className="font-medium">{f.shortName} {f.sensitive && <span className="tag-orange ml-1">สุขภาพ</span>}{isPendingReview(f.code) && <span className="tag-warn ml-1">{PENDING_REVIEW_LABEL}</span>}</td>
                   {["pre", "post", "monthly"].map((round) => {
                     if (!(f.rounds as string[]).includes(round) || (round === "monthly" && course.code !== "FAST")) return <td key={round} className="text-muted">—</td>;
                     const r = results.find((x) => x.f.id === f.id && x.r.round === round);
@@ -133,6 +136,12 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
             </tbody>
           </table>
         </div>
+        {statusReview && (
+          <div className="mt-4">
+            <p className="font-semibold">ทบทวนสถานภาพ 11 ด้าน — รวม {statusReview.total! > 0 ? "+" : ""}{statusReview.total} ({formatThaiDate(statusReview.assessedDate)})</p>
+            <RadarChart title="ทบทวนสถานภาพ 11 ด้าน" labels={STATUS_SHORT} min={-10} max={10} values={STATUS_SHORT.map((_, i) => (statusReview.answers as Record<string, number>)[String(i + 1)] ?? null)} />
+          </div>
+        )}
         {chartRows.length > 0 && <div className="mt-4 max-w-3xl"><PrePostChart rows={chartRows} individual title="กราฟก่อน-หลัง (การลงทะเบียนครั้งนี้เท่านั้น)" /></div>}
       </section>
       </>}

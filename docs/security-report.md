@@ -1,6 +1,6 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 10/10/2569 23:36:11
+- วันเวลา: 10/10/2569 23:41:57
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
 - ผล: **ผ่าน 265/265 ข้อ**
 
@@ -198,18 +198,18 @@
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม | HTTP 200 |
-| ✅ ผ่าน | admin → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /enrollments/278/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /enrollments/278/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | admin → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /print/referral/278 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /print/referral/278 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /enrollments/284/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /enrollments/284/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /enrollments/284/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/referral/284 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/referral/284 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/referral/284 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | admin → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |
@@ -217,7 +217,7 @@
 | ✅ ผ่าน | assistant → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | warden → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาลรุ่น 3 วัน เห็นยอดส่งต่อ แต่ไม่มีชื่อ/โรค/ปุ่มพิมพ์ | HTTP 200 |
-| ✅ ผ่าน | เปิดดูรายการส่งต่อ → บันทึกการเปิดดูข้อมูลสุขภาพ | บันทึก 8 → 9 |
+| ✅ ผ่าน | เปิดดูรายการส่งต่อ → บันทึกการเปิดดูข้อมูลสุขภาพ | บันทึก 2 → 3 |
 | ✅ ผ่าน | แจ้งเตือนไม่มีชื่อโรคจากรายการส่งต่อ | พบ 0 ข้อความ |
 | ✅ ผ่าน | admin → /cohorts/11/documents | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /cohorts/11/documents | คาดว่าเข้าได้ · HTTP 200 |
@@ -239,7 +239,7 @@
 | ✅ ผ่าน | warden → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ไม่ล็อกอิน | HTTP 401 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ผู้บริหาร (ไม่มีสิทธิ์) | HTTP 403 |
-| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10507 ไบต์ |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10508 ไบต์ |
 | ✅ ผ่าน | การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ) | HTTP 200 |
 | ✅ ผ่าน | admin → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |
@@ -248,7 +248,7 @@
 | ✅ ผ่าน | assistant → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | warden → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | รายชื่อพร้อมเลขบัตร: ผู้มีสิทธิ์ national_id.view_full (ผู้ดูแล/ฟื้นฟู) เห็นเลขเต็ม · ผู้ไม่มีสิทธิ์นี้ได้เลขแบบปิดบัง (ตรวจจากโค้ด) | admin 200 / rehab 200 |
-| ✅ ผ่าน | รายชื่อพร้อมเลขบัตร: บันทึกการพิมพ์ใน audit | 8 รายการ |
+| ✅ ผ่าน | รายชื่อพร้อมเลขบัตร: บันทึกการพิมพ์ใน audit | 4 รายการ |
 | ✅ ผ่าน | admin → /print/course-report/7 (แบบรายงานผล) | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/course-report/7 (แบบรายงานผล) | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /print/course-report/7 (แบบรายงานผล) | คาดว่าเข้าได้ · HTTP 200 |

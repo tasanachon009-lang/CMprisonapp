@@ -23,6 +23,6 @@ export function computeResult(kind: string, items: Item[], scoring: Record<strin
 
 export const ROUND_LABEL: Record<string, string> = { pre: "ก่อนเรียน", post: "หลังเรียน", monthly: "รายเดือน" };
 export const CATEGORY_LABEL: Record<string, string> = {
-  knowledge: "ความรู้", attitude: "ทัศนคติ", behavior: "พฤติกรรม", motivation: "แรงจูงใจ", self_esteem: "ความภาคภูมิใจในตนเอง",
+  knowledge: "ความรู้", attitude: "ทัศนคติ", behavior: "พฤติกรรม", motivation: "แรงจูงใจ", self_esteem: "ความภาคภูมิใจในตนเอง", status_review: "ทบทวนสถานภาพ", stress: "ความเครียด", satisfaction: "ความพึงพอใจ",
   health_mental: "สุขภาพจิต", health_physical: "สุขภาพกาย", fitness: "สมรรถภาพร่างกาย",
 };

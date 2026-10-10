@@ -4,6 +4,8 @@ import { schema } from "../db";
 import { lookupLabel } from "../bootstrap";
 import { cohortReport } from "./budget";
 import { referralSummary, usesHealthReferral } from "./health-referral";
+import { itemDistribution } from "../assessments/distribution";
+import type { Item, Option } from "../assessments/scoring";
 
 /**
  * แบบรายงานผลการดำเนินงานและการใช้จ่ายงบประมาณของรุ่น (สเปก 18.4, 13.4, 14.3)
@@ -87,6 +89,14 @@ export function courseReport(db: DB, cohortId: number) {
     })(),
   }));
 
+  // ความพึงพอใจ: จำนวนคนต่อคะแนนต่อข้อ (สเปก 17) — ตรวจผลรวมเท่าจำนวนผู้เข้าร่วม
+  const sat = forms.find((x) => x.code === "SAT3");
+  const satResults = sat ? results.filter((r) => r.formId === sat.id && r.round === "post") : [];
+  const satVersion = satResults.length ? db.select().from(schema.assessmentFormVersions).where(eq(schema.assessmentFormVersions.id, satResults[0].versionId)).get() : null;
+  const satisfaction = sat && satVersion
+    ? { ...itemDistribution(satVersion.items as Item[], ((satVersion.scoring as { options?: Option[] }).options ?? []) as Option[], satResults.map((r) => r.answers as Record<string, number>)), participants: completed.length + remaining.length }
+    : null;
+
   // 4) การนำเข้าข้อมูล บสต. / รท.101 (เป้าหมาย/ดำเนินการจริง — แยกสองบรรทัด สเปก 14.3)
   const tasks = ids.length ? db.select().from(schema.bstTasks).where(and(inArray(schema.bstTasks.enrollmentId, ids), isNull(schema.bstTasks.deletedAt))).all().filter((t) => t.status !== "cancelled") : [];
   const reg = (system: string, step: string) => { const t = tasks.filter((x) => x.system === system && x.step === step); return { target: t.length, done: t.filter((x) => x.status === "done").length }; };
@@ -96,7 +106,7 @@ export function courseReport(db: DB, cohortId: number) {
   };
 
   return {
-    cohort: c, course, people, consistent, activity, assessments, records,
+    cohort: c, course, people, consistent, activity, assessments, satisfaction, records,
     referral: usesHealthReferral(course.code) ? referralSummary(db, cohortId) : null,
     budget: cohortReport(db, cohortId),
   };

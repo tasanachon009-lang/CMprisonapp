@@ -167,8 +167,14 @@ const ROSE_TEXT = [
   "โดยรวมแล้วฉันมักจะรู้สึกว่าตนเองเป็นคนล้มเหลว",
   "ฉันมีความรู้สึกที่ดีและภาคภูมิใจในตัวเอง",
 ];
-// แบบฟอร์มจริง: ข้อเชิงลบ 2, 5, 6, 9 (สเปก 17 เขียนรวมข้อ 8 — แต่ข้อความข้อ 8 ในแบบจริงเป็นเชิงบวก จึงยึดแบบจริง)
+// สเปก 16B: Rosenberg มี 2 ฉบับ ห้ามรวมกัน (ข้อ 8 ต่างกัน)
+// ฉบับชุมชนบำบัด FAST (ภาพ 10–11): ข้อ 8 เป็นเชิงบวก → ข้อเชิงลบ 2, 5, 6, 9
 const ROSE_REVERSE = [2, 5, 6, 9];
+// ฉบับ 3 วัน (กรมราชทัณฑ์): ข้อ 8 เป็นเชิงลบ → กลับคะแนน 2, 5, 6, 8, 9
+// ⚠️ ยังไม่มีภาพแบบฟอร์มฉบับ 3 วัน — ข้อ 8 ตามที่เจ้าของแจ้ง ข้ออื่นใช้ข้อความเดียวกับฉบับ FAST (ตรวจทานเมื่อได้ภาพ)
+const ROSE3_TEXT = ROSE_TEXT.map((text, i) => (i === 7 ? "ฉันอยากจะภาคภูมิใจในตัวเองมากกว่านี้" : text));
+const ROSE3_REVERSE = [2, 5, 6, 8, 9];
+const ROSE_OPTIONS = scale([[4, "เห็นด้วยอย่างยิ่ง"], [3, "เห็นด้วย"], [2, "ไม่เห็นด้วย"], [1, "ไม่เห็นด้วยอย่างยิ่ง"]]);
 
 // ───────── แบบประเมินพฤติกรรม/ความก้าวหน้าสมาชิก 27 ข้อ 10 ด้าน ─────────
 const PROG_DOMAINS: Array<[string, string[]]> = [
@@ -314,14 +320,14 @@ export const FORM_DEFS: FormDef[] = [
     },
   },
   {
-    code: "ROSE", name: "แบบประเมิน Rosenberg Self-Esteem Scale", shortName: "Rosenberg",
-    category: "self_esteem", kind: "items", sensitive: false, rounds: ["pre", "post"], courseCodes: ["PRE3"], sortOrder: 16, rev: 1,
-    description: "ความรู้สึกต่อตนเองในช่วง 2 สัปดาห์ที่ผ่านมา · ข้อเชิงบวก 1,3,4,7,8,10: เห็นด้วยอย่างยิ่ง = 4 … ไม่เห็นด้วยอย่างยิ่ง = 1 · ข้อเชิงลบ 2,5,6,9 กลับคะแนน · รวม 10–40 แปลผล 6 ระดับตามแบบฟอร์ม",
+    code: "ROSE", name: "แบบประเมิน Rosenberg Self-Esteem Scale (ฉบับชุมชนบำบัด FAST)", shortName: "Rosenberg (FAST)",
+    category: "self_esteem", kind: "items", sensitive: false, rounds: ["pre", "post"], courseCodes: ["FAST"], sortOrder: 16, rev: 1,
+    description: "ฉบับสำหรับผู้ป่วยยาเสพติดระยะฟื้นฟูสมรรถภาพ (ชุมชนบำบัดเท่านั้น) · ความรู้สึกต่อตนเองในช่วง 2 สัปดาห์ที่ผ่านมา · ข้อเชิงบวก 1,3,4,7,8,10: เห็นด้วยอย่างยิ่ง = 4 … ไม่เห็นด้วยอย่างยิ่ง = 1 · ข้อเชิงลบ 2,5,6,9 กลับคะแนน · รวม 10–40 แปลผล 6 ระดับตามแบบฟอร์ม",
     items: ROSE_TEXT.map((text, i) => ({ no: i + 1, text, reverse: ROSE_REVERSE.includes(i + 1) })),
     scoring: {
       method: "sum",
       reverseBase: 5,
-      options: scale([[4, "เห็นด้วยอย่างยิ่ง"], [3, "เห็นด้วย"], [2, "ไม่เห็นด้วย"], [1, "ไม่เห็นด้วยอย่างยิ่ง"]]),
+      options: ROSE_OPTIONS,
       bands: [
         { min: 10, max: 14, label: "ต่ำมาก", tone: "danger", guidance: "ต้องการการช่วยเหลือเข้มข้น และติดตาม", alert: { severity: "warning", message: "Rosenberg ต่ำมาก — ต้องการการช่วยเหลือเข้มข้น และติดตาม" } },
         { min: 15, max: 19, label: "ต่ำ", tone: "danger", guidance: "ต้องการการบำบัดเร่งด่วน", alert: { severity: "warning", message: "Rosenberg ต่ำ — ต้องการการบำบัดเร่งด่วน" } },
@@ -332,10 +338,26 @@ export const FORM_DEFS: FormDef[] = [
       ] satisfies Band[],
     },
   },
+  {
+    code: "ROSE3", name: "แบบประเมิน Rosenberg Self-Esteem Scale (ฉบับหลักสูตร 3 วัน)", shortName: "Rosenberg (3 วัน)",
+    category: "self_esteem", kind: "items", sensitive: false, rounds: ["pre", "post"], courseCodes: ["PRE3"], sortOrder: 17, rev: 1,
+    description: "ฉบับกรมราชทัณฑ์ ใช้กับหลักสูตรฟื้นฟูก่อนพ้นโทษ 3 วัน · ข้อเชิงบวก 1,3,4,7,10: เห็นด้วยอย่างยิ่ง = 4 … ไม่เห็นด้วยอย่างยิ่ง = 1 · ข้อเชิงลบ 2,5,6,8,9 กลับคะแนน · รวม 10–40: 10–20 ต่ำ / 21–30 ปานกลาง / 31–40 สูง",
+    items: ROSE3_TEXT.map((text, i) => ({ no: i + 1, text, reverse: ROSE3_REVERSE.includes(i + 1) })),
+    scoring: {
+      method: "sum",
+      reverseBase: 5,
+      options: ROSE_OPTIONS,
+      bands: [
+        { min: 10, max: 20, label: "ต่ำ", tone: "danger" },
+        { min: 21, max: 30, label: "ปานกลาง", tone: "warn" },
+        { min: 31, max: 40, label: "สูง", tone: "ok" },
+      ] satisfies Band[],
+    },
+  },
 ];
 
 /** สเปก 10.1: แบบที่ผู้ต้องขังตอบเองบนกระดาษ (เจ้าหน้าที่กรอกด้วยโหมดกรอกเร็ว) — ที่เหลือเจ้าหน้าที่ทำในระบบ */
-export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE"];
+export const SELF_REPORT_CODES = ["PMHQ", "KNOW", "ATT", "MOTIV", "TEMP", "ROSE", "ROSE3"];
 export const CHANNEL_LABEL: Record<string, string> = { paper: "กรอกจากกระดาษ", system: "ทำในระบบ" };
 export const defaultChannel = (code: string): "paper" | "system" => (SELF_REPORT_CODES.includes(code) ? "paper" : "system");
 

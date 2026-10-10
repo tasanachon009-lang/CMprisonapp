@@ -492,18 +492,18 @@ async function main() {
       }
     }
   }
-  // หลักสูตร 3 วันปีงบ 2569: Rosenberg ก่อน/หลัง (หลังเรียนดีขึ้นเล็กน้อย · บางคนต่ำ → แจ้งเตือน)
+  // หลักสูตร 3 วันปีงบ 2569: Rosenberg ฉบับ 3 วัน (ROSE3) ก่อน/หลัง (หลังเรียนดีขึ้นเล็กน้อย · บางคนต่ำ)
   for (const cid of pre3Cohorts) {
     const c = db.select().from(schema.cohorts).where(eq(schema.cohorts.id, cid)).get()!;
     if (c.startDate > today) continue;
-    const rf = FORM_DEFS.find((x) => x.code === "ROSE")!;
+    const rf = FORM_DEFS.find((x) => x.code === "ROSE3")!;
     for (const e of db.select().from(schema.enrollments).where(eq(schema.enrollments.cohortId, cid)).all().filter((x) => x.status !== "draft")) {
       const base = rand() < 0.1 ? 1 : int(2, 3);
       for (const [round, date, lift] of [["pre", c.startDate, 0], ["post", c.endDate, rand() < 0.6 ? 1 : 0]] as const) {
         // คะแนนจริงต่อข้อ → ค่าที่ติ๊กบนกระดาษ (ข้อเชิงลบกลับค่า)
         const answers = Object.fromEntries(rf.items.map((i) => { const p = Math.min(4, Math.max(1, base + lift + (rand() < 0.3 ? 1 : 0))); return [String(i.no), i.reverse ? 5 - p : p]; }));
         try {
-          saveAssessment(db, { enrollmentId: e.id, formId: form("ROSE").id, round, assessedDate: date, answers }, { userId: pick(rehabStaff), can: can as never });
+          saveAssessment(db, { enrollmentId: e.id, formId: form("ROSE3").id, round, assessedDate: date, answers }, { userId: pick(rehabStaff), can: can as never });
         } catch { /* ข้าม */ }
       }
     }

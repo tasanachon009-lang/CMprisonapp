@@ -3,6 +3,7 @@ import type { DB } from "./db";
 import { schema } from "./db";
 import { COURSES, B12_TEMPLATE, PRE3_TEMPLATE, PRE3_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
+import { writeAudit } from "./audit";
 
 /**
  * ใส่ข้อมูลอ้างอิงเริ่มต้น (ทำซ้ำได้ ไม่ทับค่าที่ผู้ใช้แก้แล้ว)
@@ -52,8 +53,36 @@ export function bootstrapReferenceData(db: DB) {
       }
     }
     upgradeStep4(tx);
+    upgradeRosenbergSplit(tx);
     seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * อัปเกรดครั้งเดียว (สเปก 16B): Rosenberg แยก 2 ฉบับ — ROSE (FAST) ใช้กับชุมชนบำบัดเท่านั้น · หลักสูตร 3 วันใช้ ROSE3
+ * - ชื่อ/คำอธิบาย/หลักสูตรของ ROSE ปรับเฉพาะเมื่อยังผูกกับ 3 วันอยู่ (ไม่ทับสิ่งที่ผู้ดูแลตั้งเอง)
+ * - ผล ROSE ที่บันทึกกับรุ่น 3 วัน: ซ่อน (soft delete) — ย้ายไป ROSE3 ไม่ได้เพราะข้อ 8 เป็นคนละคำถาม
+ */
+function upgradeRosenbergSplit(tx: Pick<DB, "select" | "insert" | "update">) {
+  if (tx.select().from(schema.settings).where(eq(schema.settings.key, "bootstrap.rose3")).get()) return;
+  const def = FORM_DEFS.find((f) => f.code === "ROSE")!;
+  const rose = tx.select().from(schema.assessmentForms).where(eq(schema.assessmentForms.code, "ROSE")).get();
+  if (rose && (rose.courseCodes as string[]).includes("PRE3")) {
+    tx.update(schema.assessmentForms).set({ courseCodes: def.courseCodes, name: def.name, shortName: def.shortName, description: def.description ?? null, updatedAt: new Date() }).where(eq(schema.assessmentForms.id, rose.id)).run();
+  }
+  if (rose) {
+    const pre3 = tx.select().from(schema.courses).where(eq(schema.courses.code, "PRE3")).get();
+    const cohortIds = pre3 ? tx.select({ id: schema.cohorts.id }).from(schema.cohorts).where(eq(schema.cohorts.courseId, pre3.id)).all().map((c) => c.id) : [];
+    const enrIds = cohortIds.length ? tx.select({ id: schema.enrollments.id }).from(schema.enrollments).where(inArray(schema.enrollments.cohortId, cohortIds)).all().map((e) => e.id) : [];
+    const old = enrIds.length
+      ? tx.select({ id: schema.assessmentResults.id }).from(schema.assessmentResults).where(and(eq(schema.assessmentResults.formId, rose.id), inArray(schema.assessmentResults.enrollmentId, enrIds), isNull(schema.assessmentResults.deletedAt))).all().map((r) => r.id)
+      : [];
+    if (old.length) {
+      tx.update(schema.assessmentResults).set({ deletedAt: new Date() }).where(inArray(schema.assessmentResults.id, old)).run();
+      writeAudit(tx, { userId: null, action: "delete", entity: "assessment", note: `ROSE → ROSE3: ซ่อนผล Rosenberg ฉบับ FAST ที่บันทึกกับหลักสูตร 3 วัน ${old.length} รายการ (ต้องประเมินใหม่ด้วยฉบับ 3 วัน)` });
+    }
+  }
+  tx.insert(schema.settings).values({ key: "bootstrap.rose3", value: true }).onConflictDoNothing().run();
 }
 
 /**

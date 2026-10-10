@@ -1386,6 +1386,49 @@ export const memberBookNotes = sqliteTable(
   ],
 );
 
+/**
+ * โครงสร้างบ้านของชุมชนบำบัด (สเปก 16): ตำแหน่ง · ทีมงาน (งานบำบัด) · ที่ปรึกษา · พี่เลี้ยง ของสมาชิกแต่ละคน
+ * 1 แถว = 1 ช่วงเวลา (วันเริ่ม–สิ้นสุด) — แถวปัจจุบันคือ end_date ว่าง · ประวัติเลื่อน/ลดตำแหน่งและการหมุนทีมอยู่ในตารางนี้
+ */
+export const tcAssignments = sqliteTable(
+  "tc_assignments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    /** position | team | counselor | mentor */
+    kind: text("kind").notNull(),
+    /** position/team = รหัสในรายการ tc_position / tc_team · counselor = รหัสผู้ใช้ · mentor = ชื่อพี่เลี้ยง (อส.รจ.) */
+    value: text("value").notNull(),
+    startDate: text("start_date").notNull(),
+    endDate: text("end_date"),
+    /** position: promote | demote | assign · team: rotate | assign */
+    changeType: text("change_type"),
+    reason: text("reason"),
+    ...tracking(),
+  },
+  (t) => [
+    uniqueIndex("tc_assignments_current").on(t.enrollmentId, t.kind).where(sql`end_date IS NULL AND deleted_at IS NULL`),
+    index("tc_assignments_enr_idx").on(t.enrollmentId, t.kind, t.startDate),
+  ],
+);
+
+/** ประเมินทีมงานรายสัปดาห์ (สเปก 16: "ประเมินทีมรายสัปดาห์") — 1 แถวต่อทีมต่อสัปดาห์ต่อรุ่น */
+export const tcTeamReviews = sqliteTable(
+  "tc_team_reviews",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").notNull().references(() => cohorts.id),
+    team: text("team").notNull(),
+    /** วันจันทร์ของสัปดาห์ที่ประเมิน */
+    weekStart: text("week_start").notNull(),
+    /** excellent | good | fair | needs_improvement */
+    rating: text("rating").notNull(),
+    note: text("note"),
+    ...tracking(),
+  },
+  (t) => [uniqueIndex("tc_team_reviews_unique").on(t.cohortId, t.team, t.weekStart).where(sql`deleted_at IS NULL`)],
+);
+
 export const behaviorNotes = sqliteTable(
   "behavior_notes",
   {

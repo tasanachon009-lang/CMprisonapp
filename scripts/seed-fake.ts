@@ -17,6 +17,7 @@ import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from ".
 import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { saveReferral } from "../src/lib/services/health-referral";
 import { advancePhase } from "../src/lib/services/fast-phase";
+import { assign, saveTeamReview } from "../src/lib/services/tc-house";
 import { saveGeneral, saveMonthlyNote, addCounselorOpinion, bookMonths } from "../src/lib/services/member-book";
 import { createDocument, updateDocument, setDocumentStatus } from "../src/lib/services/documents";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
@@ -528,6 +529,20 @@ async function main() {
       if (idx < members.length - 2) for (const period of bookMonths(m, cf, addDays(today, -31))) saveMonthlyNote(db, m.id, { period, text: "เข้าร่วมกิจกรรมสม่ำเสมอ ปฏิบัติตามกฎของบ้าน (ข้อมูลปลอม)", noteDate: `${period}-28` }, { userId: pick(rehabStaff) });
       if (idx % 3 === 0) addCounselorOpinion(db, m.id, { text: "มีความรับผิดชอบต่องานที่ได้รับมอบหมายมากขึ้น (ข้อมูลปลอม)", noteDate: addDays(cf.startDate, 30) }, { userId: pick(rehabStaff) });
     });
+    {
+      const ids = members.map((m) => m.id), who = { userId: headId }, d0 = addDays(cf.startDate, 1);
+      const teams = ["pr", "kitchen", "garden"];
+      teams.forEach((t, i) => assign(db, { enrollmentIds: ids.filter((_, k) => k % 3 === i && k < ids.length - 2), kind: "team", value: t, date: d0 }, who));
+      rehabStaff.slice(0, 3).forEach((u, i) => assign(db, { enrollmentIds: ids.filter((_, k) => k % 3 === i), kind: "counselor", value: String(u), date: d0 }, who));
+      ["อส.รจ. สมหมาย", "อส.รจ. บุญช่วย", "อส.รจ. ประยูร"].forEach((n, i) => assign(db, { enrollmentIds: ids.filter((_, k) => k % 3 === i), kind: "mentor", value: n, date: d0 }, who));
+      const d1 = addDays(cf.startDate, 21), d2 = addDays(cf.startDate, 49);
+      if (d1 <= today) assign(db, { enrollmentIds: ids.slice(0, 20), kind: "position", value: "resident", date: d1, reason: "ผ่านระยะแรกรับ (ข้อมูลปลอม)" }, who);
+      if (d2 <= today) {
+        assign(db, { enrollmentIds: ids.slice(0, 3), kind: "position", value: "work_leader", date: d2, reason: "รับผิดชอบงานดี (ข้อมูลปลอม)" }, who);
+        assign(db, { enrollmentIds: ids.slice(3, 4), kind: "position", value: "expeditor", date: d2, reason: "เป็นแบบอย่างที่ดี (ข้อมูลปลอม)" }, who);
+      }
+      for (let w = 1; w <= 4; w++) { const ws = addDays(today, -7 * (w + 1)); if (ws >= cf.startDate) teams.forEach((t) => { try { saveTeamReview(db, cf.id, { team: t, weekStart: ws, rating: pick(["excellent", "good", "good", "fair"]), note: null }, who); } catch { /* ข้าม */ } }); }
+    }
     const rehabStart = addDays(cf.startDate, 14);
     if (rehabStart <= today) advancePhase(db, { enrollmentIds: members.slice(0, Math.max(0, members.length - 3)).map((m) => m.id), toPhase: "rehab", date: rehabStart, note: "ผ่านการประเมินระยะแรกรับ (ข้อมูลปลอม)" }, { userId: headId });
   }

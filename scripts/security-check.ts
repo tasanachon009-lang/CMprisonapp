@@ -458,6 +458,17 @@ async function main() {
       const tcSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/actions.ts", "utf8");
       const fn = (src: string, name: string) => src.slice(src.indexOf(`export async function ${name}`)).split("export async function")[1] ?? "";
       check(G, "ชุมชนบำบัด: อนุมัติ/ยกเลิกการเลื่อนระยะ ตรวจสิทธิ์ tc.approve ที่เซิร์ฟเวอร์", fn(tcSrc, "advancePhaseAction").includes('requireAction("tc.approve")') && fn(tcSrc, "revertPhaseAction").includes('requireAction("tc.approve")'), "ตรวจจากโค้ด server action");
+      // ผังบ้าน / ทีมงาน (สเปก 16)
+      for (const [hp, table] of [[`/cohorts/${fastCohort.id}/tc/house`, { admin: true, rehab: true, executive: true, finance: false, assistant: false, warden: false }], [`/cohorts/${fastCohort.id}/tc/teams`, { admin: true, rehab: true, executive: false, finance: false, assistant: false, warden: false }]] as const) {
+        for (const [role, should] of Object.entries(table)) {
+          const r = await get(hp, C[role as keyof typeof U]);
+          check(G, `${role} → ${hp}`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+      }
+      const execHouse = await get(`/cohorts/${fastCohort.id}/tc/house`, C.executive);
+      check(G, "ผังบ้าน: ผู้บริหารเห็นเฉพาะจำนวนต่อตำแหน่ง/ทีม ไม่มีชื่อสมาชิก", allowed(execHouse) && execHouse.text.includes("สรุปไม่ระบุชื่อ") && !!member && !execHouse.text.includes(member.no) && !execHouse.text.includes(member.last), `HTTP ${execHouse.status}`);
+      const houseSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/house/actions.ts", "utf8");
+      check(G, "ผังบ้าน/ทีมงาน: กำหนดตำแหน่ง-ทีม และประเมินทีม ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์", (houseSrc.match(/requireAction\("tc\.edit"\)/g) ?? []).length === (houseSrc.match(/export async function/g) ?? []).length, "ตรวจจากโค้ด server action");
       // สมุดของสมาชิก (สเปก 16A)
       const fe = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get()!;
       for (const bp of [`/enrollments/${fe.id}/book`, `/print/member-book/${fe.id}`]) {

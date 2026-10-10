@@ -22,5 +22,6 @@ export function helperLines(h: MonthHelper): string[] {
   const b = h.behavior;
   if (b.positive + b.negative + b.observe) out.push(`บันทึกพฤติกรรม: เชิงบวก ${b.positive} · เชิงลบ ${b.negative} · สังเกต ${b.observe}`);
   for (const p of h.phases) out.push(`เลื่อนเข้าระยะ ${phaseLabel(p.phase)}`);
+  for (const x of h.assignments) out.push(`${x.kind === "position" ? "ตำแหน่ง" : "ทีมงาน"}: ${x.label}`);
   return out;
 }

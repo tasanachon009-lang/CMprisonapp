@@ -5,6 +5,8 @@ import { writeAudit } from "../audit";
 import { RuleError } from "../errors";
 import { addDays, ageOn, isValidISODate, todayISO } from "../thai-date";
 import { phaseLabel } from "../fast/phases";
+import { lookupLabel } from "../bootstrap";
+import { assignmentChanges, CHANGE_LABEL } from "./tc-house";
 
 /**
  * สมุดบันทึกความก้าวหน้าของสมาชิกชุมชนบำบัด (สเปก 16A ส่วนที่ 1–4)
@@ -107,6 +109,8 @@ export function monthHelper(db: DB, enrollmentId: number, period: string) {
     progress: prog ? { total: prog.total, level: prog.level } : null,
     behavior: { positive: notes.filter((n) => n.tone === "positive").length, negative: notes.filter((n) => n.tone === "negative").length, observe: notes.filter((n) => n.tone === "observe").length, notes: notes.map((n) => ({ date: n.noteDate, tone: n.tone, text: n.text })) },
     phases: phases.map((p) => ({ phase: p.phase, date: p.startDate })),
+    // ตำแหน่ง/ทีมที่เปลี่ยนในเดือนนี้ (สเปก 16A ส่วนที่ 3)
+    assignments: assignmentChanges(db, enrollmentId, from, to).map((x) => ({ kind: x.kind as "position" | "team", label: lookupLabel(db, x.kind === "position" ? "tc_position" : "tc_team", x.value), changeType: x.changeType, date: x.startDate, reason: x.reason })),
   };
 }
 export type MonthHelper = ReturnType<typeof monthHelper>;
@@ -119,6 +123,7 @@ export function helperSummary(h: MonthHelper): string {
   const b = h.behavior;
   if (b.positive + b.negative + b.observe > 0) parts.push(`บันทึกพฤติกรรม เชิงบวก ${b.positive} ครั้ง เชิงลบ ${b.negative} ครั้ง สังเกต ${b.observe} ครั้ง`);
   for (const p of h.phases) parts.push(`เลื่อนเข้าระยะ ${phaseLabel(p.phase)}`);
+  for (const x of h.assignments) parts.push(`${CHANGE_LABEL[x.changeType ?? "assign"] ?? "กำหนด"}${x.kind === "position" ? "เป็น" : "ไป"} ${x.label}${x.reason ? ` (${x.reason})` : ""}`);
   return parts.length ? `${parts.join(" · ")}` : "";
 }
 

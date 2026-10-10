@@ -244,6 +244,21 @@ export const LOOKUPS: Record<string, Array<[code: string, label: string]>> = {
     ["bad", "ชั้นเลว"],
     ["very_bad", "ชั้นเลวมาก"],
   ],
+  // ชุมชนบำบัด (สเปก 16): ตำแหน่งในบ้าน เรียงจากสูงไปต่ำ (ลำดับ = ระดับ ใช้ตัดสินเลื่อน/ลดตำแหน่ง) — "หัวหน้าศูนย์" เป็นเจ้าหน้าที่ ไม่ใช่ตำแหน่งของสมาชิก
+  tc_position: [
+    ["cod", "C.O.D"],
+    ["chief_expeditor", "Chief Expeditor"],
+    ["expeditor", "Expeditor (หัวหน้าแผนก)"],
+    ["work_leader", "Work Leader (หัวหน้าทีม)"],
+    ["resident", "Resident"],
+    ["newcomer", "Newcomer"],
+  ],
+  // ทีมงาน (งานบำบัด) — เพิ่มได้ที่ตั้งค่า
+  tc_team: [
+    ["pr", "ประชาสัมพันธ์"],
+    ["kitchen", "ครัวและความสะอาด"],
+    ["garden", "ตกแต่งและเกษตรกรรม"],
+  ],
   location: [
     ["room1", "ห้องอบรม 1"],
     ["room2", "ห้องอบรม 2"],

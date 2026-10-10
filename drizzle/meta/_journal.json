@@ -141,6 +141,13 @@
       "when": 1791651527413,
       "tag": "0019_step5_member_book",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1791652042706,
+      "tag": "0020_step5_house",
+      "breakpoints": true
     }
   ]
 }

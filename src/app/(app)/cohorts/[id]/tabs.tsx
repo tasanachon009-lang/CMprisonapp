@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /** แท็บของหน้ารุ่น (สเปก 4.1) — แท็บของขั้นถัดไปแสดงเป็นสีจาง / แท็บที่ไม่มีสิทธิ์ถูกซ่อน */
-export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: boolean; isPre3?: boolean; show: { candidates?: boolean; assessments: boolean; health: boolean; reports: boolean; pay: boolean; budget: boolean } }) {
+export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: boolean; isPre3?: boolean; show: { candidates?: boolean; assessments: boolean; health: boolean; reports: boolean; pay: boolean; budget: boolean; docs?: boolean } }) {
   const path = usePathname();
   const base = `/cohorts/${id}`;
   const tabs: Array<{ href?: string; label: string; soon?: string; hidden?: boolean }> = [
@@ -18,6 +18,7 @@ export function CohortTabs({ id, isFast, isPre3, show }: { id: number; isFast: b
     ...(isFast ? [{ label: "ชุมชนบำบัด", soon: "ขั้นที่ 5" }] : []),
     { href: `/pay?cohort=${id}`, label: "ค่าตอบแทน", hidden: !show.pay },
     { href: `${base}/budget`, label: "งบประมาณ", hidden: !show.budget },
+    { href: `${base}/documents`, label: "เอกสาร", hidden: !show.docs },
     { href: `${base}/report`, label: "รายงาน", hidden: !show.reports },
   ];
   return (

@@ -3,7 +3,7 @@ import { requirePage } from "@/lib/auth/session";
 import { getDb, schema } from "@/lib/db";
 import { getSetting } from "@/lib/bootstrap";
 import { Breadcrumb, PageHeader } from "@/components/ui";
-import { OrgForm, OrgCodeForm, AdminSecurityForm, HolidaysEditor, LookupEditor } from "./settings-client";
+import { OrgForm, DocSettingsForm, OrgCodeForm, AdminSecurityForm, HolidaysEditor, LookupEditor } from "./settings-client";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,10 @@ export default async function SettingsPage() {
         "org.name": s("org.name", "") as string, "org.unitName": s("org.unitName", "") as string, "org.type": s("org.type", "") as string,
         "org.address": s("org.address", "") as string, "org.phone": s("org.phone", "") as string, "org.headTitle": s("org.headTitle", "") as string,
         "pdpa.consentRequired": s("pdpa.consentRequired", true) as boolean, "security.idleLockMinutes": s("security.idleLockMinutes", 15) as number,
+      }} />
+      <DocSettingsForm initial={{
+        "org.headName": s("org.headName", "") as string, "org.docPrefix": s("org.docPrefix", "") as string,
+        "docs.unitHeadName": s("docs.unitHeadName", "") as string, "docs.unitHeadTitle": s("docs.unitHeadTitle", "") as string, "docs.thaiNumerals": s("docs.thaiNumerals", true) !== false,
       }} />
       <AdminSecurityForm adminOtp={s("security.adminOtp", false) === true} officeHours={s("security.officeHours", { start: "07:00", end: "18:00" }) as { start: string; end: string }} />
       <OrgCodeForm />

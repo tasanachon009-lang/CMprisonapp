@@ -1,8 +1,8 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 10/10/2569 22:22:22
+- วันเวลา: 10/10/2569 22:41:23
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
-- ผล: **ผ่าน 224/224 ข้อ**
+- ผล: **ผ่าน 251/251 ข้อ**
 
 ## 1. เข้าหน้าโดยไม่ล็อกอิน
 
@@ -160,6 +160,11 @@
 | ✅ ผ่าน | rehab → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | executive → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | finance → /admin/consent | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | admin → /admin/doc-templates | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /admin/doc-templates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | finance → /admin/doc-templates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | executive → /admin/doc-templates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | assistant → /admin/doc-templates | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | rehab → /incomplete | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /incomplete | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -214,6 +219,28 @@
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาลรุ่น 3 วัน เห็นยอดส่งต่อ แต่ไม่มีชื่อ/โรค/ปุ่มพิมพ์ | HTTP 200 |
 | ✅ ผ่าน | เปิดดูรายการส่งต่อ → บันทึกการเปิดดูข้อมูลสุขภาพ | บันทึก 2 → 3 |
 | ✅ ผ่าน | แจ้งเตือนไม่มีชื่อโรคจากรายการส่งต่อ | พบ 0 ข้อความ |
+| ✅ ผ่าน | admin → /cohorts/11/documents | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /cohorts/11/documents | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /cohorts/11/documents | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /cohorts/11/documents | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /cohorts/11/documents | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /cohorts/11/documents | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /documents/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /documents/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /documents/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /documents/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /documents/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /documents/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/document/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/document/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | finance → /print/document/1 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: ไม่ล็อกอิน | HTTP 401 |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: ผู้บริหาร (ไม่มีสิทธิ์) | HTTP 403 |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10501 ไบต์ |
+| ✅ ผ่าน | การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ) | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → แท็บสถานพยาบาล ไม่มีรายชื่อผู้มีผลเสี่ยง | HTTP 200 |
 | ✅ ผ่าน | ผู้บริหาร → ส่งออก Excel ที่มีชื่อ | HTTP 403 |
 

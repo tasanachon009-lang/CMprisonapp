@@ -56,6 +56,10 @@ export const PERMISSIONS = {
   "budget.spend": "บันทึกใช้จ่ายจริง / คืนเงินเหลือ",
   "reports.weekly": "แก้และอนุมัติรายงานประจำสัปดาห์",
   "line.manage": "ตั้งค่า/ส่งทดสอบ LINE",
+  // ขั้น 4
+  "docs.view": "ดู/พิมพ์เอกสารราชการของรุ่น",
+  "docs.manage": "สร้าง/แก้เอกสารราชการของรุ่น",
+  "docs.templates": "แก้แม่แบบเอกสารราชการ",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -80,7 +84,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   rehab: [
     "course.view", "registry.view", "registry.edit", "registry.import", "national_id.view_full",
     "release.view", "release.edit", "attendance.view", "attendance.edit", "schedule.view", "schedule.edit", "export.names", "instructors.view", "instructors.manage",
-    "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use",
+    "assessment.view", "assessment.edit", "bst.view", "bst.edit", "contacts.edit", "behavior.edit", "reports.view", "shift.use", "docs.view", "docs.manage",
   ],
   medical: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.edit", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
   mental_health: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.view", "health.mental_edit", "assessment.view", "bst.view", "reports.view", "shift.use"],
@@ -88,7 +92,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   assistant: ["schedule.view", "attendance.edit_own", "shift.use"],
   // การเงิน/ผู้บริหาร: ไม่มีกล่องจดหมายเวร (สเปก 20) · ผู้บริหารดูสรุปเท่านั้น ไม่เห็นรายชื่องาน บสต./รท.101
   // การเงิน: ทะเบียนวิทยากร (รวมข้อมูลเบิกจ่ายแบบเต็ม) และอัตราค่าตอบแทน
-  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage", "budget.view", "budget.spend"],
+  finance: ["course.view", "schedule.view", "instructors.view", "instructors.manage", "instructors.sensitive", "rates.manage", "pay.view", "pay.manage", "budget.view", "budget.spend", "docs.view"],
   executive: ["course.view", "registry.view", "release.view", "attendance.view", "schedule.view", "health.summary", "dashboard.view", "assessment.summary", "budget.view"],
   warden: ["roster.view"],
 };

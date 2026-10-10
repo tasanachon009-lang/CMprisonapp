@@ -47,6 +47,30 @@ export function OrgForm({ initial }: { initial: Record<string, string | number |
   );
 }
 
+/** เอกสารราชการ (สเปก 18.4): ผู้ลงนาม เลขที่หนังสือ เลขไทย — ตั้งครั้งเดียว ใช้เติมเอกสารทุกฉบับ */
+export function DocSettingsForm({ initial }: { initial: Record<string, string | boolean> }) {
+  const [f, setF] = useState(initial);
+  const { msg, pending, run } = useAct();
+  const text = (k: string, label: string, ph = "") => (
+    <label className="sm:col-span-3"><span className="label">{label}</span><input className="input" placeholder={ph} value={String(f[k] ?? "")} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>
+  );
+  return (
+    <section className="card space-y-3">
+      <h2 className="text-xl">เอกสารราชการ (ผู้ลงนามและเลขที่หนังสือ)</h2>
+      <p className="text-sm text-muted">ใช้เติมบันทึกข้อความ หนังสือเชิญ และคำสั่งของทุกรุ่น — แก้ในเอกสารแต่ละฉบับได้อีกครั้งก่อนพิมพ์ · ที่อยู่และโทรศัพท์ใช้จากช่อง &quot;หน่วยงาน&quot; ด้านบน</p>
+      <div className="grid gap-3 sm:grid-cols-6">
+        {text("org.headName", "ชื่อ-สกุลผู้บริหารสูงสุด (ลงนามหนังสือภายนอก/คำสั่ง)", "เช่น นาย… …")}
+        {text("org.docPrefix", "เลขที่หนังสือ (ส่วนนำหน้า)", "เช่น ยธ 07xx/")}
+        {text("docs.unitHeadName", "ชื่อ-สกุลหัวหน้าหน่วย (ลงนามบันทึกข้อความ)")}
+        {text("docs.unitHeadTitle", "ตำแหน่งหัวหน้าหน่วย")}
+        <label className="sm:col-span-6 flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={!!f["docs.thaiNumerals"]} onChange={(e) => setF({ ...f, "docs.thaiNumerals": e.target.checked })} /> ใช้เลขไทย (๑ ๒ ๓) ในเอกสารราชการ</label>
+      </div>
+      {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      <button className="btn-primary" disabled={pending} onClick={() => run(() => saveSettings(f))}>บันทึก</button>
+    </section>
+  );
+}
+
 /** ความปลอดภัยผู้ดูแลระบบ (สเปก 2.1): OTP เป็นตัวเลือก ค่าเริ่มต้นปิด + เวลาราชการสำหรับแจ้งเตือนการเข้าระบบ */
 export function AdminSecurityForm({ adminOtp, officeHours }: { adminOtp: boolean; officeHours: { start: string; end: string } }) {
   const [otp, setOtp] = useState(adminOtp);

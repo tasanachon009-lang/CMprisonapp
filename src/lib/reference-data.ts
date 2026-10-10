@@ -294,6 +294,12 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "org.address": "",
   "org.phone": "",
   "org.headTitle": "ผู้บัญชาการเรือนจำกลางเชียงใหม่",
+  // สเปก 18.4: ตั้งค่าหน่วยงานครั้งเดียวสำหรับเอกสารราชการ
+  "org.headName": "",
+  "org.docPrefix": "",
+  "docs.unitHeadName": "",
+  "docs.unitHeadTitle": "",
+  "docs.thaiNumerals": true,
   "pdpa.consentRequired": true,
   "security.idleLockMinutes": 15,
   "security.deviceTrustDays": 30,

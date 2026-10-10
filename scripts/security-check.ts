@@ -154,6 +154,8 @@ async function main() {
     ["/admin/topics", { admin: true, rehab: false, finance: false }],
     ["/print/instructor-form", { rehab: true, finance: true, executive: false }],
     ["/admin/consent", { admin: true, rehab: false, executive: false, finance: false }],
+    // ขั้น 4: แม่แบบเอกสารราชการ — เฉพาะผู้ดูแล
+    ["/admin/doc-templates", { admin: true, rehab: false, finance: false, executive: false, assistant: false }],
     ["/incomplete", { rehab: true, assistant: false, warden: false }],
     [`/print/person/${person.id}`, { rehab: true, executive: false, assistant: false }],
     ["/print/emergency", { rehab: true, executive: false, assistant: false }],
@@ -384,6 +386,29 @@ async function main() {
       check(G, "เปิดดูรายการส่งต่อ → บันทึกการเปิดดูข้อมูลสุขภาพ", after > before, `บันทึก ${before} → ${after}`);
       const notes = db.select().from(schema.notifications).all().filter((n) => /HIV|วัณโรค|เบาหวาน/.test(n.message));
       check(G, "แจ้งเตือนไม่มีชื่อโรคจากรายการส่งต่อ", notes.length === 0, `พบ ${notes.length} ข้อความ`);
+    }
+  }
+  // ขั้น 4: เอกสารราชการของรุ่น (สเปก 18.4) — ฟื้นฟู/ผู้ดูแล/การเงินดูได้ · ผู้บริหาร ผู้ช่วย ผู้คุม ไม่ได้
+  {
+    const G = "2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ";
+    const d = db.select().from(schema.documents).get();
+    if (!d) check(G, "เอกสารราชการ: มีข้อมูลปลอมให้ตรวจ", false, "ไม่พบเอกสารในฐานปลอม — รัน npm run seed ใหม่");
+    else {
+      for (const p of [`/cohorts/${d.cohortId}/documents`, `/documents/${d.id}`, `/print/document/${d.id}`]) {
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, finance: true, executive: false, assistant: false, warden: false })) {
+          const r = await get(p, C[role as keyof typeof U]);
+          check(G, `${role} → ${p}`, should ? allowed(r) : denied(r), `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+      }
+      const noLogin = await fetch(`${BASE}/api/documents/${d.id}/docx`, { redirect: "manual" });
+      check(G, "ไฟล์ Word เอกสาร: ไม่ล็อกอิน", [401, 403, 307, 303].includes(noLogin.status), `HTTP ${noLogin.status}`);
+      const execDocx = await fetch(`${BASE}/api/documents/${d.id}/docx`, { redirect: "manual", headers: { cookie: C.executive } });
+      check(G, "ไฟล์ Word เอกสาร: ผู้บริหาร (ไม่มีสิทธิ์)", execDocx.status === 403, `HTTP ${execDocx.status}`);
+      const okDocx = await fetch(`${BASE}/api/documents/${d.id}/docx`, { headers: { cookie: C.rehab } });
+      const bytes = new Uint8Array(await okDocx.arrayBuffer());
+      check(G, "ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง)", okDocx.status === 200 && bytes[0] === 0x50 && bytes[1] === 0x4b, `HTTP ${okDocx.status} · ${bytes.length} ไบต์`);
+      const fin = await get(`/documents/${d.id}`, C.finance);
+      check(G, "การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ)", allowed(fin) && fin.text.includes("ดูอย่างเดียว") && !fin.text.includes("ล็อกเป็นฉบับจริง"), `HTTP ${fin.status}`);
     }
   }
   // ผู้บริหารเห็นแท็บสถานพยาบาลแบบไม่ระบุชื่อเท่านั้น

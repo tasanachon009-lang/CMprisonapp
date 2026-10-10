@@ -42,6 +42,7 @@ export default async function CohortLayout({ children, params }: LayoutProps<"/c
           reports: auth.can("reports.view") || auth.can("dashboard.view"),
           pay: auth.can("pay.view"),
           budget: auth.can("budget.view"),
+          docs: auth.can("docs.view"),
         }}
       />
       <RememberCohort id={cohort.id} label={`${course.shortName} ${label}`} />

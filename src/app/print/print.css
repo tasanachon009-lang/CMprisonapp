@@ -64,3 +64,26 @@
   .sheet .doc-footer { position: fixed; bottom: 0; left: 0; right: 0; }
   @page { size: A4; margin: 12mm 12mm 16mm 12mm; }
 }
+
+/* ── เอกสารราชการ (สเปก 18.4): ขอบตามระเบียบงานสารบรรณ — บน 2.5 ซม. (ครุฑห่างขอบ 1.5 ซม.) ซ้าย 3 ขวา 2 ล่าง 2 ── */
+.print-root .sheet.official { padding: 15mm 20mm 20mm 30mm; line-height: 1.2; }
+.official p { margin: 0; }
+.official .garuda { display: block; object-fit: contain; }
+.official .garuda-empty { border: 1px dashed #b55; color: #b55; font-size: 9pt; display: flex; align-items: center; justify-content: center; text-align: center; font-family: sans-serif; }
+.official .memo-head { display: flex; align-items: flex-end; height: 15mm; margin-bottom: 2mm; }
+.official .memo-head .title { flex: 1; text-align: center; font-weight: 700; font-size: 29pt; line-height: 1; margin-right: 15mm; }
+.official .field { display: flex; gap: 2mm; align-items: baseline; }
+.official .field b { white-space: nowrap; font-size: 20pt; line-height: 1.05; }
+.official .field.small b { font-size: inherit; }
+.official .field .fill { flex: 1; border-bottom: 1px dotted #000; min-height: 1em; }
+.official .body p { text-indent: 25mm; text-align: justify; text-justify: inter-character; margin-top: 0; }
+.official .body p.list { text-indent: 0; padding-left: 25mm; }
+.official .sign { margin-left: 45%; text-align: center; margin-top: 14mm; break-inside: avoid; }
+.official .contact { position: absolute; bottom: 20mm; left: 30mm; }
+
+@media print {
+  .print-root .sheet.official { padding: 0; page: official; }
+  .official .garuda-empty { visibility: hidden; }
+  .official .contact { position: fixed; bottom: 0; left: 0; }
+  @page official { size: A4; margin: 15mm 20mm 20mm 30mm; }
+}

@@ -16,6 +16,7 @@ import { getForm, saveAssessment } from "../src/lib/services/assessments";
 import { completeEnrollments, ensureIntakeTasks, ensureCompletionTasks } from "../src/lib/services/followup";
 import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { saveReferral } from "../src/lib/services/health-referral";
+import { createDocument, updateDocument, setDocumentStatus } from "../src/lib/services/documents";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
 import { config } from "../src/lib/config";
 import { bootstrapReferenceData, setSetting } from "../src/lib/bootstrap";
@@ -112,6 +113,13 @@ async function main() {
 
   setSetting(db, "auth.orgCodeHash", await hashPassword("demo-rehab-2569"), null);
   setSetting(db, "app.isDemoData", true, null);
+  // เอกสารราชการ (สเปก 18.4) — ชื่อ/เลขที่สมมติ
+  setSetting(db, "org.headName", "นายอำนวย รักษ์ธรรม", null);
+  setSetting(db, "org.docPrefix", "ยธ 07xx.x/", null);
+  setSetting(db, "org.address", "เลขที่ 99 หมู่ 9 ตำบลสมมติ อำเภอสมมติ\nจังหวัดเชียงใหม่ 50000", null);
+  setSetting(db, "org.phone", "0 5300 0000", null);
+  setSetting(db, "docs.unitHeadName", "นางวิภาวรรณ ฟื้นฟูใจ", null);
+  setSetting(db, "docs.unitHeadTitle", "หัวหน้าสถานฟื้นฟูสมรรถภาพผู้ติดยาเสพติด", null);
 
   // ── บุคลากร (ชื่อปลอม) ตามโครงสร้างหัวข้อ 2.2-0 ──
   const pw = await hashPassword("rehab-2569");
@@ -499,6 +507,13 @@ async function main() {
         } catch { /* ข้าม */ }
       }
     }
+  }
+  // เอกสารราชการของรุ่น 3 วันถัดไป (ข้อมูลปลอม): บันทึกขออนุมัติจัด = ล็อกแล้ว · หนังสือเชิญ = ร่าง
+  {
+    const memo = createDocument(db, pre3Next.id, "memo_run_approval", { userId: headId });
+    updateDocument(db, memo.id, { docNo: "ยธ 07xx.x/123 (สมมติ)", docDate: addDays(today, -5), subject: memo.subject, toLine: memo.toLine, body: memo.body, signerName: memo.signerName, signerTitle: memo.signerTitle }, { userId: headId });
+    setDocumentStatus(db, memo.id, "final", { userId: headId });
+    createDocument(db, pre3Next.id, "letter_invite_speaker", { userId: headId });
   }
   // หลักสูตร 3 วันปีงบ 2569: ส่งต่อข้อมูลสุขภาพ (กิจกรรม 11) — ข้อมูลปลอมทั้งหมด · รุ่นล่าสุดยังบันทึกไม่ครบ
   pre3Cohorts.forEach((cid, idx) => {

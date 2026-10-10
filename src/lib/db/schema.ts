@@ -1173,6 +1173,46 @@ export const healthReferrals = sqliteTable(
   (t) => [uniqueIndex("health_referrals_enr_unique").on(t.enrollmentId).where(sql`deleted_at IS NULL`)],
 );
 
+// ───────── เอกสารราชการ (สเปก 18.4) ─────────
+
+/** แม่แบบเอกสารที่ผู้ดูแลแก้แล้ว (ไม่มีแถว = ใช้ค่าเริ่มต้นในโค้ด src/lib/docs/templates.ts) */
+export const docTemplates = sqliteTable("doc_templates", {
+  code: text("code").primaryKey(),
+  subject: text("subject").notNull(),
+  toLine: text("to_line").notNull().default(""),
+  body: text("body").notNull(),
+  updatedBy: integer("updated_by"),
+  updatedAt: ts("updated_at").notNull().default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
+});
+
+/** เอกสารราชการที่สร้างจากแม่แบบ — เก็บข้อความที่แก้แล้ว (แก้ก่อนพิมพ์ได้) */
+export const documents = sqliteTable(
+  "documents",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    cohortId: integer("cohort_id").references(() => cohorts.id),
+    templateCode: text("template_code").notNull(),
+    /** memo = บันทึกข้อความ | letter = หนังสือภายนอก | order = คำสั่ง */
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    docNo: text("doc_no"),
+    /** เว้นว่างได้ (ลงวันที่ด้วยมือ) */
+    docDate: text("doc_date"),
+    subject: text("subject").notNull(),
+    toLine: text("to_line").notNull().default(""),
+    refs: text("refs"),
+    attachments: text("attachments"),
+    body: text("body").notNull(),
+    signerName: text("signer_name"),
+    signerTitle: text("signer_title"),
+    /** draft | final (final = ล็อก แก้ต้องปลดก่อน) */
+    status: text("status").notNull().default("draft"),
+    printedAt: ts("printed_at"),
+    ...tracking(),
+  },
+  (t) => [index("documents_cohort_idx").on(t.cohortId)],
+);
+
 // ───────── บสต. / รท.101 และการติดตามหลังบำบัด (สเปก 14) ─────────
 
 /** เลขประจำตัวในระบบภายนอก (บสต./รท.101) ต่อการลงทะเบียน */

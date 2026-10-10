@@ -320,12 +320,14 @@ export async function saveConsentText(input: { title: string; paragraphs: string
 export async function saveSettings(values: Record<string, unknown>): Promise<ActionResult> {
   try {
     const auth = await requireAction("settings.manage");
-    const allowed = ["org.name", "org.unitName", "org.type", "org.address", "org.phone", "org.headTitle", "pdpa.consentRequired", "security.idleLockMinutes", "security.officeHours", "security.adminOtp"];
+    const allowed = ["org.name", "org.unitName", "org.type", "org.address", "org.phone", "org.headTitle", "org.headName", "org.docPrefix", "docs.unitHeadName", "docs.unitHeadTitle", "docs.thaiNumerals", "pdpa.consentRequired", "security.idleLockMinutes", "security.officeHours", "security.adminOtp"];
     const db = getDb();
     const before: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(values)) {
       if (!allowed.includes(k)) continue;
       if (k === "security.idleLockMinutes" && (typeof v !== "number" || v < 5 || v > 15)) throw new RuleError("เวลาล็อกอัตโนมัติต้องอยู่ระหว่าง 5–15 นาที");
+      if (k === "docs.thaiNumerals" && typeof v !== "boolean") throw new RuleError("ค่าเลขไทยไม่ถูกต้อง — รีเฟรชหน้าแล้วลองใหม่");
+      if ((k.startsWith("org.") || k === "docs.unitHeadName" || k === "docs.unitHeadTitle") && (typeof v !== "string" || v.length > 300)) throw new RuleError("ข้อความยาวเกินไป (ไม่เกิน 300 ตัวอักษร)");
       if (k === "security.adminOtp" && typeof v !== "boolean") throw new RuleError("ค่าการใช้ OTP ไม่ถูกต้อง");
       if (k === "security.officeHours") {
         const o = v as { start?: unknown; end?: unknown };

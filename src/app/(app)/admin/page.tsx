@@ -10,7 +10,7 @@ import { Breadcrumb, PageHeader, Alert } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  const auth = await requirePage("settings.manage", "users.manage", "backup.manage", "audit.view", "rates.manage", "topics.manage");
+  const auth = await requirePage("settings.manage", "users.manage", "backup.manage", "audit.view", "rates.manage", "topics.manage", "docs.templates");
   const db = getDb();
   const health = backupHealth(db);
   const pending = db.select({ n: sql<number>`count(*)` }).from(schema.dualApprovals).where(eq(schema.dualApprovals.status, "pending")).get()?.n ?? 0;
@@ -26,6 +26,7 @@ export default async function AdminHome() {
     { href: "/admin/topics", icon: BookOpen, title: "คลังหัวข้อ", desc: "ชั่วโมงมาตรฐาน ผู้รับผิดชอบ การเบิก อัตรา วิธีแบ่งค่าตอบแทน", perm: "topics.manage" as const },
     { href: "/admin/line", icon: MessageCircle, title: "LINE แจ้งตารางสอน", desc: "เปิด/ปิด เวลาส่ง ส่งทดสอบ ตัวอย่างข้อความ โควตา ประวัติการส่ง (token อยู่ใน .env)", perm: "line.manage" as const },
     { href: "/admin/print-offsets", icon: Move, title: "ปรับตำแหน่งการพิมพ์", desc: "เลื่อนทั้งหน้า ±มม. ของใบสำคัญรับเงิน แบบ KTB และสรุป เผื่อเครื่องพิมพ์เยื้อง · พิมพ์ใบทดสอบ", perm: "settings.manage" as const },
+    { href: "/admin/doc-templates", icon: FileText, title: "แม่แบบเอกสารราชการ", desc: "ข้อความตั้งต้นของบันทึกข้อความ หนังสือเชิญ คำสั่ง · ตัวแปรที่ระบบเติมให้", perm: "docs.templates" as const },
     { href: "/admin/consent", icon: FileSignature, title: "แบบฟอร์มยินยอม PDPA", desc: "แก้ข้อความหนังสือยินยอม ดูตัวอย่างก่อนพิมพ์", perm: "settings.manage" as const },
     { href: "/admin/settings", icon: Settings, title: "ตั้งค่าระบบ", desc: "หน่วยงาน รหัสหน่วยงาน วันหยุด รายการเหตุผล PDPA", perm: "settings.manage" as const },
   ].filter((c) => auth.can(c.perm));

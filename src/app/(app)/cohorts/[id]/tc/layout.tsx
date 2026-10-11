@@ -8,7 +8,7 @@ export default async function TcLayout({ children, params }: LayoutProps<"/cohor
   const full = auth.can("tc.view");
   return (
     <div>
-      <TcSubNav cohortId={Number(id)} show={{ house: true, teams: full, tools: false, summaryOnly: !full }} />
+      <TcSubNav cohortId={Number(id)} show={{ house: true, teams: full, tools: true, summaryOnly: !full }} />
       {children}
     </div>
   );

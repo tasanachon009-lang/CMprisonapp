@@ -253,6 +253,37 @@ export const LOOKUPS: Record<string, Array<[code: string, label: string]>> = {
     ["resident", "Resident"],
     ["newcomer", "Newcomer"],
   ],
+  // เครื่องมือบ้าน (สเปก 16): 5 ขั้นเรียงตามความรุนแรง + 3 ชนิดที่ใช้ได้ทุกระยะ (ลำดับในรายการ = ขั้น)
+  tc_tool: [
+    ["talking_to", "Talking to"],
+    ["pull_up", "Pull up"],
+    ["hair_cut", "Hair cut"],
+    ["shot_down", "Shot down"],
+    ["house_meeting", "House meeting"],
+    ["confrontation", "Confrontation"],
+    ["hot_chair", "Hot chair"],
+    ["le", "Learning Experience (LE)"],
+  ],
+  // กฎ 5 ข้อใหญ่ของบ้าน
+  tc_rule: [
+    ["drugs", "ห้ามยาเสพติด"],
+    ["violence", "ห้ามใช้ความรุนแรง"],
+    ["sex", "ห้ามมีเพศสัมพันธ์/ชู้สาว"],
+    ["theft", "ห้ามลักทรัพย์"],
+    ["gambling", "ห้ามเล่นการพนัน"],
+  ],
+  tc_violation: [
+    ["late", "ไม่ตรงต่อเวลา"],
+    ["duty", "ไม่ทำหน้าที่ที่ได้รับมอบหมาย"],
+    ["disrespect", "ไม่เคารพกฎ/ผู้อื่น"],
+    ["smoking", "สูบบุหรี่"],
+    ["other", "อื่นๆ"],
+  ],
+  tc_reward: [
+    ["promotion", "เลื่อนตำแหน่ง"],
+    ["praise", "ชมเชย"],
+    ["phone", "เพิ่มเวลาโทรศัพท์"],
+  ],
   // ทีมงาน (งานบำบัด) — เพิ่มได้ที่ตั้งค่า
   tc_team: [
     ["pr", "ประชาสัมพันธ์"],

@@ -6,6 +6,7 @@ import { writeAudit } from "../audit";
 import { RuleError } from "./registry";
 import { lookupLabel } from "../bootstrap";
 import { applyReleaseToFollowup, revertFollowupEffects, type FollowupEffects } from "./followup";
+import { cancelOpenToolsOnRelease, restoreToolsOnReleaseCancel } from "./tc-tools";
 
 type AttendanceRow = typeof schema.attendance.$inferSelect;
 
@@ -86,6 +87,10 @@ export function recordReleases(
       }
       if (!ongoing.length) actions.push("ไม่มีหลักสูตรที่กำลังอบรมอยู่");
 
+      // ชุมชนบำบัด: ยกเลิกเครื่องมือบ้านที่ยังไม่ปลด (Shot down / LE) — ผังบ้านและทีมงานตัดออกเองเพราะแสดงเฉพาะผู้กำลังอบรม
+      const cancelledTools = cancelOpenToolsOnRelease(tx, effects.enrollments.map((x) => x.id), event.id, actor.userId);
+      if (cancelledTools.length) actions.push(`ยกเลิกเครื่องมือบ้านที่ยังไม่ปลด ${cancelledTools.length} รายการ`);
+
       // งาน บสต./ติดตาม: บันทึกจำหน่าย + ติดตามไม่ได้ / ปิดการติดตาม (สเปก 8, docs/decisions.md)
       const fu = applyReleaseToFollowup(tx, incId, input.reason, input.releasedDate, actor.userId);
       effects.followup = fu.effects;
@@ -107,6 +112,7 @@ export function cancelRelease(db: DB, eventId: number, reason: string, actor: { 
     if (!ev || ev.cancelledAt) throw new RuleError("ไม่พบรายการ หรือถูกยกเลิกไปแล้ว");
     const effects = (ev.effects ?? { enrollments: [], removedAttendance: [] }) as ReleaseEffects;
     revertFollowupEffects(tx, effects.followup);
+    restoreToolsOnReleaseCancel(tx, eventId);
     for (const e of effects.enrollments) {
       tx.update(schema.enrollments)
         .set({ status: e.from, statusBeforeRelease: null, leftDate: e.leftDate, leftReason: e.leftReason, releaseEventId: null, updatedBy: actor.userId, updatedAt: new Date() })

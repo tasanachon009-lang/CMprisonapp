@@ -18,6 +18,7 @@ import { FORM_DEFS } from "../src/lib/assessments/forms";
 import { saveReferral } from "../src/lib/services/health-referral";
 import { advancePhase } from "../src/lib/services/fast-phase";
 import { assign, saveTeamReview } from "../src/lib/services/tc-house";
+import { createRecord, closeRecord } from "../src/lib/services/tc-tools";
 import { saveGeneral, saveMonthlyNote, addCounselorOpinion, bookMonths } from "../src/lib/services/member-book";
 import { createDocument, updateDocument, setDocumentStatus } from "../src/lib/services/documents";
 import { openDatabase, runMigrations, schema, type DB } from "../src/lib/db";
@@ -542,6 +543,23 @@ async function main() {
         assign(db, { enrollmentIds: ids.slice(3, 4), kind: "position", value: "expeditor", date: d2, reason: "เป็นแบบอย่างที่ดี (ข้อมูลปลอม)" }, who);
       }
       for (let w = 1; w <= 4; w++) { const ws = addDays(today, -7 * (w + 1)); if (ws >= cf.startDate) teams.forEach((t) => { try { saveTeamReview(db, cf.id, { team: t, weekStart: ws, rating: pick(["excellent", "good", "good", "fair"]), note: null }, who); } catch { /* ข้าม */ } }); }
+    }
+    {
+      const who = { userId: headId }, ids = members.map((m) => m.id);
+      const rec = (i: number, days: number, x: Omit<Parameters<typeof createRecord>[1], "enrollmentId" | "recordDate">) => { const d = addDays(cf.startDate, days); if (d <= today && ids[i]) try { return createRecord(db, { enrollmentId: ids[i], recordDate: d, ...x }, who); } catch { /* ข้าม */ } return null; };
+      rec(0, 10, { kind: "tool", code: "talking_to", topic: "participation", behavior: "มาร่วมประชุมเช้าสาย (ข้อมูลปลอม)" });
+      rec(0, 24, { kind: "tool", code: "pull_up", topic: "participation", behavior: "มาร่วมประชุมเช้าสายซ้ำ (ข้อมูลปลอม)" });
+      rec(1, 30, { kind: "tool", code: "hair_cut", topic: "emotion", behavior: "พูดจาไม่สุภาพกับเพื่อนสมาชิก (ข้อมูลปลอม)", haircut: { requester: "Expeditor แผนกครัว", when: "ระหว่างทำงานครัว", advisers: ["สมาชิก ก", "สมาชิก ข", "สมาชิก ค"] } });
+      const le = rec(2, 40, { kind: "tool", code: "le", topic: "emotion", behavior: "ไม่ปฏิบัติตามคำแนะนำของหัวหน้าทีม (ข้อมูลปลอม)" });
+      if (le) closeRecord(db, le.id, { date: addDays(cf.startDate, 43), outcome: "ปฏิบัติครบ ปรับตัวดีขึ้น (ข้อมูลปลอม)" }, who);
+      // Shot down ที่ครบกำหนดแล้วยังไม่ปลด → เห็นแถบเตือน
+      if (ids[3]) try { createRecord(db, { enrollmentId: ids[3], recordDate: addDays(today, -5), kind: "tool", code: "shot_down", topic: "fighting", behavior: "มีปากเสียงรุนแรงกับเพื่อนสมาชิก (ข้อมูลปลอม)", endDate: addDays(today, -2) }, who); } catch { /* ข้าม */ }
+      rec(4, 35, { kind: "violation", code: "late", level: "minor", topic: "participation", behavior: "เข้ากิจกรรมช้า 10 นาที (ข้อมูลปลอม)" });
+      rec(5, 45, { kind: "violation", code: "smoking", level: "moderate", topic: "smoking", behavior: "พบสูบบุหรี่นอกเวลา (ข้อมูลปลอม)" });
+      const card = rec(6, 50, { kind: "cardinal", code: "gambling", behavior: "เล่นการพนันในเรือนนอน (ข้อมูลปลอม)" });
+      if (card) closeRecord(db, card.id, { date: addDays(cf.startDate, 51), outcome: "จัด House meeting และลดตำแหน่ง (ข้อมูลปลอม)" }, who);
+      rec(7, 55, { kind: "reward", code: "praise", behavior: "เป็นแบบอย่างด้านความรับผิดชอบ (ข้อมูลปลอม)" });
+      rec(8, 60, { kind: "reward", code: "phone", behavior: "ช่วยงานส่วนรวมสม่ำเสมอ (ข้อมูลปลอม)" });
     }
     const rehabStart = addDays(cf.startDate, 14);
     if (rehabStart <= today) advancePhase(db, { enrollmentIds: members.slice(0, Math.max(0, members.length - 3)).map((m) => m.id), toPhase: "rehab", date: rehabStart, note: "ผ่านการประเมินระยะแรกรับ (ข้อมูลปลอม)" }, { userId: headId });

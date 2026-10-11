@@ -243,6 +243,7 @@ export default async function EnrollmentPage({ params }: PageProps<"/enrollments
               {b.category && <span className="tag-navy">{lookupLabel(db, "behavior_category", b.category)}</span>}
               <span className="flex-1">{b.text}</span>
               <span className="text-xs text-muted">{formatThaiDate(b.noteDate)} · {names.get(b.createdBy ?? 0)}</span>
+              {course.code === "FAST" && b.tone === "negative" && (b.convertedTo ? <span className="tag-muted">บันทึกวินัยแล้ว</span> : auth.can("tc.edit") && e.status === "active" && <Link href={`/cohorts/${c.id}/tc/tools?note=${b.id}`} className="btn-ghost btn-sm">บันทึกวินัย/เครื่องมือบ้าน</Link>)}
             </li>
           ))}
           {!behaviors.length && <li><EmptyState title="ยังไม่มีบันทึกพฤติกรรม" /></li>}

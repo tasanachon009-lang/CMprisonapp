@@ -22,6 +22,7 @@ export function helperLines(h: MonthHelper): string[] {
   const b = h.behavior;
   if (b.positive + b.negative + b.observe) out.push(`บันทึกพฤติกรรม: เชิงบวก ${b.positive} · เชิงลบ ${b.negative} · สังเกต ${b.observe}`);
   for (const p of h.phases) out.push(`เลื่อนเข้าระยะ ${phaseLabel(p.phase)}`);
+  for (const r of h.records) out.push(`${r.kind === "tool" ? "เครื่องมือบ้าน" : r.kind === "cardinal" ? "กฎ 5 ข้อใหญ่" : r.kind === "violation" ? "วินัย" : "รางวัล"}: ${r.label}`);
   for (const x of h.assignments) out.push(`${x.kind === "position" ? "ตำแหน่ง" : "ทีมงาน"}: ${x.label}`);
   return out;
 }

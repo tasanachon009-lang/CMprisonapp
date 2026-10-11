@@ -7,6 +7,7 @@ import { addDays, ageOn, isValidISODate, todayISO } from "../thai-date";
 import { phaseLabel } from "../fast/phases";
 import { lookupLabel } from "../bootstrap";
 import { assignmentChanges, CHANGE_LABEL } from "./tc-house";
+import { memberRecords, recordLabel, RECORD_KIND_LABEL, type RecordKind } from "./tc-tools";
 
 /**
  * สมุดบันทึกความก้าวหน้าของสมาชิกชุมชนบำบัด (สเปก 16A ส่วนที่ 1–4)
@@ -109,6 +110,8 @@ export function monthHelper(db: DB, enrollmentId: number, period: string) {
     progress: prog ? { total: prog.total, level: prog.level } : null,
     behavior: { positive: notes.filter((n) => n.tone === "positive").length, negative: notes.filter((n) => n.tone === "negative").length, observe: notes.filter((n) => n.tone === "observe").length, notes: notes.map((n) => ({ date: n.noteDate, tone: n.tone, text: n.text })) },
     phases: phases.map((p) => ({ phase: p.phase, date: p.startDate })),
+    // เครื่องมือบ้าน / การละเมิดกฎ / รางวัล ของเดือนนี้
+    records: memberRecords(db, enrollmentId, from, to).filter((r) => r.status !== "cancelled").map((r) => ({ kind: r.kind as RecordKind, label: recordLabel(db, r.kind, r.code), level: r.level, date: r.recordDate })),
     // ตำแหน่ง/ทีมที่เปลี่ยนในเดือนนี้ (สเปก 16A ส่วนที่ 3)
     assignments: assignmentChanges(db, enrollmentId, from, to).map((x) => ({ kind: x.kind as "position" | "team", label: lookupLabel(db, x.kind === "position" ? "tc_position" : "tc_team", x.value), changeType: x.changeType, date: x.startDate, reason: x.reason })),
   };
@@ -123,6 +126,7 @@ export function helperSummary(h: MonthHelper): string {
   const b = h.behavior;
   if (b.positive + b.negative + b.observe > 0) parts.push(`บันทึกพฤติกรรม เชิงบวก ${b.positive} ครั้ง เชิงลบ ${b.negative} ครั้ง สังเกต ${b.observe} ครั้ง`);
   for (const p of h.phases) parts.push(`เลื่อนเข้าระยะ ${phaseLabel(p.phase)}`);
+  for (const k of ["tool", "cardinal", "violation", "reward"] as const) { const list = h.records.filter((r) => r.kind === k); if (list.length) parts.push(`${RECORD_KIND_LABEL[k]} ${list.length} ครั้ง (${Array.from(new Set(list.map((r) => r.label))).join(", ")})`); }
   for (const x of h.assignments) parts.push(`${CHANGE_LABEL[x.changeType ?? "assign"] ?? "กำหนด"}${x.kind === "position" ? "เป็น" : "ไป"} ${x.label}${x.reason ? ` (${x.reason})` : ""}`);
   return parts.length ? `${parts.join(" · ")}` : "";
 }

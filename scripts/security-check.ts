@@ -469,6 +469,20 @@ async function main() {
       check(G, "ผังบ้าน: ผู้บริหารเห็นเฉพาะจำนวนต่อตำแหน่ง/ทีม ไม่มีชื่อสมาชิก", allowed(execHouse) && execHouse.text.includes("สรุปไม่ระบุชื่อ") && !!member && !execHouse.text.includes(member.no) && !execHouse.text.includes(member.last), `HTTP ${execHouse.status}`);
       const houseSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/house/actions.ts", "utf8");
       check(G, "ผังบ้าน/ทีมงาน: กำหนดตำแหน่ง-ทีม และประเมินทีม ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์", (houseSrc.match(/requireAction\("tc\.edit"\)/g) ?? []).length === (houseSrc.match(/export async function/g) ?? []).length, "ตรวจจากโค้ด server action");
+      // เครื่องมือบ้าน / วินัย (สเปก 16)
+      {
+        const tp = `/cohorts/${fastCohort.id}/tc/tools`;
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: true, finance: false, assistant: false, warden: false })) {
+          const r = await get(tp, C[role as keyof typeof U]);
+          check(G, `${role} → ${tp} (เครื่องมือบ้าน)`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+        const recWho = db.select({ last: schema.persons.lastName, behavior: schema.tcRecords.behavior }).from(schema.tcRecords).innerJoin(schema.enrollments, eq(schema.enrollments.id, schema.tcRecords.enrollmentId))
+          .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId)).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId)).where(eq(schema.enrollments.cohortId, fastCohort.id)).get();
+        const execTools = await get(tp, C.executive);
+        check(G, "เครื่องมือบ้าน: ผู้บริหารเห็นเฉพาะจำนวนตามประเภท ไม่มีชื่อ/พฤติกรรมรายคน", allowed(execTools) && execTools.text.includes("สรุปไม่ระบุชื่อ") && !!recWho && !execTools.text.includes(recWho.behavior) && !execTools.text.includes("รายการที่บันทึก"), `HTTP ${execTools.status}`);
+        const toolsSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/tools/actions.ts", "utf8");
+        check(G, "เครื่องมือบ้าน: ทุก action ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์", (toolsSrc.match(/export async function \w+Action/g) ?? []).length === (toolsSrc.match(/await ctx\(cohortId\)/g) ?? []).length && toolsSrc.includes('requireAction("tc.edit")'), "ตรวจจากโค้ด server action");
+      }
       // สมุดของสมาชิก (สเปก 16A)
       const fe = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get()!;
       for (const bp of [`/enrollments/${fe.id}/book`, `/print/member-book/${fe.id}`]) {

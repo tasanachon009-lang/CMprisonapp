@@ -7,7 +7,7 @@ import { OrgForm, DocSettingsForm, OrgCodeForm, AdminSecurityForm, HolidaysEdito
 
 export const dynamic = "force-dynamic";
 
-const LOOKUP_CATS: Record<string, string> = { tc_team: "ทีมงานของชุมชนบำบัด (งานบำบัด)", tc_position: "ตำแหน่งในบ้านของชุมชนบำบัด (เรียงสูงไปต่ำ)", release_reason: "เหตุผลการออกจากเรือนจำ", drop_reason: "เหตุผลการออกจากหลักสูตร", location: "สถานที่", substance: "สารเสพติด", prisoner_class: "ชั้นนักโทษ" };
+const LOOKUP_CATS: Record<string, string> = { tc_team: "ทีมงานของชุมชนบำบัด (งานบำบัด)", tc_violation: "ประเภทความผิดวินัย (ชุมชนบำบัด)", tc_reward: "รางวัล/สิทธิพิเศษ (ชุมชนบำบัด)", tc_position: "ตำแหน่งในบ้านของชุมชนบำบัด (เรียงสูงไปต่ำ)", release_reason: "เหตุผลการออกจากเรือนจำ", drop_reason: "เหตุผลการออกจากหลักสูตร", location: "สถานที่", substance: "สารเสพติด", prisoner_class: "ชั้นนักโทษ" };
 
 export default async function SettingsPage() {
   await requirePage("settings.manage");

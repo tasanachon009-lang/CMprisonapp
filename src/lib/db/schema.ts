@@ -1429,6 +1429,46 @@ export const tcTeamReviews = sqliteTable(
   (t) => [uniqueIndex("tc_team_reviews_unique").on(t.cohortId, t.team, t.weekStart).where(sql`deleted_at IS NULL`)],
 );
 
+/**
+ * บันทึกเครื่องมือบ้าน · การละเมิดกฎ 5 ข้อใหญ่ · ความผิดวินัยอื่น · รางวัล/สิทธิพิเศษ ของสมาชิกชุมชนบำบัด (สเปก 16)
+ * kind: tool (เครื่องมือบ้าน) | cardinal (กฎ 5 ข้อใหญ่) | violation (วินัยอื่น) | reward (รางวัล/สิทธิพิเศษ)
+ */
+export const tcRecords = sqliteTable(
+  "tc_records",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id),
+    kind: text("kind").notNull(),
+    /** รหัสในรายการ tc_tool / tc_rule / tc_violation / tc_reward */
+    code: text("code").notNull(),
+    /** violation: minor | moderate | serious */
+    level: text("level"),
+    recordDate: text("record_date").notNull(),
+    /** เรื่อง/หมวดพฤติกรรม (รายการ behavior_category) — ใช้ดูการผิดซ้ำเรื่องเดิมเพื่อแนะนำเครื่องมือขั้นถัดไป */
+    topic: text("topic"),
+    /** พฤติกรรมที่พบ / เหตุที่ให้รางวัล */
+    behavior: text("behavior").notNull(),
+    /** ผู้ใช้เครื่องมือ (เจ้าหน้าที่) */
+    appliedBy: integer("applied_by"),
+    observer: text("observer"),
+    /** เครื่องมือที่มีระยะเวลา (Shot down, Learning Experience): วันเริ่ม – วันครบกำหนดปลด */
+    startDate: text("start_date"),
+    endDate: text("end_date"),
+    releasedDate: text("released_date"),
+    outcome: text("outcome"),
+    /** Hair cut: ใบร้องขอ {requester, receiver, when, advisers[]} */
+    details: text("details", { mode: "json" }),
+    /** open (ยังไม่ปลด/ยังไม่ปิดเรื่อง) | closed | cancelled (ออกจากเรือนจำ/ออกจากโปรแกรม) */
+    status: text("status").notNull().default("closed"),
+    /** มาจากบันทึกพฤติกรรมด่วน (สเปก 22B) */
+    sourceNoteId: integer("source_note_id"),
+    /** ถูกยกเลิกโดยการบันทึกออกจากเรือนจำครั้งใด (ใช้ย้อนเมื่อยกเลิกบันทึกออก) */
+    cancelledByReleaseId: integer("cancelled_by_release_id"),
+    ...tracking(),
+  },
+  (t) => [index("tc_records_enr_idx").on(t.enrollmentId, t.kind, t.recordDate), index("tc_records_open_idx").on(t.status, t.endDate)],
+);
+
 export const behaviorNotes = sqliteTable(
   "behavior_notes",
   {

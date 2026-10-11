@@ -17,9 +17,24 @@ export function FormEditor({ formId, kind, method, items: initItems, bands: init
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const [pending, start] = useTransition();
   const setItem = (i: number, patch: Partial<Item>) => setItems(items.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const [bulk, setBulk] = useState("");
+  const bulkLines = bulk.split(/\r?\n/).map((l) => l.replace(/^\s*[0-9๐-๙]+\s*[.)]\s*/, "").trim()).filter(Boolean);
+  // ใส่เฉพาะข้อความ — ข้อกลับคะแนน/เฉลย/กลุ่มของแต่ละข้อคงเดิม · ยังไม่บันทึกจนกว่าจะกด "บันทึกเป็นเวอร์ชันใหม่"
+  const applyBulk = () => { setItems(items.map((x, j) => (bulkLines[j] ? { ...x, text: bulkLines[j].slice(0, 1000) } : x))); setMsg({ tone: "ok", text: `ใส่ข้อความแล้ว ${Math.min(bulkLines.length, items.length)} ข้อ ตรวจแล้วกดบันทึกเป็นเวอร์ชันใหม่` }); };
   return (
     <section className="card space-y-4">
       <h3 className="text-lg">ข้อคำถาม</h3>
+      {/* วางข้อความหลายข้อพร้อมกัน (เช่น คัดลอกจากไฟล์คู่มือของหน่วยงาน): 1 บรรทัด = 1 ข้อ ตามลำดับ */}
+      <details className="rounded-xl border border-line p-3">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold">วางข้อความหลายข้อพร้อมกัน</summary>
+        <div className="mt-2 space-y-2">
+          <textarea className="input" rows={8} value={bulk} onChange={(e) => setBulk(e.target.value)} aria-label="ข้อความข้อคำถาม บรรทัดละ 1 ข้อ" placeholder={"บรรทัดละ 1 ข้อ เรียงตามลำดับข้อ\nเลขข้อนำหน้า (เช่น 1. หรือ 1) ) ระบบตัดออกให้"} />
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className="btn-secondary" disabled={bulkLines.length === 0} onClick={applyBulk}>ใส่ลงข้อ 1–{Math.min(bulkLines.length, items.length)}</button>
+            <span className={`text-sm ${bulkLines.length && bulkLines.length !== items.length ? "font-semibold text-warn" : "text-muted"}`}>วางแล้ว {bulkLines.length} บรรทัด · แบบนี้มี {items.length} ข้อ{bulkLines.length > items.length ? " (บรรทัดที่เกินจะไม่ถูกใช้)" : ""}</span>
+          </div>
+        </div>
+      </details>
       <div className="space-y-2">
         {items.map((it, i) => (
           <div key={it.no} className="grid gap-2 rounded-xl bg-cream p-2 sm:grid-cols-12">

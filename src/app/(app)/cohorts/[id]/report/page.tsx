@@ -24,6 +24,7 @@ export default async function CohortReport({ params }: PageProps<"/cohorts/[id]/
     { href: `/print/blank-forms/${row.cohort.id}`, label: "แบบประเมินเปล่ามีชื่อ", desc: "ทั้งรุ่น ไว้กรอกด้วยมือ (ไม่รวมแบบสุขภาพ ถ้าไม่มีสิทธิ์)" },
     { href: `/print/certificates/${row.cohort.id}`, label: "เกียรติบัตรผ่านหลักสูตร", desc: "ทั้งรุ่น เฉพาะผู้ครบหลักสูตร คนละ 1 หน้า" },
     { href: `/print/course-report/${row.cohort.id}`, label: "แบบรายงานผลและการใช้จ่ายงบประมาณ", desc: "ผู้เข้าอบรม กิจกรรม ผลประเมิน รท.101 งบแยกหมวด (ตัวเลขรวม)" },
+    ...(row.course.code === "FAST" ? [{ href: `/print/fast-report/${row.cohort.id}`, label: "รายงานสิ้นสุดรุ่น (ชุมชนบำบัด)", desc: "จำนวนสมาชิกชาย/หญิง ผู้กลับมาต้องโทษซ้ำ ผลดำเนินงาน 5 ด้าน บสต. รท.101 งบประมาณ (ตัวเลขรวม)" }] : []),
     ...(row.course.code === "PRE3" && auth.can("docs.view") && auth.can("registry.view") ? [{ href: `/print/participants/${row.cohort.id}`, label: "รายชื่อผู้เข้าร่วมพร้อมเลขบัตรประชาชน", desc: auth.can("national_id.view_full") ? "เลขบัตรเต็ม — บันทึกการพิมพ์" : "เลขบัตรแสดงแบบปิดบัง" }] : []),
   ];
   return (

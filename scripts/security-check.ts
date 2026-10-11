@@ -483,6 +483,23 @@ async function main() {
         const toolsSrc = fs.readFileSync("src/app/(app)/cohorts/[id]/tc/tools/actions.ts", "utf8");
         check(G, "เครื่องมือบ้าน: ทุก action ตรวจสิทธิ์ tc.edit ที่เซิร์ฟเวอร์", (toolsSrc.match(/export async function \w+Action/g) ?? []).length === (toolsSrc.match(/await ctx\(cohortId\)/g) ?? []).length && toolsSrc.includes('requireAction("tc.edit")'), "ตรวจจากโค้ด server action");
       }
+      // รายงานสิ้นสุดรุ่น (สเปก 16) — ตัวเลขรวม ไม่มีชื่อ
+      {
+        const fr = `/print/fast-report/${fastCohort.id}`;
+        for (const [role, should] of Object.entries({ admin: true, rehab: true, executive: true, finance: false, assistant: false, warden: false })) {
+          const r = await get(fr, C[role as keyof typeof U]);
+          check(G, `${role} → ${fr} (รายงานสิ้นสุดรุ่น)`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+        const people = db.select({ last: schema.persons.lastName, no: schema.incarcerations.inmateNo }).from(schema.enrollments)
+          .innerJoin(schema.incarcerations, eq(schema.incarcerations.id, schema.enrollments.incarcerationId)).innerJoin(schema.persons, eq(schema.persons.id, schema.incarcerations.personId)).where(eq(schema.enrollments.cohortId, fastCohort.id)).all();
+        const rep = await get(fr, C.executive);
+        check(G, "รายงานสิ้นสุดรุ่น: ไม่มีนามสกุล/เลขประจำตัวผู้ต้องขัง (ตัวเลขรวมเท่านั้น)", allowed(rep) && rep.text.includes("ผลการดำเนินงาน 5 ด้าน") && people.length > 0 && people.every((p) => !rep.text.includes(p.last) && !rep.text.includes(p.no)), `HTTP ${rep.status} · ตรวจ ${people.length} คน`);
+        const other = db.select({ id: schema.cohorts.id }).from(schema.cohorts).innerJoin(schema.courses, eq(schema.courses.id, schema.cohorts.courseId)).where(eq(schema.courses.code, "B12")).get()!;
+        const wrong = await get(`/print/fast-report/${other.id}`, C.admin);
+        check(G, "รายงานสิ้นสุดรุ่น: เปิดกับรุ่นของหลักสูตรอื่นไม่ได้", wrong.status === 404, `HTTP ${wrong.status}`);
+        const n = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "print"), eq(schema.auditLogs.entity, "fast_end_report"))).all().length;
+        check(G, "รายงานสิ้นสุดรุ่น: บันทึกการพิมพ์ใน audit", n > 0, `${n} รายการ`);
+      }
       // สมุดของสมาชิก (สเปก 16A)
       const fe = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get()!;
       for (const bp of [`/enrollments/${fe.id}/book`, `/print/member-book/${fe.id}`]) {

@@ -77,7 +77,7 @@ describe("ทะเบียนวิทยากร + อัตรา + คล�
     const sessions = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, c.id)).all();
     expect(sessions.every((s) => s.topicId != null)).toBe(true);
     const morning = sessions.find((s) => s.title === "ประชุมเช้า")!;
-    const lecture = sessions.find((s) => s.startTime === "09:00")!;
+    const lecture = sessions.find((s) => s.dayNo === 4 && s.startTime === "09:00")!; // ทบทวนจิตตนเอง (รายบุคคล)
     expect(maxStaffOf(db, morning)).toBe(Infinity);
     expect(maxStaffOf(db, lecture)).toBe(2);
     const t = listTopics(db, b12.id).find((x) => x.id === lecture.topicId)!;

@@ -1,6 +1,6 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 11/10/2569 10:40:51
+- วันเวลา: 11/10/2569 16:48:28
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
 - ผล: **ผ่าน 321/321 ข้อ**
 
@@ -22,7 +22,7 @@
 | ✅ ผ่าน | /admin/audit | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/backup | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/settings | HTTP 307 → /device |
-| ✅ ผ่าน | /sessions/780 | HTTP 307 → /device |
+| ✅ ผ่าน | /sessions/815 | HTTP 307 → /device |
 | ✅ ผ่าน | /print/sign-sheet/12 | HTTP 307 → /device |
 | ✅ ผ่าน | /roster | HTTP 307 → /device |
 | ✅ ผ่าน | /notifications | HTTP 307 → /device |
@@ -70,12 +70,12 @@
 | ✅ ผ่าน | executive → /release | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /sessions/780 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /sessions/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /sessions/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /print/session-sheet/780 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /print/session-sheet/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /print/session-sheet/780 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /sessions/815 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /sessions/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /sessions/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/session-sheet/815 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /print/session-sheet/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /print/session-sheet/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -198,18 +198,18 @@
 | ✅ ผ่าน | แบบพิมพ์เปล่า: มีรหัสแบบ (รหัส-เวอร์ชัน-รอบ-เลขลงทะเบียน) | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: เจ้าหน้าที่หลักเห็นเลขบัญชี/เลขบัตรแบบปิดบัง | HTTP 200 |
 | ✅ ผ่าน | ทะเบียนวิทยากร: การเงินเห็นเลขบัญชีเต็ม | HTTP 200 |
-| ✅ ผ่าน | admin → /enrollments/277/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /enrollments/277/referral | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /enrollments/277/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /enrollments/277/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /enrollments/277/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /enrollments/277/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | admin → /print/referral/277 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | rehab → /print/referral/277 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | executive → /print/referral/277 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | finance → /print/referral/277 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | assistant → /print/referral/277 | คาดว่าถูกปฏิเสธ · HTTP 307 |
-| ✅ ผ่าน | warden → /print/referral/277 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /enrollments/281/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /enrollments/281/referral | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /enrollments/281/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /enrollments/281/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /enrollments/281/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /enrollments/281/referral | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | admin → /print/referral/281 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | rehab → /print/referral/281 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | executive → /print/referral/281 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | finance → /print/referral/281 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | assistant → /print/referral/281 | คาดว่าถูกปฏิเสธ · HTTP 307 |
+| ✅ ผ่าน | warden → /print/referral/281 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | admin → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/referral-list/8 | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | executive → /print/referral-list/8 | คาดว่าถูกปฏิเสธ · HTTP 307 |

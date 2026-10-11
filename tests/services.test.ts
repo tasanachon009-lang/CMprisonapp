@@ -36,7 +36,7 @@ describe("สร้างรุ่น", () => {
     expect(c.fiscalYear).toBe(2570);
     expect(c.endDate).toBe("2026-10-21"); // ข้าม 13 ต.ค. และเสาร์-อาทิตย์
     const n = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, c.id)).all();
-    expect(n.length).toBe(48);
+    expect(n.length).toBe(55); // ตามตารางในคู่มือ: วันละ 4–5 คาบ (รวมประชุมเช้าและบันทึกประจำวันที่ไม่นับชั่วโมง)
     expect(n.reduce((s, x) => s + x.hours, 0)).toBe(60);
   });
   it("เลขรุ่นซ้ำในปีงบเดียวกันไม่ได้", () => {

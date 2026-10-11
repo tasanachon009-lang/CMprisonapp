@@ -40,7 +40,8 @@ function checkTimes(date: string, start: string, end: string, hours: number) {
   if (!isValidISODate(date)) throw new RuleError("วันที่ไม่ถูกต้อง");
   if (!TIME.test(start) || !TIME.test(end)) throw new RuleError("เวลาต้องเป็นรูปแบบ 09:00");
   if (start >= end) throw new RuleError("เวลาเริ่มต้องก่อนเวลาสิ้นสุด");
-  if (!(hours > 0 && hours <= 12)) throw new RuleError("จำนวนชั่วโมงต้องมากกว่า 0 และไม่เกิน 12");
+  // 0 = กิจกรรมประจำวันที่ไม่นับชั่วโมงหลักสูตร (เช่น ประชุมเช้า บันทึกประจำวันของ 12 วัน)
+  if (!(hours >= 0 && hours <= 12)) throw new RuleError("จำนวนชั่วโมงต้องอยู่ระหว่าง 0 ถึง 12 — ใส่ 0 เมื่อไม่นับชั่วโมงหลักสูตร");
   if (hours > (minutes(end) - minutes(start)) / 60 + 1e-9) throw new RuleError("จำนวนชั่วโมงมากกว่าช่วงเวลาของคาบ — ตรวจเวลาหรือชั่วโมงอีกครั้ง");
 }
 

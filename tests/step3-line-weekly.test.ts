@@ -35,7 +35,7 @@ describe("LINE แจ้งตารางสอน + รายงานปร�
 
   it("ข้อความตาราง: เวลา/ผู้สอน/หัวข้อ/หลักสูตร-รุ่น/สถานที่ · ไม่มีชื่อหรือเลขประจำตัวผู้ต้องขัง", () => {
     const t = dayText(db, "2026-10-06");
-    expect(t.text).toMatch(/09:00–11:00/);
+    expect(t.text).toMatch(/09:00–12:00/);
     expect(t.text).toContain("หัวหน้า ทดสอบ");
     expect(t.text).toMatch(/รุ่นที่ 1\/2570/);
     expect(t.text).not.toMatch(/สมชายลับ|ห้ามปรากฏ|69-12345/);

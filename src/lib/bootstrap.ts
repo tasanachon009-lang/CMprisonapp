@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { DB } from "./db";
 import { schema } from "./db";
-import { COURSES, B12_TEMPLATE, PRE3_TEMPLATE, PRE3_CRITERIA, FAST_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
+import { COURSES, B12_TEMPLATE, B12_DRAFT_TITLES, B12_CHIPS, PRE3_TEMPLATE, PRE3_CRITERIA, FAST_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 import { writeAudit } from "./audit";
 import { fastTemplate, fastTotalHours } from "./fast/template";
@@ -59,8 +59,48 @@ export function bootstrapReferenceData(db: DB) {
     upgradeStep4(tx);
     upgradeRosenbergSplit(tx);
     upgradeStep5(tx);
+    upgradeB12Manual(tx);
     seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * อัปเกรดครั้งเดียว: เปลี่ยนแม่แบบตาราง 12 วันจากชุดร่างเป็นชุดตามคู่มือกรมราชทัณฑ์ (ตารางข้อ 11)
+ * ทำเฉพาะเมื่อแม่แบบยังเป็นชุดร่างเดิมทุกคาบ (ผู้ดูแลยังไม่ได้แก้) · รุ่นที่สร้างไว้แล้วไม่ถูกแก้
+ * หัวข้อร่างเดิมที่ไม่อยู่ในคู่มือถูกปิดใช้งาน (ไม่ลบ เพราะรุ่นเดิมยังอ้างถึง) · หัวข้อใหม่ถูกเพิ่มในขั้นถัดไปของ bootstrap
+ */
+function upgradeB12Manual(tx: Pick<DB, "select" | "insert" | "update" | "delete">) {
+  if (tx.select().from(schema.settings).where(eq(schema.settings.key, "bootstrap.b12manual")).get()) return;
+  const c = tx.select().from(schema.courses).where(eq(schema.courses.code, "B12")).get();
+  if (c) {
+    const rows = tx.select().from(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).all();
+    const draft = new Set([...B12_DRAFT_TITLES, "ประชุมเช้า", "เขียนบันทึกประจำวัน"]);
+    const isDraft = rows.length > 0 && rows.every((r) => draft.has(r.title)) && rows.some((r) => B12_DRAFT_TITLES.includes(r.title));
+    if (isDraft) {
+      tx.delete(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).run();
+      for (const t of B12_TEMPLATE) tx.insert(schema.courseTemplateSessions).values({ courseId: c.id, ...t }).run();
+      const topics = tx.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, c.id)).all();
+      const names = new Set(topics.map((t) => t.name));
+      for (const t of topics) {
+        if (B12_DRAFT_TITLES.includes(t.name) && !B12_CHIPS[t.name]) tx.update(schema.activityTopics).set({ active: false }).where(eq(schema.activityTopics.id, t.id)).run();
+        // ชิปที่ยังเป็นชุดร่าง (ผู้ดูแลยังไม่ได้ตรวจ) ของหัวข้อที่มีในคู่มือ → ใช้ชุดจากคู่มือ
+        else if (B12_CHIPS[t.name] && !t.chipsReviewedAt) tx.update(schema.activityTopics).set({ outcomeChips: draftChips(t.name, t.staffingType) }).where(eq(schema.activityTopics.id, t.id)).run();
+      }
+      if (topics.length) {
+        const internal = topics[0].internalRateId, externalRates = topics[0].externalRates;
+        let order = Math.max(...topics.map((t) => t.sortOrder));
+        for (const t of TOPIC_SEEDS.B12) {
+          if (names.has(t.name)) continue;
+          tx.insert(schema.activityTopics).values({
+            courseId: c.id, name: t.name, category: t.category ?? null, standardHours: t.hours ?? null, activityType: t.activityType ?? "lecture",
+            color: c.color, staffingType: t.staffingType ?? "individual", maxStaff: t.staffingType === "team" ? null : t.maxStaff ?? 2,
+            payable: t.payable ?? true, internalRateId: internal, externalRates, splitMethod: "full", sortOrder: (order += 10),
+          }).onConflictDoNothing().run();
+        }
+      }
+    }
+  }
+  tx.insert(schema.settings).values({ key: "bootstrap.b12manual", value: true }).onConflictDoNothing().run();
 }
 
 /**

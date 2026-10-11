@@ -76,9 +76,9 @@ describe("ผู้รับผิดชอบประจำวัน + บั�
   });
 
   it("ชิป: ชุดร่างจากชื่อหัวข้อ · หัวหน้าแก้แล้วไม่เป็นร่าง · บันทึกชิปที่เลือก · ประกอบประโยคสรุป", () => {
-    const topic = db.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, b12)).all().find((t) => t.name === "ทักษะการปฏิเสธ")!;
-    expect(topic.outcomeChips).toEqual(draftChips("ทักษะการปฏิเสธ", "individual"));
-    expect(topic.outcomeChips).toContain("สมาชิกบอกหลักการปฏิเสธได้");
+    const topic = db.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, b12)).all().find((t) => t.name === "ทักษะการปฏิเสธและ Self-assertion")!;
+    expect(topic.outcomeChips).toEqual(draftChips("ทักษะการปฏิเสธและ Self-assertion", "individual"));
+    expect(topic.outcomeChips).toContain("สมาชิกปฏิเสธเมื่อถูกชักชวนได้ถูกวิธี");
     expect(chipsForSession(db, { topicId: topic.id }, ["สมาชิกกล้าแสดงออก", SHIFT_CHIP]).draft).toBe(true);
     setTopicChips(db, topic.id, ["ฝึกบทบาทสมมติครบ", " ฝึกบทบาทสมมติครบ ", ""], { userId: head });
     const after = chipsForSession(db, { topicId: topic.id }, ["สมาชิกกล้าแสดงออก", SHIFT_CHIP]);

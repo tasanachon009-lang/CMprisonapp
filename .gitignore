@@ -95,3 +95,7 @@ public/dev-preview/
 # ภาพหน้าจอจาก npm run screenshots (ถ่ายใหม่ได้ทุกเมื่อ ไฟล์ใหญ่) — เก็บเฉพาะ README
 /docs/screenshots/*
 !/docs/screenshots/README.md
+
+# คู่มือหลักสูตรของกรมฯ (ไฟล์ใหญ่ ดาวน์โหลดใหม่ได้) — เก็บเฉพาะ README
+/docs/manuals/*
+!/docs/manuals/README.md

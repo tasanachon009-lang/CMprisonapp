@@ -65,7 +65,7 @@ describe("รอบเบิก อนุมัติ ล็อก ปลดล�
     return id;
   };
   const sessionsOf = () => db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, cohortId)).all();
-  const lecture = () => sessionsOf().find((s) => s.date === "2026-09-02" && s.startTime === "09:00")!; // ยาเสพติดกับผลต่อร่างกายและสมอง (บรรยาย เบิกได้)
+  const lecture = () => sessionsOf().find((s) => s.date === "2026-09-04" && s.startTime === "09:00")!; // วันที่ 4: ทบทวนจิตตนเอง (บรรยาย เบิกได้ 1.5 ชม.)
   const close = (sessionId: number, by: number) => saveSessionReport(db, sessionId, { outcome: "planned" }, { userId: by, isAdmin: true });
 
   beforeEach(() => {

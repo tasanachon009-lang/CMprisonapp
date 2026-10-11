@@ -31,7 +31,7 @@ describe("แก้ตารางของรุ่น (สเปก 11.4) + �
     const a = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
     const s = sessionsOf(a.id).find((x) => x.startTime === "09:00")!;
     addStaff(db, s.id, { userId: u2, role: "lead" }, actor);
-    updateSession(db, s.id, { location: "ห้องอบรม 2", startTime: "09:30", endTime: "11:30" }, actor);
+    updateSession(db, s.id, { location: "ห้องอบรม 2", startTime: "09:30", endTime: "12:30" }, actor);
     const cancelled = sessionsOf(a.id).find((x) => x.startTime === "13:00" && x.dayNo === 2)!;
     cancelSession(db, cancelled.id, "วิทยากรติดภารกิจ", actor);
     const b = createCohort(db, { courseId: b12, number: 5, startDate: "2027-01-04", copyFromCohortId: a.id }, 1);
@@ -66,9 +66,9 @@ describe("แก้ตารางของรุ่น (สเปก 11.4) + �
 
   it("เพิ่มคาบจากหัวข้อ / ยกเลิกคาบต้องมีเหตุผล", () => {
     const a = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
-    const topic = db.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, b12)).all().find((t) => t.name === "ทักษะการปฏิเสธ")!;
+    const topic = db.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, b12)).all().find((t) => t.name === "ทักษะการปฏิเสธและ Self-assertion")!;
     const s = addSession(db, a.id, { date: "2026-10-06", startTime: "14:00", endTime: "15:30", hours: 1.5, topicId: topic.id }, actor);
-    expect(s).toMatchObject({ title: "ทักษะการปฏิเสธ", category: topic.category, dayNo: 2 });
+    expect(s).toMatchObject({ title: "ทักษะการปฏิเสธและ Self-assertion", category: topic.category, dayNo: 2 });
     expect(() => cancelSession(db, s.id, " ", actor)).toThrow(/เหตุผล/);
     cancelSession(db, s.id, "ซ้ำ", actor);
     expect(db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.id, s.id)).get()!.status).toBe("cancelled");
@@ -91,7 +91,7 @@ describe("แก้ตารางของรุ่น (สเปก 11.4) + �
 
   it("วิทยากรเกินที่เบิกได้ตามลักษณะกิจกรรม (บรรยาย 1 คน)", () => {
     const a = createCohort(db, { courseId: b12, startDate: "2026-10-05" }, 1);
-    const lecture = sessionsOf(a.id).find((x) => x.startTime === "09:00" && x.dayNo === 2)!; // ยาเสพติดกับผลต่อร่างกายและสมอง = บรรยาย
+    const lecture = sessionsOf(a.id).find((x) => x.startTime === "09:00" && x.dayNo === 4)!; // ทบทวนจิตตนเอง = บรรยาย
     addStaff(db, lecture.id, { userId: u2 }, actor);
     expect(payableOverage(db, [lecture]).size).toBe(0);
     addStaff(db, lecture.id, { userId: u3 }, actor);

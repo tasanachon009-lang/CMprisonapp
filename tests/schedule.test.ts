@@ -43,7 +43,8 @@ describe("วิทยากรหลายคนต่อคาบ (สเป�
   });
 
   it("จำนวนสูงสุด: ค่าเริ่มต้น 2 คน · ทั้งทีม (0) ไม่จำกัด", () => {
-    const [, s, t] = sessionsOf(c1);
+    // วันที่ 4 ตามคู่มือ: ทบทวนจิตตนเอง (09.00) / รู้ตน พ้นทุกข์ (10.30) — หัวข้อรายบุคคล
+    const s = sessionsOf(c1).find((x) => x.dayNo === 4 && x.startTime === "09:00")!, t = sessionsOf(c1).find((x) => x.dayNo === 4 && x.startTime === "10:30")!;
     expect(maxStaffOf(db, s)).toBe(2);
     addStaff(db, s.id, { userId: u1 }, actor);
     addStaff(db, s.id, { userId: u2 }, actor);
@@ -72,11 +73,11 @@ describe("วิทยากรหลายคนต่อคาบ (สเป�
     expect(issues.get(b.id)!.conflicts.length).toBe(1);
   });
 
-  it("คาบติดกัน (จบ 11:00 / เริ่ม 11:00) ไม่ถือว่าชน", () => {
+  it("คาบติดกัน (จบ 12:00 / เริ่ม 12:00) ไม่ถือว่าชน", () => {
     const day = sessionsOf(c1).filter((x) => x.date === "2026-10-05");
     const am = day.find((x) => x.startTime === "09:00")!;
-    db.update(schema.cohortSessions).set({ startTime: "11:00", endTime: "12:00" }).where(eq(schema.cohortSessions.id, day.find((x) => x.startTime === "13:00")!.id)).run();
-    const next = sessionsOf(c1).find((x) => x.date === "2026-10-05" && x.startTime === "11:00")!;
+    db.update(schema.cohortSessions).set({ startTime: "12:00", endTime: "13:00" }).where(eq(schema.cohortSessions.id, day.find((x) => x.startTime === "13:00")!.id)).run();
+    const next = sessionsOf(c1).find((x) => x.date === "2026-10-05" && x.startTime === "12:00")!;
     addStaff(db, am.id, { userId: u1 }, actor);
     expect(() => addStaff(db, next.id, { userId: u1 }, actor)).not.toThrow();
   });

@@ -35,7 +35,7 @@ describe("เอกสารการเงิน: ผู้รับเงิ�
     nameless = db.insert(schema.instructors).values({ kind: "external", externalType: "private", firstName: "วิชัย", lastName: "สอนดี" }).returning().get().id;
     const ss = db.select().from(schema.cohortSessions).where(eq(schema.cohortSessions.cohortId, cohortId)).all();
     const lecture = (date: string) => ss.find((s) => s.date === date && s.startTime === "09:00")!;
-    for (const [date, ins] of [["2026-09-02", somsri], ["2026-09-03", nameless], ["2026-09-04", somsri]] as const) {
+    for (const [date, ins] of [["2026-09-04", somsri], ["2026-09-07", nameless], ["2026-09-08", somsri]] as const) {
       const s = lecture(date);
       addStaff(db, s.id, { instructorId: ins }, { userId: head });
       saveSessionReport(db, s.id, { outcome: "planned" }, { userId: nurse, isAdmin: false });
@@ -54,7 +54,7 @@ describe("เอกสารการเงิน: ผู้รับเงิ�
     const people = payees(db, id);
     expect(people.map((p) => p.fullName)).toEqual(["วิชัย สอนดี", "นางสมศรี ใจดี"]); // เรียงตามชื่อ (ว ก่อน ส)
     const s = people.find((p) => p.instructorId === somsri)!;
-    expect(s).toMatchObject({ grossSatang: 2 * 2 * 60000, sessions: 2, nationalId: "1101700230705", phone: "0812345678", missing: [] });
+    expect(s).toMatchObject({ grossSatang: 2 * 1.5 * 60000, sessions: 2, nationalId: "1101700230705", phone: "0812345678", missing: [] });
     expect(people.find((p) => p.instructorId === nameless)!.missing).toEqual(expect.arrayContaining(["เลขบัตรประชาชน", "เลขบัญชี", "เบอร์โทรศัพท์"]));
     expect(payees(db, id, { order: "first" })[0].instructorId).toBe(somsri);
     expect(payees(db, id, { who: "internal" })).toEqual([]);

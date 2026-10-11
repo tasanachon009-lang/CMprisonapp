@@ -3,7 +3,7 @@
  * ทุกค่าแก้ได้ภายหลังในหน้าตั้งค่า
  */
 
-import { fastTotalHours, FAST_WEEK_BLOCKS } from "./fast/template";
+import { fastTotalHours, fastTemplate, FAST_MEETING, FAST_FINAL, CAT_DAILY, CAT_WORK, CAT_JOB } from "./fast/template";
 
 /** สเปก 17: เกณฑ์คัดเลือกหลักสูตรฟื้นฟูก่อนพ้นโทษ 3 วัน */
 export const PRE3_CRITERIA = {
@@ -205,13 +205,9 @@ export const TOPIC_SEEDS: Record<string, TopicSeed[]> = {
     "การสร้างความไว้วางใจ", "การเคารพคุณค่าในตนเอง", "การส่งต่อข้อมูลสุขภาพ", "ปัจฉิมนิเทศ",
   ].map((name, i): TopicSeed => (i === 11 ? team(name) : { name, activityType: "group", maxStaff: 2 })),
   FAST: [
-    team("Morning Brief"), team("Staff Meeting"), team("กลุ่มประชุมเช้า"),
-    ...["วงจรการใช้ยาและหยุดความคิด", "การเปลี่ยนแปลงของร่างกาย", "ตัวกระตุ้น", "ความคิด-อารมณ์-พฤติกรรม", "ความรับผิดชอบและงาน",
-      "การป้องกันการเสพซ้ำ", "ความไว้วางใจ", "ทักษะการสื่อสาร", "การปฏิเสธ", "แรงจูงใจใฝ่สัมฤทธิ์", "การแก้ปัญหา", "การตั้งเป้าหมาย"]
-      .map((name): TopicSeed => ({ name, category: "การเรียนรู้แบบมีส่วนร่วม", activityType: "group", maxStaff: 2 })),
-    { name: "กิจกรรมครอบครัว", category: "ครอบครัว", activityType: "group", maxStaff: 2 },
-    team("ประเมินก่อนจบโปรแกรม"),
-    ...Array.from(new Set(FAST_WEEK_BLOCKS.map((b) => b.activity))).map((name): TopicSeed => ({ name, category: "กิจกรรมประจำวัน", activityType: "group", maxStaff: 2 })),
+    team("Morning Brief"), team("Staff Meeting"), team(FAST_MEETING, CAT_DAILY), team(FAST_FINAL, CAT_DAILY),
+    ...Array.from(new Map(fastTemplate().filter((r) => r.takesAttendance && r.title !== FAST_MEETING && r.title !== FAST_FINAL).map((r) => [r.title, r.category] as [string, string | null])).entries()).map(([name, category]): TopicSeed =>
+      category === CAT_DAILY || category === CAT_WORK || category === CAT_JOB ? team(name, category) : { name, category: category ?? undefined, activityType: "group", maxStaff: 2 }),
   ],
 };
 /**

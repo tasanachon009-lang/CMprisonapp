@@ -94,7 +94,7 @@ export function fastEndReport(db: DB, cohortId: number) {
       knowledge: prePost("KNOW"), attitude: prePost("ATT"), motivation: prePost("MOTIV"),
     },
     quality: { whoqol: prePost("WHOQOL"), domainsPre: domainAvg("pre"), domainsPost: domainAvg("post"), selfEsteem: prePost("ROSE") },
-    vocational: sess((s) => /วิชาชีพ|บ้านกึ่งวิถี/.test(s.title)),
+    vocational: sess((s) => s.category === "ฝึกปฏิบัติงาน" || /วิชาชีพ|บ้านกึ่งวิถี/.test(s.title)),
   };
 
   return { cohort: base.cohort, course: base.course, members, consistent, returnees: { ...count(returnees), byCourse: Array.from(returnBy, ([label, n]) => ({ label, n })) }, areas, records: base.records, budget: base.budget, activity: base.activity };

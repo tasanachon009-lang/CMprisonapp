@@ -4,7 +4,7 @@ import { schema } from "./db";
 import { COURSES, B12_TEMPLATE, B12_DRAFT_TITLES, B12_CHIPS, PRE3_TEMPLATE, PRE3_CRITERIA, FAST_CRITERIA, LOOKUPS, DEFAULT_HOLIDAYS, DEFAULT_SETTINGS, SAMPLE_RATES, TOPIC_SEEDS, draftChips } from "./reference-data";
 import { FORM_DEFS } from "./assessments/forms";
 import { writeAudit } from "./audit";
-import { fastTemplate, fastTotalHours } from "./fast/template";
+import { fastTemplate, fastTotalHours, FAST_DRAFT_TITLES, FAST_DRAFT_ONLY_TITLES, FAST_DRAFT_TOTAL_HOURS } from "./fast/template";
 
 /**
  * ใส่ข้อมูลอ้างอิงเริ่มต้น (ทำซ้ำได้ ไม่ทับค่าที่ผู้ใช้แก้แล้ว)
@@ -60,8 +60,43 @@ export function bootstrapReferenceData(db: DB) {
     upgradeRosenbergSplit(tx);
     upgradeStep5(tx);
     upgradeB12Manual(tx);
+    upgradeFastManual(tx);
     seedRatesAndTopics(tx);
   });
+}
+
+/**
+ * อัปเกรดครั้งเดียว: เปลี่ยนแม่แบบตาราง 24 สัปดาห์ของชุมชนบำบัดจากชุดร่างเป็นชุดตามคู่มือ FAST Model (สบยช. 2569)
+ * ทำเฉพาะเมื่อแม่แบบยังเป็นชุดร่างเดิมทุกคาบ · รุ่นที่สร้างไว้แล้วไม่ถูกแก้ · หัวข้อร่างที่ไม่อยู่ในคู่มือถูกปิดใช้งาน (ไม่ลบ)
+ */
+function upgradeFastManual(tx: Pick<DB, "select" | "insert" | "update" | "delete">) {
+  if (tx.select().from(schema.settings).where(eq(schema.settings.key, "bootstrap.fastmanual")).get()) return;
+  const c = tx.select().from(schema.courses).where(eq(schema.courses.code, "FAST")).get();
+  if (c) {
+    const rows = tx.select().from(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).all();
+    const isDraft = rows.length > 0 && rows.every((r) => FAST_DRAFT_TITLES.includes(r.title)) && rows.some((r) => FAST_DRAFT_ONLY_TITLES.includes(r.title));
+    if (isDraft) {
+      tx.delete(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, c.id)).run();
+      for (const t of fastTemplate()) tx.insert(schema.courseTemplateSessions).values({ courseId: c.id, ...t }).run();
+      if (c.totalHours === FAST_DRAFT_TOTAL_HOURS) tx.update(schema.courses).set({ totalHours: fastTotalHours() }).where(eq(schema.courses.id, c.id)).run();
+      const topics = tx.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, c.id)).all();
+      const names = new Set(topics.map((t) => t.name));
+      for (const t of topics) if (FAST_DRAFT_ONLY_TITLES.includes(t.name)) tx.update(schema.activityTopics).set({ active: false }).where(eq(schema.activityTopics.id, t.id)).run();
+      if (topics.length) {
+        const internal = topics[0].internalRateId, externalRates = topics[0].externalRates;
+        let order = Math.max(...topics.map((t) => t.sortOrder));
+        for (const t of TOPIC_SEEDS.FAST) {
+          if (names.has(t.name)) continue;
+          tx.insert(schema.activityTopics).values({
+            courseId: c.id, name: t.name, category: t.category ?? null, standardHours: t.hours ?? null, activityType: t.activityType ?? "lecture",
+            color: c.color, staffingType: t.staffingType ?? "individual", maxStaff: t.staffingType === "team" ? null : t.maxStaff ?? 2,
+            payable: t.payable ?? true, internalRateId: internal, externalRates, splitMethod: "full", sortOrder: (order += 10),
+          }).onConflictDoNothing().run();
+        }
+      }
+    }
+  }
+  tx.insert(schema.settings).values({ key: "bootstrap.fastmanual", value: true }).onConflictDoNothing().run();
 }
 
 /**

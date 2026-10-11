@@ -10,10 +10,10 @@ export type PhaseDef = { code: PhaseCode; no: number; name: string; nameTh: stri
 export const FAST_WEEKS = 24;
 export const FAST_PHASES: PhaseDef[] = [
   { code: "entry", no: 1, name: "Entry", nameTh: "ระยะแรกรับ", fromWeek: 1, toWeek: 2, desc: "สัปดาห์ที่ 1–2" },
-  { code: "rehab", no: 2, name: "Rehabilitation", nameTh: "ระยะบำบัดฟื้นฟู", fromWeek: 3, toWeek: 16, desc: "สัปดาห์ที่ 3–16" },
-  { code: "reentry", no: 3, name: "Re-entry", nameTh: "ระยะเตรียมกลับสู่สังคม", fromWeek: 17, toWeek: 20, desc: "สัปดาห์ที่ 17–20" },
+  { code: "rehab", no: 2, name: "Rehabilitation", nameTh: "ระยะฟื้นฟูสมรรถภาพ", fromWeek: 3, toWeek: 16, desc: "สัปดาห์ที่ 3–16" },
+  { code: "reentry", no: 3, name: "Re-entry", nameTh: "ระยะกลับสู่สังคม", fromWeek: 17, toWeek: 20, desc: "สัปดาห์ที่ 17–20" },
   { code: "halfway", no: 4, name: "Halfway house", nameTh: "ระยะบ้านกึ่งวิถี", fromWeek: 21, toWeek: 24, desc: "สัปดาห์ที่ 21–24" },
-  { code: "aftercare", no: 5, name: "After care", nameTh: "ระยะติดตามหลังบำบัด", fromWeek: 25, toWeek: null, desc: "1 ปี (เดือนที่ 1, 3, 6, 12)" },
+  { code: "aftercare", no: 5, name: "After care", nameTh: "ระยะติดตามหลังการรักษา", fromWeek: 25, toWeek: null, desc: "1 ปี (เดือนที่ 1, 3, 6, 12)" },
 ];
 export const phaseDef = (code: string) => FAST_PHASES.find((p) => p.code === code) ?? null;
 export const phaseLabel = (code: string) => { const p = phaseDef(code); return p ? `${p.no}. ${p.name}` : code; };

@@ -1,6 +1,6 @@
 # รายงานผลตรวจความปลอดภัยอัตโนมัติ
 
-- วันเวลา: 11/10/2569 19:27:44
+- วันเวลา: 11/10/2569 19:36:37
 - เป้าหมาย: http://localhost:3000 (ข้อมูลปลอม)
 - ผล: **ผ่าน 327/327 ข้อ**
 
@@ -22,7 +22,7 @@
 | ✅ ผ่าน | /admin/audit | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/backup | HTTP 307 → /device |
 | ✅ ผ่าน | /admin/settings | HTTP 307 → /device |
-| ✅ ผ่าน | /sessions/815 | HTTP 307 → /device |
+| ✅ ผ่าน | /sessions/981 | HTTP 307 → /device |
 | ✅ ผ่าน | /print/sign-sheet/12 | HTTP 307 → /device |
 | ✅ ผ่าน | /roster | HTTP 307 → /device |
 | ✅ ผ่าน | /notifications | HTTP 307 → /device |
@@ -70,12 +70,12 @@
 | ✅ ผ่าน | executive → /release | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | assistant → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /release | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /sessions/815 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /sessions/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /sessions/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | rehab → /print/session-sheet/815 | คาดว่าเข้าได้ · HTTP 200 |
-| ✅ ผ่าน | assistant → /print/session-sheet/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
-| ✅ ผ่าน | warden → /print/session-sheet/815 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /sessions/981 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /sessions/981 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /sessions/981 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | rehab → /print/session-sheet/981 | คาดว่าเข้าได้ · HTTP 200 |
+| ✅ ผ่าน | assistant → /print/session-sheet/981 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
+| ✅ ผ่าน | warden → /print/session-sheet/981 | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
 | ✅ ผ่าน | warden → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /roster | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | finance → /roster | คาดว่าถูกปฏิเสธ · HTTP 307 → /forbidden |
@@ -239,7 +239,7 @@
 | ✅ ผ่าน | warden → /print/document/1 | คาดว่าถูกปฏิเสธ · HTTP 307 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ไม่ล็อกอิน | HTTP 401 |
 | ✅ ผ่าน | ไฟล์ Word เอกสาร: ผู้บริหาร (ไม่มีสิทธิ์) | HTTP 403 |
-| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10509 ไบต์ |
+| ✅ ผ่าน | ไฟล์ Word เอกสาร: เจ้าหน้าที่ฟื้นฟูดาวน์โหลดได้ (เป็นไฟล์ .docx จริง) | HTTP 200 · 10508 ไบต์ |
 | ✅ ผ่าน | การเงินเปิดเอกสารได้แบบดูอย่างเดียว (ไม่มีปุ่มบันทึก/ลบ) | HTTP 200 |
 | ✅ ผ่าน | admin → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |
 | ✅ ผ่าน | rehab → /print/participants/7 (รายชื่อพร้อมเลขบัตร) | คาดว่าเข้าได้ · HTTP 200 |

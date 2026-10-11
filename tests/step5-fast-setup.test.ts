@@ -50,18 +50,36 @@ describe("ชุมชนบำบัด FAST: 5 ระยะ คำนวณจ
 });
 
 describe("แม่แบบตาราง 24 สัปดาห์ และเกณฑ์รับเข้า", () => {
-  it("120 วัน (24 สัปดาห์ × จันทร์–ศุกร์) · ประจำวันครบ · ศุกร์สัปดาห์ 3–14 = 12 หัวข้อ · ครอบครัว 7 ครั้ง · ศุกร์สัปดาห์ 24 ประเมินก่อนจบ", () => {
+  it("ตามตารางกิจกรรมในคู่มือ FAST Model: 120 วัน · ศุกร์สัปดาห์ 3–14 = 12 หัวข้อ เวลา 10.00–12.00 · ครอบครัว · ศุกร์สัปดาห์ 24 ประเมินก่อนจบ", () => {
     const t = fastTemplate();
+    const day = (week: number, d: number) => t.filter((r) => r.dayNo === (week - 1) * 5 + d && r.takesAttendance).map((r) => `${r.startTime} ${r.title}`);
     expect(new Set(t.map((r) => r.dayNo)).size).toBe(120);
-    for (const title of ["Morning Brief", "กลุ่มประชุมเช้า", "Staff Meeting"]) expect(t.filter((r) => r.title === title).length).toBe(120);
+    // คาบของเจ้าหน้าที่: สัปดาห์ 1–20 (ตารางบ้านกึ่งวิถีในคู่มือไม่มี)
+    for (const title of ["Morning Brief", "Staff Meeting"]) expect(t.filter((r) => r.title === title).length).toBe(100);
     expect(t.find((r) => r.title === "Morning Brief")).toMatchObject({ startTime: "08:00", endTime: "08:30", takesAttendance: false });
     expect(t.find((r) => r.title === "Staff Meeting")).toMatchObject({ startTime: "10:00", endTime: "11:00", takesAttendance: false });
-    const friday = (week: number) => t.filter((r) => r.dayNo === (week - 1) * 5 + 5);
-    expect(Array.from({ length: 12 }, (_, i) => friday(i + 3).find((r) => r.category === "การเรียนรู้แบบมีส่วนร่วม")?.title)).toEqual(FAST_LEARNING_TOPICS);
-    expect(t.filter((r) => r.category === "การเรียนรู้แบบมีส่วนร่วม").length).toBe(12);
-    expect(t.filter((r) => r.title === "กิจกรรมครอบครัว").map((r) => (r.dayNo - 5) / 5 + 1)).toEqual(FAST_FAMILY_WEEKS);
-    for (const w of [15, 16, 23]) expect(FAST_FAMILY_WEEKS).toContain(w);
-    expect(friday(24).some((r) => r.title === "ประเมินก่อนจบโปรแกรม")).toBe(true);
+    // ระยะแรกรับ
+    expect(day(1, 1)).toEqual(["09:00 กลุ่มปฐมนิเทศ: เรียนรู้รูปแบบโปรแกรม", "10:30 Focus group (ประเมิน SCL-90)", "13:00 กลุ่มสัมมนา: การดูแลตัวเอง (Feeling)", "14:30 กิจกรรมสร้างสรรค์ EQ: การสร้างสัมพันธภาพ"]);
+    expect(day(1, 3)).toEqual(["09:00 ฝึกกายบริหาร/ระเบียบวินัย", "09:30 Morning Talk Group", "10:30 เรียนรู้ Talking to", "13:00 กลุ่มสัมมนา: การดูแลตัวเอง (ตามบริบทปัญหา)", "14:30 กิจกรรมสร้างสรรค์ EQ: การจัดการอารมณ์ตนเอง"]);
+    expect(day(2, 4)).toEqual(["09:00 กลุ่มประชุมเช้า", "10:00 Static group (เรียนรู้อุดมการณ์)", "11:00 เรียนรู้ Pull up", "13:00 การใช้เวลาว่างให้เป็นประโยชน์: กลุ่มศิลปะ", "14:30 กิจกรรมสร้างสรรค์ EQ: การเข้าใจคนอื่น"]);
+    // ระยะฟื้นฟูสมรรถภาพ
+    expect(day(3, 1)[0]).toBe("09:00 กลุ่มปฐมนิเทศ: การเข้าสู่ระยะฟื้นฟู");
+    expect(day(6, 2)).toEqual(["09:00 กลุ่มประชุมเช้า", "10:00 กิจกรรมงานบำบัด", "13:00 กลุ่มสัมมนา: วิถีแห่งการอยู่ร่วมกัน", "14:30 กลุ่มประชุมทีมงาน"]);
+    expect(day(15, 4)[2]).toBe("13:00 กลุ่มทบทวนการดูแลตนเอง (Global group)");
+    const learn = t.filter((r) => r.category === "การเรียนรู้แบบมีส่วนร่วม");
+    expect(learn.map((r) => r.title)).toEqual(FAST_LEARNING_TOPICS);
+    expect(learn.map((r) => (r.dayNo - 5) / 5 + 1)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    expect(learn.every((r) => r.startTime === "10:00" && r.endTime === "12:00")).toBe(true);
+    // ครอบครัว: สัปดาห์ 15, 16, 23 ศุกร์ 09.00–12.00 ตามคู่มือ · 8, 12, 20 = เดือนละครั้ง
+    const family = t.filter((r) => r.category === "ครอบครัว");
+    expect(family.map((r) => (r.dayNo - 5) / 5 + 1)).toEqual(FAST_FAMILY_WEEKS);
+    expect(family.filter((r) => r.startTime === "09:00" && r.endTime === "12:00").map((r) => (r.dayNo - 5) / 5 + 1)).toEqual([15, 16, 23]);
+    // ระยะกลับสู่สังคม และบ้านกึ่งวิถี
+    expect(day(17, 1)[0]).toBe("09:00 กลุ่มปฐมนิเทศ: แนะแนวทางการออกฝึกงาน");
+    expect(day(18, 2)).toEqual(["09:00 กลุ่มประชุมเช้า", "10:00 ฝึกปฏิบัติงานหน่วยงานย่อย", "13:00 ฝึกปฏิบัติงานหน่วยงานย่อย", "14:30 พบที่ปรึกษา"]);
+    expect(day(21, 3)).toEqual(["09:00 ปฏิบัติหน้าที่ตามหน่วยงานภายนอก", "13:00 ปฏิบัติหน้าที่ตามหน่วยงานภายนอก"]);
+    expect(day(24, 5)).toEqual(["09:00 ประเมินก่อนจบโปรแกรม", "13:00 พบกลุ่มที่ปรึกษา"]);
+    expect(t.every((r) => r.hours > 0 && r.startTime < r.endTime)).toBe(true);
     expect(fastTotalHours()).toBe(t.filter((r) => r.takesAttendance).reduce((s, r) => s + r.hours, 0));
   });
 
@@ -192,5 +210,41 @@ describe("ชุมชนบำบัดในฐานข้อมูล: ส�
     db.update(schema.courses).set({ enabled: false }).where(eq(schema.courses.id, fast.id)).run();
     bootstrapReferenceData(db);
     expect(db.select().from(schema.courses).where(eq(schema.courses.id, fast.id)).get()!.enabled).toBe(false);
+  });
+});
+
+describe("ฐานข้อมูลเดิมที่ยังใช้แม่แบบร่างของชุมชนบำบัด", () => {
+  const setup = (extra?: string) => {
+    const db = drizzle(openDatabase(":memory:"), { schema }) as DB;
+    runMigrations(db);
+    db.insert(schema.users).values({ firstName: "หัวหน้า", lastName: "ทดสอบ", passwordHash: "x" }).run();
+    bootstrapReferenceData(db);
+    const fast = db.select().from(schema.courses).where(eq(schema.courses.code, "FAST")).get()!;
+    db.delete(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, fast.id)).run();
+    ["Morning Brief", "กลุ่มประชุมเช้า", "งานบำบัดและกลุ่มบำบัด", "ตัวกระตุ้น", ...(extra ? [extra] : [])].forEach((title, i) =>
+      db.insert(schema.courseTemplateSessions).values({ courseId: fast.id, dayNo: i + 1, startTime: "13:00", endTime: "15:00", title, hours: 2, sortOrder: 10 }).run());
+    db.insert(schema.activityTopics).values({ courseId: fast.id, name: "งานบำบัดและกลุ่มบำบัด" }).run();
+    db.update(schema.courses).set({ totalHours: 370.5 }).where(eq(schema.courses.id, fast.id)).run();
+    db.delete(schema.settings).where(eq(schema.settings.key, "bootstrap.fastmanual")).run();
+    bootstrapReferenceData(db);
+    return {
+      course: db.select().from(schema.courses).where(eq(schema.courses.id, fast.id)).get()!,
+      template: db.select().from(schema.courseTemplateSessions).where(eq(schema.courseTemplateSessions.courseId, fast.id)).all(),
+      oldTopic: db.select().from(schema.activityTopics).where(eq(schema.activityTopics.courseId, fast.id)).all().find((t) => t.name === "งานบำบัดและกลุ่มบำบัด")!,
+    };
+  };
+
+  it("ยังเป็นร่างเดิมทุกคาบ → เปลี่ยนเป็นชุดตามคู่มือ · ชั่วโมงรวมปรับตาม · หัวข้อร่างถูกปิดใช้งาน · ทุกคาบผูกหัวข้อ", () => {
+    const r = setup();
+    expect(r.template.length).toBe(fastTemplate().length);
+    expect(r.template.every((t) => t.topicId != null)).toBe(true);
+    expect(r.course.totalHours).toBe(fastTotalHours());
+    expect(r.oldTopic.active).toBe(false);
+  });
+
+  it("ผู้ดูแลแก้แม่แบบแล้ว → ไม่ทับ", () => {
+    const r = setup("คาบที่ผู้ดูแลเพิ่มเอง");
+    expect(r.template.length).toBe(5);
+    expect([r.course.totalHours, r.oldTopic.active]).toEqual([370.5, true]);
   });
 });

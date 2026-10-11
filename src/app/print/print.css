@@ -65,25 +65,62 @@
   @page { size: A4; margin: 12mm 12mm 16mm 12mm; }
 }
 
-/* ── เอกสารราชการ (สเปก 18.4): ขอบตามระเบียบงานสารบรรณ — บน 2.5 ซม. (ครุฑห่างขอบ 1.5 ซม.) ซ้าย 3 ขวา 2 ล่าง 2 ── */
-.print-root .sheet.official { padding: 15mm 20mm 20mm 30mm; line-height: 1.2; }
+/* ── เอกสารราชการ (สเปก 18.3A, 18.4): ขอบตามระเบียบงานสารบรรณ — บน 1.5 ซม. (ถึงครุฑ) ซ้าย 3 ขวา 2 ล่าง 2 ซม. ── */
+.print-root .sheet.official { font-family: "TH Sarabun New", "Sarabun", sans-serif; font-size: 16pt; padding: 15mm 20mm 20mm 30mm; line-height: 1.2; }
 .official p { margin: 0; }
 .official .garuda { display: block; object-fit: contain; }
-.official .garuda-empty { border: 1px dashed #b55; color: #b55; font-size: 9pt; display: flex; align-items: center; justify-content: center; text-align: center; font-family: sans-serif; }
-.official .memo-head { display: flex; align-items: flex-end; height: 15mm; margin-bottom: 2mm; }
-.official .memo-head .title { flex: 1; text-align: center; font-weight: 700; font-size: 29pt; line-height: 1; margin-right: 15mm; }
+.official .garuda-empty { border: 1px dashed #b55; color: #b55; font-size: 9pt; line-height: 1.1; display: flex; align-items: center; justify-content: center; text-align: center; font-family: sans-serif; }
 .official .field { display: flex; gap: 2mm; align-items: baseline; }
 .official .field b { white-space: nowrap; font-size: 20pt; line-height: 1.05; }
 .official .field.small b { font-size: inherit; }
 .official .field .fill { flex: 1; border-bottom: 1px dotted #000; min-height: 1em; }
 .official .body p { text-indent: 25mm; text-align: justify; text-justify: inter-character; margin-top: 0; }
 .official .body p.list { text-indent: 0; padding-left: 25mm; }
+.official .body p.heading { font-weight: 700; text-align: left; }
+.official .body p.item { text-indent: 0; padding-left: 30mm; }
 .official .sign { margin-left: 45%; text-align: center; margin-top: 14mm; break-inside: avoid; }
 .official .contact { position: absolute; bottom: 20mm; left: 30mm; }
 
+/* แม่แบบบันทึกข้อความกลาง (สเปก 18.3A) */
+.official.memo .memo-head { position: relative; height: 15mm; margin-bottom: 1mm; }
+.official.memo .memo-head .garuda, .official.memo .memo-head .garuda-empty { position: absolute; left: 0; top: 0; }
+/* "บันทึกข้อความ" 29pt กึ่งกลางหน้ากระดาษ (ขอบซ้าย 3 ขวา 2 จึงขยายออกให้เท่าขอบกระดาษ) แนวเดียวกับครุฑ */
+.official.memo .memo-head .title { position: absolute; left: -30mm; right: -20mm; bottom: 0; text-align: center; font-weight: 700; font-size: 29pt; line-height: 1; }
+.official.memo .memo-row { display: flex; }
+/* "วันที่" เริ่มกึ่งกลางหน้า = 105 − 30 = 75 มม. จากขอบซ้ายของพื้นที่พิมพ์ */
+.official.memo .memo-row .field:first-child { flex: 0 0 75mm; }
+.official.memo .memo-row .field:last-child { flex: 1; }
+.official.memo .memo-to { margin-top: 1.2em; }
+.official.memo .body { margin-top: 0 !important; }
+/* ลงชื่อ: เว้น 3 บรรทัด · บล็อกกึ่งกลางที่ 60% ของความกว้างหน้า (126 มม. จากขอบกระดาษ = 96 มม. จากขอบซ้ายของพื้นที่พิมพ์) */
+.official.memo .sign { margin-left: 46mm; width: 100mm; margin-top: 3.6em; text-align: center; break-inside: avoid; }
+.official.memo .endorse { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 8mm; margin-top: 0.3em; break-inside: avoid; }
+.official.memo .endorse-box { break-inside: avoid; }
+.official.memo .endorse-head { font-weight: 700; }
+.official.memo .dots { border-bottom: 1px dotted #000; line-height: 1; }
+.official.memo .endorse-sign { text-align: center; }
+.official.memo .dots + .endorse-sign { margin-top: 0.6em; }
+
+/* สิ่งที่ส่งมาด้วย (หน้าใหม่) */
+.print-root .sheet.official.annex { break-before: page; }
+.official.annex .annex-title { text-align: center; font-weight: 700; }
+.official.annex .annex-subject { text-align: center; margin-bottom: 0.6em; }
+.official.annex .annex-head { font-weight: 700; margin-top: 0.5em; }
+.official.annex .annex-line { padding-left: 6mm; text-indent: -6mm; }
+.official.annex table { font-size: 14pt; line-height: 1.1; margin-top: 1mm; table-layout: fixed; }
+.official.annex th { font-weight: 700; text-align: center; }
+/* ห้ามตัดคำกลางชื่อ: ตัดบรรทัดได้เฉพาะที่ช่องว่าง */
+.official.annex td { vertical-align: top; overflow-wrap: normal; word-break: keep-all; line-break: strict; }
+
 @media print {
   .print-root .sheet.official { padding: 0; page: official; }
+  .print-root .sheet.official.thai-num { page: official-th; }
   .official .garuda-empty { visibility: hidden; }
   .official .contact { position: fixed; bottom: 0; left: 0; }
-  @page official { size: A4; margin: 15mm 20mm 20mm 30mm; }
+  .official.memo .memo-head .title { left: -30mm; right: -20mm; }
+  @page official { size: A4; margin: 15mm 20mm 20mm 30mm; @top-center { content: "- " counter(page) " -"; font-family: "TH Sarabun New"; font-size: 16pt; vertical-align: bottom; } }
+  @page official-th { size: A4; margin: 15mm 20mm 20mm 30mm; @top-center { content: "- " counter(page, thai) " -"; font-family: "TH Sarabun New"; font-size: 16pt; vertical-align: bottom; } }
+  /* หน้าแรกไม่มีเลขหน้า */
+  @page official:first { @top-center { content: none; } }
+  @page official-th:first { @top-center { content: none; } }
 }

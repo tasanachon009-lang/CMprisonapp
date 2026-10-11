@@ -31,7 +31,7 @@ import { todayISO, addDays } from "../src/lib/thai-date";
 import { setDutyOfficer } from "../src/lib/services/duty";
 import { createBatch, approveBatch } from "../src/lib/services/pay";
 import { saveAllocation, saveLine, applyCourseTemplate, copyLinesFrom, recordExpense, recordRefund } from "../src/lib/services/budget";
-import { upsertDraft, approveWeekly, mondayOf } from "../src/lib/services/weekly-report";
+import { upsertDraft, upsertMonthlyDraft, approveWeekly, mondayOf } from "../src/lib/services/weekly-report";
 import { dayText, hashText, nextWorkingDay } from "../src/lib/line/messages";
 import { sendLine } from "../src/lib/line/send";
 
@@ -435,8 +435,9 @@ async function main() {
   {
     const lastMonday = addDays(mondayOf(today), -7);
     const w1 = upsertDraft(db, lastMonday, headId);
-    approveWeekly(db, w1.id, { userId: headId });
+    approveWeekly(db, w1.id, { userId: headId }, { acknowledgeUnrecorded: true });
     upsertDraft(db, mondayOf(today), headId);
+    upsertMonthlyDraft(db, addDays(`${today.slice(0, 7)}-01`, -1).slice(0, 7), headId); // รายงานประจำเดือนที่แล้ว (ร่าง)
     const target = nextWorkingDay(db, today);
     const t = dayText(db, target);
     await sendLine(db, "daily", t.text, { targetDate: target, contentHash: hashText(t.text), sentBy: headId });

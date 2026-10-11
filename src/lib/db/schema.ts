@@ -861,8 +861,12 @@ export const weeklyReports = sqliteTable(
   "weekly_reports",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    /** วันจันทร์ของสัปดาห์ (YYYY-MM-DD) */
+    /** weekly | monthly (สเปก 18.2A) */
+    kind: text("kind").notNull().default("weekly"),
+    /** วันแรกของช่วง: วันจันทร์ของสัปดาห์ หรือวันที่ 1 ของเดือน (YYYY-MM-DD) */
     weekStart: text("week_start").notNull(),
+    /** วันสุดท้ายของช่วง (ว่าง = รายงานสัปดาห์รุ่นเดิม: weekStart + 6 วัน) */
+    periodEnd: text("period_end"),
     /** draft | approved */
     status: text("status").notNull().default("draft"),
     /** ตัวเลข/รายการที่ระบบรวบรวม ณ เวลาที่สร้างหรืออนุมัติ */
@@ -875,7 +879,7 @@ export const weeklyReports = sqliteTable(
     approvedAt: ts("approved_at"),
     ...tracking(),
   },
-  (t) => [uniqueIndex("weekly_reports_week_unique").on(t.weekStart).where(sql`deleted_at IS NULL`)],
+  (t) => [uniqueIndex("weekly_reports_kind_start_unique").on(t.kind, t.weekStart).where(sql`deleted_at IS NULL`)],
 );
 
 /** ผู้รับผิดชอบประจำวันของรุ่น (สเปก 22B) — วันละ 1 คน (กลุ่ม A) · บันทึกแทนวิทยากรภายนอก */

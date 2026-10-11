@@ -323,7 +323,7 @@ async function main() {
           urls.length === 1 && urls[0] === "https://api.line.me" && sendSrc.includes("app.isDemoData") && sendSrc.includes("looksLikeInmateData"), urls.join(", "));
         const wAsst = await get("/reports/weekly", C.assistant), wExec = await get("/reports/weekly", C.executive), wAdmin = await get("/reports/weekly", C.admin);
         check("2. สิทธิ์ตามบทบาท / เปลี่ยน URL ตรงๆ", "รายงานประจำสัปดาห์: หัวหน้าสร้าง/อนุมัติได้ · ผู้บริหารดูได้ (ไม่มีปุ่มสร้าง) · ผู้ช่วยเข้าไม่ได้",
-          wAdmin.text.includes("สร้าง/อัปเดตร่าง") && allowed(wExec) && !wExec.text.includes("สร้าง/อัปเดตร่าง") && !allowed(wAsst), `admin ${wAdmin.status} · exec ${wExec.status} · asst ${wAsst.status}`);
+          wAdmin.text.includes("สร้าง / เปิดร่าง") && allowed(wExec) && !wExec.text.includes("สร้าง / เปิดร่าง") && !allowed(wAsst), `admin ${wAdmin.status} · exec ${wExec.status} · asst ${wAsst.status}`);
       }
       // ขั้น 4 กลุ่ม 1: หลักสูตร 3 วัน — รายชื่อแนะนำ (มีชื่อผู้ต้องขัง) เฉพาะผู้ลงทะเบียน · ขั้นตอนโครงการแก้ได้เฉพาะผู้มีสิทธิ์จัดรุ่น
       {

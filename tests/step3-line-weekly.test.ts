@@ -105,7 +105,8 @@ describe("LINE แจ้งตารางสอน + รายงานปร�
     saveWeeklyTexts(db, r.id, { issues: "แก้แล้ว", nextPlan: "แผน", note: null }, { userId: head });
     upsertDraft(db, monday, head); // รวบรวมตัวเลขใหม่ ไม่ทับข้อความ
     expect(db.select().from(schema.weeklyReports).where(eq(schema.weeklyReports.id, r.id)).get()!.issues).toBe("แก้แล้ว");
-    const a = approveWeekly(db, r.id, { userId: head });
+    expect(() => approveWeekly(db, r.id, { userId: head })).toThrow(/ยังมีคาบที่ไม่ได้บันทึกผล/);
+    const a = approveWeekly(db, r.id, { userId: head }, { acknowledgeUnrecorded: true });
     expect(() => saveWeeklyTexts(db, r.id, { issues: "x", nextPlan: null, note: null }, { userId: head })).toThrow(/อนุมัติแล้ว/);
     const line = weeklyLineSummary(a.data as ReturnType<typeof collectWeekly>);
     expect(line).toMatch(/สรุปรายงานประจำสัปดาห์/);

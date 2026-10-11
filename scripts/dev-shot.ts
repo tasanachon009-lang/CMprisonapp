@@ -34,7 +34,17 @@ db.insert(schema.sessions).values({ id: sha(sess), userId: user.id, createdAt: n
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
-  const res = await page.goto(BASE + (path.startsWith("/") ? path : `/${path}`), { waitUntil: "networkidle", timeout: 60000 });
+  let res = await page.goto(BASE + (path.startsWith("/") ? path : `/${path}`), { waitUntil: "networkidle", timeout: 60000 });
+  // ผู้ใช้ที่ยังไม่รับทราบข้อความเวรสีแดงจะถูกพาไปกล่องจดหมายเวร → ลองผู้ใช้อื่นของบทบาทเดียวกัน
+  const others = db.select().from(schema.users).where(inArray(schema.users.id, ids.length ? ids : [-1])).all().filter((u) => u.id !== user.id && u.status === "active" && !u.mustChangePassword);
+  const extra: string[] = [];
+  for (const u of others) {
+    if (!page.url().includes("/inbox?must")) break;
+    const s2 = randomBytes(24).toString("base64url"); extra.push(s2);
+    db.insert(schema.sessions).values({ id: sha(s2), userId: u.id, createdAt: now, lastActiveAt: now, expiresAt: new Date(Date.now() + 600000), mfaVerifiedAt: now }).run();
+    await ctx.addCookies([{ name: "rh_sess", value: s2, url: BASE }]);
+    res = await page.goto(BASE + (path.startsWith("/") ? path : `/${path}`), { waitUntil: "networkidle", timeout: 60000 });
+  }
   await page.waitForTimeout(300);
   // ปิดป๊อปอัปข้อความส่งเวร (ถ้ามี) เพื่อให้เห็นหน้าจริง
   await page.evaluate("document.querySelectorAll('[role=dialog]').forEach(function(d){d.remove()})").catch(() => {});
@@ -43,5 +53,6 @@ db.insert(schema.sessions).values({ id: sha(sess), userId: user.id, createdAt: n
   console.log(JSON.stringify({ url: page.url().replace(BASE, ""), status: res?.status(), user: `${user.firstName} (${role})`, overflow, errors: errors.slice(0, 5), out }));
   await browser.close();
   db.delete(schema.sessions).where(eq(schema.sessions.id, sha(sess))).run();
+  for (const x of extra) db.delete(schema.sessions).where(eq(schema.sessions.id, sha(x))).run();
   db.delete(schema.trustedDevices).where(eq(schema.trustedDevices.id, sha(dev))).run();
 })().catch((e) => { console.error(e); process.exit(1); });

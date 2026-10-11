@@ -6,7 +6,7 @@ import { getDb } from "@/lib/db";
 import { requireAction, clientIp } from "@/lib/auth/session";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { getSetting } from "@/lib/bootstrap";
-import { upsertDraft, saveWeeklyTexts, approveWeekly, unapproveWeekly, mondayOf, weeklyLineSummary, type WeeklyData } from "@/lib/services/weekly-report";
+import { upsertDraft, upsertMonthlyDraft, saveWeeklyTexts, approveWeekly, unapproveWeekly, mondayOf, weeklyLineSummary, type WeeklyData } from "@/lib/services/weekly-report";
 import { sendLine } from "@/lib/line/send";
 import { isValidISODate } from "@/lib/thai-date";
 
@@ -18,6 +18,19 @@ export async function createWeeklyAction(date: string): Promise<ActionResult<{ i
     const r = upsertDraft(getDb(), mondayOf(date), auth.user.id);
     revalidatePath("/reports/weekly");
     return { ok: true, data: { id: r.id }, message: r.status === "approved" ? "สัปดาห์นี้อนุมัติแล้ว" : "สร้าง/อัปเดตร่างแล้ว (ข้อความที่แก้ไว้ไม่ถูกทับ)" };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+/** สร้าง/รีเฟรชร่างรายงานประจำเดือน ("YYYY-MM") */
+export async function createMonthlyAction(month: string): Promise<ActionResult<{ id: number }>> {
+  try {
+    const auth = await requireAction("reports.weekly");
+    const r = upsertMonthlyDraft(getDb(), String(month ?? ""), auth.user.id);
+    revalidatePath("/reports/weekly");
+    revalidatePath(`/reports/weekly/${r.id}`);
+    return { ok: true, data: { id: r.id }, message: r.status === "approved" ? "เดือนนี้อนุมัติแล้ว" : "รวบรวมตัวเลขแล้ว" };
   } catch (e) {
     return toError(e);
   }
@@ -39,11 +52,11 @@ export async function saveWeeklyTextsAction(id: number, input: z.input<typeof TZ
 }
 
 /** อนุมัติ → ตัวเลขคงที่ · ถ้าตั้งค่าไว้ ส่ง "สรุปตัวเลข" ทาง LINE (ไม่มีชื่อบุคคล) */
-export async function approveWeeklyAction(id: number): Promise<ActionResult> {
+export async function approveWeeklyAction(id: number, acknowledgeUnrecorded = false): Promise<ActionResult> {
   try {
     const auth = await requireAction("reports.weekly");
     const db = getDb();
-    const r = approveWeekly(db, id, { userId: auth.user.id, ip: await clientIp() });
+    const r = approveWeekly(db, id, { userId: auth.user.id, ip: await clientIp() }, { acknowledgeUnrecorded: acknowledgeUnrecorded === true });
     let line = "";
     if (getSetting<boolean>(db, "line.weeklyReportSummary", false) === true) {
       const m = await sendLine(db, "weekly_report", weeklyLineSummary(r.data as WeeklyData), { targetDate: r.weekStart, sentBy: auth.user.id });

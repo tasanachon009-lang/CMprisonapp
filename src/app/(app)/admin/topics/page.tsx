@@ -6,6 +6,7 @@ import { listRates, listTopics } from "@/lib/services/pay-setup";
 import { listInstructors } from "@/lib/services/instructors";
 import { Breadcrumb, PageHeader, Alert } from "@/components/ui";
 import { TopicsEditor } from "./topics-client";
+import { TopicQuickSetup } from "./quick-client";
 import { TopicChipsEditor, ReportChoicesEditor } from "./chips-client";
 import { getSetting } from "@/lib/bootstrap";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 /** คลังหัวข้อ (สเปก 11.3) — ตั้งครั้งเดียวต่อหลักสูตร */
 export default async function TopicsPage({ searchParams }: PageProps<"/admin/topics">) {
-  await requirePage("topics.manage");
+  const auth = await requirePage("topics.manage");
   const sp = await searchParams;
   const db = getDb();
   const courses = db.select().from(schema.courses).orderBy(asc(schema.courses.sortOrder)).all();
@@ -24,13 +25,21 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ href: "/admin", label: "ตั้งค่า" }, { label: "คลังหัวข้อ" }]} />
-      <PageHeader en="Topic Library" title="คลังหัวข้อ" help="กำหนดชั่วโมงมาตรฐาน ลักษณะกิจกรรม ผู้รับผิดชอบ การเบิก อัตรา และวิธีแบ่งค่าตอบแทน ใช้กับทุกรุ่นของหลักสูตร ประเภท “ทั้งทีม” จะใส่เจ้าหน้าที่หลักทุกคนเมื่อสร้างรุ่น และค่าเริ่มต้นไม่เบิก หัวข้อนำเข้าจากคู่มือหลักสูตร ควรตรวจแก้ให้ตรงคู่มือ ข้อความสำเร็จรูป “มีเหตุการณ์ต้องแจ้งเวร” และเหตุผล “อื่นๆ” มีให้เสมอ" />
+      <PageHeader en="Topic Library" title="คลังหัวข้อ" help="เลือกเบิกหรือไม่เบิกของแต่ละหัวข้อ และเลือกผู้สอนพร้อมหน่วยงาน ระบบบันทึกทันที การเบิกมีผลกับคาบที่ยังไม่อนุมัติเบิกจ่าย ผู้สอนที่เลือกจะเติมให้รุ่นที่สร้างใหม่ รุ่นเดิมแก้ผู้สอนได้ที่ตารางของรุ่น ชั่วโมง อัตรา และวิธีแบ่งค่าตอบแทนอยู่ในตั้งค่าละเอียด" />
       <div className="flex flex-wrap gap-2">
         {courses.map((c) => (
           <Link key={c.id} href={`?course=${c.code}`} className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${c.id === course.id ? "bg-ink text-white" : "border border-line bg-white hover:bg-lime-soft"}`}>{c.shortName}</Link>
         ))}
       </div>
       
+      <TopicQuickSetup
+        canAddInstructor={auth.can("instructors.manage")}
+        topics={topics.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name, hours: t.standardHours, payable: t.payable, team: t.staffingType === "team", staff: t.staffingType === "team" ? [] : ((t.defaultStaff as Array<{ userId?: number; instructorId?: number }> | null) ?? []) }))}
+        people={people.map((p) => ({ key: p.userId ? `u${p.userId}` : `i${p.id}`, userId: p.userId, instructorId: p.userId ? null : p.id, name: p.displayName, org: p.organization ?? (p.kind === "internal" ? "เจ้าหน้าที่ของหน่วยงาน" : "ภายนอก") }))}
+      />
+      <details>
+        <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line bg-white px-4 font-semibold hover:bg-lime-soft">ตั้งค่าละเอียด (ชั่วโมง ลักษณะกิจกรรม อัตรา วิธีแบ่ง เพิ่มหัวข้อ)</summary>
+        <div className="mt-3">
       <TopicsEditor
         courseId={course.id}
         courseColor={course.color}
@@ -38,6 +47,8 @@ export default async function TopicsPage({ searchParams }: PageProps<"/admin/top
         rates={rates.map((r) => ({ id: r.id, name: r.name, kind: r.kind, perHourBaht: r.perHourSatang / 100, isSample: r.isSample }))}
         people={people.map((p) => ({ key: p.userId ? `u${p.userId}` : `i${p.id}`, userId: p.userId, instructorId: p.userId ? null : p.id, name: p.displayName, kind: p.kind }))}
       />
+        </div>
+      </details>
       <section className="card space-y-3">
         <h2 className="text-xl">ชิป &quot;สิ่งที่ได้&quot; สำหรับบันทึกผลหลังสอน</h2>
         <p className="text-muted">ข้อความสำเร็จรูปสำหรับบันทึกผลหลังสอน</p>

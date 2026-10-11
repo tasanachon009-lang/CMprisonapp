@@ -93,3 +93,33 @@ export function bulkUpdateTopics(db: DB, courseId: number, ids: number[], patch:
   writeAudit(db, { userId: actor.userId, action: "update", entity: "activity_topic", entityId: ids.join(","), after: patch, note: `แก้พร้อมกัน ${rows.length} หัวข้อ`, ip: actor.ip });
   return rows.length;
 }
+
+/**
+ * ตั้งค่าอย่างง่ายต่อหัวข้อ: เบิก/ไม่เบิก และผู้สอน (ทั้งทีม หรือระบุคนจากทะเบียนวิทยากร)
+ * ผู้ดูแลเป็นผู้ตัดสินว่าเบิกหัวข้อใด — ไม่ผูกกับประเภทผู้สอน · ผู้สอนที่ระบุจะเติมให้รุ่นที่สร้างใหม่
+ */
+export function setTopicTeaching(db: DB, topicId: number, patch: { payable?: boolean; staff?: "team" | Array<{ userId?: number; instructorId?: number }> }, actor: { userId: number; ip?: string | null }) {
+  const t = db.select().from(schema.activityTopics).where(and(eq(schema.activityTopics.id, topicId), isNull(schema.activityTopics.deletedAt))).get();
+  if (!t) throw new RuleError("ไม่พบหัวข้อ — โหลดหน้าใหม่แล้วลองอีกครั้ง");
+  const next: Partial<typeof schema.activityTopics.$inferInsert> = {};
+  if (patch.payable !== undefined) next.payable = patch.payable;
+  if (patch.staff === "team") Object.assign(next, { staffingType: "team", maxStaff: null, defaultStaff: null });
+  else if (patch.staff) {
+    const seen = new Set<string>();
+    const staff = patch.staff.map((s) => (s.userId ? { userId: s.userId } : { instructorId: s.instructorId })).filter((s) => {
+      const k = JSON.stringify(s);
+      return (s.userId || s.instructorId) && !seen.has(k) && !!seen.add(k);
+    });
+    if (staff.length > 20) throw new RuleError("ผู้สอนต่อหัวข้อได้ไม่เกิน 20 คน");
+    for (const s of staff) {
+      const ok = s.userId
+        ? db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.id, s.userId)).get()
+        : db.select({ id: schema.instructors.id }).from(schema.instructors).where(and(eq(schema.instructors.id, s.instructorId!), isNull(schema.instructors.deletedAt))).get();
+      if (!ok) throw new RuleError("ไม่พบผู้สอนที่เลือกในทะเบียนวิทยากร — โหลดหน้าใหม่แล้วเลือกอีกครั้ง");
+    }
+    Object.assign(next, { staffingType: "individual", maxStaff: Math.max(t.maxStaff ?? 2, staff.length), defaultStaff: staff });
+  }
+  if (!Object.keys(next).length) return;
+  db.update(schema.activityTopics).set({ ...next, updatedBy: actor.userId, updatedAt: new Date(), version: t.version + 1 }).where(eq(schema.activityTopics.id, t.id)).run();
+  writeAudit(db, { userId: actor.userId, action: "update", entity: "activity_topic", entityId: t.id, before: { payable: t.payable, staffingType: t.staffingType, defaultStaff: t.defaultStaff }, after: next, ip: actor.ip });
+}

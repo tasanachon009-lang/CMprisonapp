@@ -500,6 +500,16 @@ async function main() {
         const n = db.select().from(schema.auditLogs).where(and(eq(schema.auditLogs.action, "print"), eq(schema.auditLogs.entity, "fast_end_report"))).all().length;
         check(G, "รายงานสิ้นสุดรุ่น: บันทึกการพิมพ์ใน audit", n > 0, `${n} รายการ`);
       }
+      // คลังหัวข้อ: ตั้งเบิก/ไม่เบิก และผู้สอนอย่างง่าย
+      {
+        const src = fs.readFileSync("src/app/(app)/admin/pay-actions.ts", "utf8");
+        const body = (name: string) => src.slice(src.indexOf(`export async function ${name}`), src.indexOf("export async function", src.indexOf(`export async function ${name}`) + 10));
+        check(G, "คลังหัวข้อ: ตั้งเบิก/ผู้สอนตรวจสิทธิ์ topics.manage · เพิ่มวิทยากรใหม่ต้องมีสิทธิ์ instructors.manage ด้วย (ตรวจจากโค้ด)", body("quickTopicAction").includes('requireAction("topics.manage")') && body("quickInstructorAction").includes('requireAction("topics.manage")') && body("quickInstructorAction").includes('requireAction("instructors.manage")'), "ตรวจจากโค้ด server action");
+        for (const [role, should] of Object.entries({ admin: true, rehab: false, executive: false, assistant: false, warden: false })) {
+          const r = await get("/admin/topics", C[role as keyof typeof U]);
+          check(G, `${role} → /admin/topics (คลังหัวข้อ)`, should ? allowed(r) : denied(r) || r.status === 404, `คาดว่า${should ? "เข้าได้" : "ถูกปฏิเสธ"} · HTTP ${r.status}`);
+        }
+      }
       // สมุดของสมาชิก (สเปก 16A)
       const fe = db.select({ id: schema.enrollments.id }).from(schema.enrollments).where(and(eq(schema.enrollments.cohortId, fastCohort.id), eq(schema.enrollments.status, "active"))).get()!;
       for (const bp of [`/enrollments/${fe.id}/book`, `/print/member-book/${fe.id}`]) {

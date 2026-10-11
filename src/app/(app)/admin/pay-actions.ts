@@ -8,7 +8,8 @@ import { setTopicChips, cleanChips } from "@/lib/services/session-close";
 import { toError, type ActionResult } from "@/lib/action-result";
 import { getSetting, setSetting } from "@/lib/bootstrap";
 import { writeAudit } from "@/lib/audit";
-import { saveRate, saveTopic, bulkUpdateTopics } from "@/lib/services/pay-setup";
+import { saveRate, saveTopic, bulkUpdateTopics, setTopicTeaching } from "@/lib/services/pay-setup";
+import { saveInstructor } from "@/lib/services/instructors";
 
 const RateZ = z.object({
   name: z.string().max(200), kind: z.enum(["internal", "external"]), externalType: z.enum(["gov", "private", "volunteer", "civil"]).nullable(),
@@ -78,6 +79,43 @@ export async function bulkTopicsAction(courseId: number, ids: number[], patch: P
     const n = bulkUpdateTopics(getDb(), courseId, ids.slice(0, 500), p.data as never, { userId: auth.user.id, ip: await clientIp() });
     revalidatePath("/admin/topics");
     return { ok: true, data: { n }, message: `แก้แล้ว ${n} หัวข้อ` };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+const QuickTopicZ = z.object({
+  payable: z.boolean().optional(),
+  staff: z.union([z.literal("team"), z.array(z.object({ userId: z.number().int().optional(), instructorId: z.number().int().optional() })).max(20)]).optional(),
+});
+
+/** ตั้งค่าอย่างง่าย: เบิก/ไม่เบิก และผู้สอนของหัวข้อ */
+export async function quickTopicAction(topicId: number, patch: z.input<typeof QuickTopicZ>): Promise<ActionResult> {
+  try {
+    const auth = await requireAction("topics.manage");
+    const p = QuickTopicZ.safeParse(patch);
+    if (!p.success) return { ok: false, error: "ค่าที่เลือกไม่ถูกต้อง — โหลดหน้าใหม่แล้วลองอีกครั้ง" };
+    setTopicTeaching(getDb(), topicId, p.data, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath("/admin/topics");
+    return { ok: true };
+  } catch (e) {
+    return toError(e);
+  }
+}
+
+const QuickInstructorZ = z.object({ firstName: z.string().max(100), lastName: z.string().max(100), organization: z.string().max(200), externalType: z.enum(["gov", "private", "volunteer", "civil"]) });
+
+/** เพิ่มวิทยากรภายนอกแบบย่อ (ชื่อ + หน่วยงาน) จากหน้าคลังหัวข้อ — ข้อมูลเบิกจ่ายเติมภายหลังที่ทะเบียนวิทยากร */
+export async function quickInstructorAction(input: z.input<typeof QuickInstructorZ>): Promise<ActionResult<{ id: number }>> {
+  try {
+    await requireAction("topics.manage");
+    const auth = await requireAction("instructors.manage");
+    const p = QuickInstructorZ.safeParse(input);
+    if (!p.success) return { ok: false, error: "กรุณาใส่ชื่อ นามสกุล และหน่วยงานให้ถูกต้อง" };
+    if (!p.data.organization.trim()) return { ok: false, error: "กรุณาใส่หน่วยงานของวิทยากร" };
+    const id = saveInstructor(getDb(), null, { kind: "external", ...p.data }, { userId: auth.user.id, ip: await clientIp() });
+    revalidatePath("/admin/topics");
+    return { ok: true, data: { id } };
   } catch (e) {
     return toError(e);
   }

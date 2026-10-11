@@ -1,4 +1,7 @@
-import { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, TabStopType, LeaderType, Tab, UnderlineType, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, Header, PageNumber, NumberFormat, type IParagraphOptions } from "docx";
+import { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, TabStopType, LeaderType, LineRuleType, Tab, UnderlineType, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, Header, PageNumber, NumberFormat, type IParagraphOptions } from "docx";
+import fs from "node:fs";
+import path from "node:path";
+import JSZip from "jszip";
 import type { DocView, Annex } from "./view";
 
 /**
@@ -18,47 +21,77 @@ const WIDTH = 16 * CM; // พื้นที่พิมพ์ 21 − 3 − 2 �
 const dotted = (text: string) => new TextRun({ text, font: FONT, size: 32, underline: { type: UnderlineType.DOTTED } });
 /** ช่องหัวบันทึก: ป้าย 20pt หนา + ข้อความ 16pt บนเส้นประ ลากเส้นประต่อถึงตำแหน่งแท็บ */
 const dottedTab = () => new TextRun({ children: [new Tab()], font: FONT, size: 32, underline: { type: UnderlineType.DOTTED } });
-const fieldRuns = (label: string, text: string) => [run(`${label}  `, { bold: true, size: 20 }), dotted(text || " "), dottedTab()];
+const fieldRuns = (label: string, text: string, gap = " ") => [run(label, { bold: true, size: 20 }), dotted(`${gap}${text}`), dottedTab()];
 
-function memoChildren(v: DocView, garuda: Buffer | null): Array<Paragraph | Table> {
-  const img = garuda ? [new ImageRun({ type: "png", data: garuda, transformation: { width: mmToPx(15), height: mmToPx(15) } })] : [];
-  const cell = (children: Paragraph[], width: number) => new TableCell({ children, width: { size: width, type: WidthType.DXA }, borders: NO_BORDERS, verticalAlign: VerticalAlign.BOTTOM, margins: { left: 0, right: 0, top: 0, bottom: 0 } });
-  // ครุฑ 1.5 ซม. มุมซ้ายบน · "บันทึกข้อความ" 29pt กึ่งกลางหน้ากระดาษ (ช่องขวา 2.5 ซม. ชดเชยขอบซ้ายที่กว้างกว่า 1 ซม.)
-  const head = new Table({
-    width: { size: WIDTH, type: WidthType.DXA }, borders: NO_BORDERS, columnWidths: [Math.round(1.5 * CM), 12 * CM, Math.round(2.5 * CM)],
-    rows: [new TableRow({ height: { value: Math.round(1.5 * CM), rule: "exact" as never }, children: [cell([para(img)], Math.round(1.5 * CM)), cell([para([run(v.heading, { bold: true, size: 29 })], { alignment: AlignmentType.CENTER })], 12 * CM), cell([para("")], Math.round(2.5 * CM))] })],
-  });
-  const right = { type: TabStopType.RIGHT, position: WIDTH, leader: LeaderType.NONE };
+/**
+ * เนื้อหาบันทึกข้อความต่อจากบรรทัดหัว (ครุฑ + "บันทึกข้อความ" มาจากไฟล์ต้นแบบ) — ค่าทุกตัวตามต้นแบบ docs/forms/memo-template.doc
+ * แท็บ "วันที่" 4500 twips (7.94 ซม.) · ปลายเส้นจุด 9000 twips (15.88 ซม.) · "เรียน" เว้นก่อน 6pt ข้อความที่ 720 twips
+ * เนื้อความเว้นก่อน 6pt ย่อหน้า 1418 twips · ลงชื่อเว้น 3 บรรทัด จัดกึ่งกลางเยื้อง 1412 twips
+ * เส้นจุดใช้ขีดเส้นใต้แบบจุด + แท็บ (ไม่วาดเส้นลอย) เพื่อไม่เลื่อนเมื่อข้อความยาว
+ */
+const TAB_DATE = 4500, TAB_END = 9000;
+function memoChildren(v: DocView): Array<Paragraph | Table> {
+  const stops = (...pos: number[]) => pos.map((position) => ({ type: TabStopType.LEFT, position }));
+  const LINE = { line: 420, lineRule: LineRuleType.EXACT }, FIELD = {}; // บรรทัดหัวข้อใช้ระยะบรรทัดเดียวตามต้นแบบ (วัดแล้วตรงกว่ากำหนดตายตัว)
+  const before = { spacing: { before: 120, ...LINE } }, plain = { spacing: LINE };
   const body = v.parts.map((p) =>
-    p.type === "heading" ? para([run(p.text, { bold: true })], { indent: { firstLine: Math.round(2.5 * CM) } })
-      : p.type === "item" ? para(p.text, { indent: { left: 3 * CM } })
-        : p.type === "list" ? para(p.text, { indent: { left: Math.round(2.5 * CM) } })
-          : para(p.text, { indent: { firstLine: Math.round(2.5 * CM) }, alignment: AlignmentType.THAI_DISTRIBUTE }));
-  // ลงชื่อ: เว้น 3 บรรทัด · กึ่งกลางที่ 60% ของความกว้างหน้า (บล็อก 10 ซม. เริ่มที่ 4.6 ซม.)
-  const signIndent = { left: Math.round(4.6 * CM), right: Math.round(1.4 * CM) };
-  const sign = [para(""), para(""), para(""),
-    para(`(${v.signerName || "......................................................"})`, { indent: signIndent, alignment: AlignmentType.CENTER, keepNext: true }),
-    para(v.signerTitle || "ตำแหน่ง ......................................................", { indent: signIndent, alignment: AlignmentType.CENTER })];
+    p.type === "heading" ? para([run(p.text, { bold: true })], { ...before, indent: { firstLine: 1418 } })
+      : p.type === "item" ? para(p.text, { ...plain, indent: { left: 1700 } })
+        : p.type === "list" ? para(p.text, { ...plain, indent: { left: 1418 } })
+          : para(p.text, { ...before, indent: { firstLine: 1418 }, alignment: AlignmentType.THAI_DISTRIBUTE }));
+  const signIndent = { firstLine: 1412 };
+  const sign = [para("", { ...plain, indent: { firstLine: 1411 } }), para("", { ...plain, indent: { firstLine: 1411 } }), para("", { ...plain, indent: { firstLine: 1411 } }),
+    para(`(${v.signerName || "......................................................"})`, { ...plain, indent: signIndent, alignment: AlignmentType.CENTER, keepNext: true }),
+    para(v.signerTitle || "ตำแหน่ง ......................................................", { ...plain, indent: signIndent, alignment: AlignmentType.CENTER })];
   // ช่องความเห็น/สั่งการ: 3 ช่อง = แถวเดียว 3 คอลัมน์ (ให้อยู่ในหน้าแรก) · นอกนั้นแถวละ 2 ช่อง — เหมือนหน้าพิมพ์
   const per = v.endorsements.length === 3 ? 3 : 2, boxW = Math.round(WIDTH / per);
-  const dots = () => new Paragraph({ children: [dottedTab()], tabStops: [{ type: TabStopType.RIGHT, position: boxW - Math.round(0.6 * CM) }] });
+  const dots = () => new Paragraph({ children: [dottedTab()], tabStops: stops(boxW - Math.round(0.6 * CM)), spacing: LINE });
   const box = (e?: DocView["endorsements"][number]) => new TableCell({
     width: { size: boxW, type: WidthType.DXA }, borders: NO_BORDERS,
-    children: e ? [para([run(e.heading, { bold: true })], { keepNext: true }), dots(), dots(), para(""),
-      para(`(${e.name || "......................................................"})`, { alignment: AlignmentType.CENTER, keepNext: true }), para(e.title, { alignment: AlignmentType.CENTER })] : [para("")],
+    children: e ? [para([run(e.heading, { bold: true })], { ...plain, keepNext: true }), dots(), para("", { spacing: { line: 200, lineRule: LineRuleType.EXACT } }),
+      para(`(${e.name || "......................................................"})`, { ...plain, alignment: AlignmentType.CENTER, keepNext: true }), para(e.title, { ...plain, alignment: AlignmentType.CENTER })] : [para("")],
   });
   const rows: TableRow[] = [];
   for (let i = 0; i < v.endorsements.length; i += per) rows.push(new TableRow({ cantSplit: true, children: Array.from({ length: per }, (_, k) => box(v.endorsements[i + k])) }));
+  const tab = () => new TextRun({ children: [new Tab()], font: FONT, size: 32 });
   return [
-    head,
-    new Paragraph({ children: fieldRuns("ส่วนราชการ", v.orgLines[0] ?? ""), tabStops: [right] }),
-    new Paragraph({ children: [...fieldRuns("ที่", v.docNo), ...fieldRuns("วันที่", v.dateText)], tabStops: [{ type: TabStopType.LEFT, position: Math.round(7.5 * CM) }, right] }),
-    new Paragraph({ children: fieldRuns("เรื่อง", v.subject), tabStops: [right] }),
-    para(""),
-    para(`เรียน  ${v.toLine}`),
+    new Paragraph({ children: fieldRuns("ส่วนราชการ", v.orgLines[0] ?? ""), tabStops: stops(TAB_END), spacing: FIELD }),
+    new Paragraph({ children: [...fieldRuns("ที่", v.docNo, "   "), ...fieldRuns("วันที่", v.dateText)], tabStops: stops(TAB_DATE, TAB_END), spacing: FIELD }),
+    new Paragraph({ children: fieldRuns("เรื่อง", v.subject, "   "), tabStops: stops(TAB_END), spacing: FIELD }),
+    // ระยะบรรทัดตายตัววางเส้นฐานต่ำกว่าระยะบรรทัดเดียวราว 4.5pt → เว้นก่อน "เรียน" 1.5pt แทน 6pt เพื่อให้เส้นฐานตรงต้นแบบ
+    para([run("เรียน"), tab(), run(v.toLine)], { spacing: { before: 30, ...LINE }, indent: { left: 720, hanging: 720 } }),
     ...body, ...sign,
-    ...(rows.length ? [para(""), new Table({ width: { size: WIDTH, type: WidthType.DXA }, borders: NO_BORDERS, columnWidths: Array(per).fill(boxW), rows })] : []),
+    ...(rows.length ? [para("", { spacing: { line: 120, lineRule: LineRuleType.EXACT } }), new Table({ width: { size: WIDTH, type: WidthType.DXA }, borders: NO_BORDERS, columnWidths: Array(per).fill(boxW), rows })] : []),
   ];
+}
+
+/** ไฟล์ต้นแบบบันทึกข้อความ (.docx แปลงจาก docs/forms/memo-template.doc ด้วย Word) — ฐานของไฟล์ Word ทุกฉบับที่เป็นบันทึกข้อความ */
+export const MEMO_TEMPLATE_FILE = path.join(/*turbopackIgnore: true*/ process.cwd(), "assets", "docs", "memo-template.docx");
+
+/**
+ * บันทึกข้อความเป็น Word โดยใช้ไฟล์ต้นแบบเป็นฐาน (สเปก 18.3A): คงขอบกระดาษ สไตล์ ครุฑ บรรทัด "บันทึกข้อความ" และหัวกระดาษเลขหน้าของต้นแบบ
+ * แล้วเติมเนื้อหาต่อจากบรรทัดหัว · ฟอนต์เปลี่ยนเป็น TH Sarabun New ทั้งไฟล์ · เลขหน้าเลขไทย/อารบิกตามตั้งค่า
+ */
+async function memoFromTemplate(v: DocView, garuda: Buffer | null, annex?: Annex | null): Promise<Buffer> {
+  const generated = await Packer.toBuffer(new Document({ sections: [{ children: [...memoChildren(v), ...(annex ? annexChildren(annex) : [])] }] }));
+  const gen = await (await JSZip.loadAsync(generated)).file("word/document.xml")!.async("string");
+  const inner = gen.slice(gen.indexOf("<w:body>") + 8, gen.lastIndexOf("<w:sectPr")).replace(/<\/w:rPr>/g, "<w:cs/></w:rPr>");
+  const zip = await JSZip.loadAsync(fs.readFileSync(MEMO_TEMPLATE_FILE));
+  const doc = await zip.file("word/document.xml")!.async("string");
+  const bodyAt = doc.indexOf("<w:body>") + 8;
+  const head = doc.slice(bodyAt, doc.indexOf("</w:p>", bodyAt) + 6); // ย่อหน้าแรก: ครุฑ + แท็บ + "บันทึกข้อความ"
+  const sect = doc.slice(doc.lastIndexOf("<w:sectPr"), doc.indexOf("</w:body>"));
+  if (!head.includes("บันทึกข้อความ") || !sect.includes("<w:pgMar")) throw new Error("ไฟล์ต้นแบบบันทึกข้อความไม่ถูกต้อง — ตรวจ assets/docs/memo-template.docx");
+  const fonts = (x: string) => x.replace(/TH SarabunPSK|TH SarabunIT๙/g, FONT);
+  zip.file("word/document.xml", fonts(doc.slice(0, bodyAt) + head + inner + (v.thaiNumerals ? sect : sect.replace('w:fmt="thaiNumbers"', 'w:fmt="decimal"')) + "</w:body></w:document>"));
+  for (const name of Object.keys(zip.files).filter((n) => /^word\/(header\d|styles|fontTable)\.xml$/.test(n))) {
+    let x = fonts(await zip.file(name)!.async("string"));
+    // ตัวอย่างเลขหน้าที่ค้างในหัวกระดาษของต้นแบบ ("๒") → Word คำนวณใหม่เมื่อเปิดไฟล์ · ตั้งค่าเลขอารบิก = ใส่ตัวอย่างเป็น 2
+    if (!v.thaiNumerals) x = x.replace(/<w:t>๒<\/w:t>/g, "<w:t>2</w:t>");
+    zip.file(name, x);
+  }
+  if (garuda) zip.file("word/media/image1.png", garuda);
+  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 
 /** สิ่งที่ส่งมาด้วย — ขึ้นหน้าใหม่ ตาราง 14pt หัวตารางซ้ำทุกหน้า */
@@ -92,7 +125,7 @@ export async function docxOf(v: DocView, garuda: Buffer | null, annex?: Annex | 
   ];
   let children: Array<Paragraph | Table>;
   if (v.kind === "memo") {
-    children = [...memoChildren(v, garuda), ...(annex ? annexChildren(annex) : [])];
+    return memoFromTemplate(v, garuda, annex);
   } else if (v.kind === "order") {
     children = [
       ...(garuda ? [para(img(30), { alignment: AlignmentType.CENTER })] : []),

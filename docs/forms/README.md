@@ -41,3 +41,6 @@
 - ใบสำคัญรับเงิน: ยังไม่มีไฟล์ต้นฉบับ → วาดแบบฟอร์มเอง · ถ้าได้ไฟล์ .doc/.pdf ให้วางที่ `source/` แล้ววัดพิกัดใหม่และตั้ง `background` ใน voucher.json
 - เครื่องพิมพ์เยื้อง → ตั้งค่า → ปรับตำแหน่งการพิมพ์ (พิมพ์ใบทดสอบ วัดเครื่องหมาย + ให้ห่างขอบ 20 มม.)
 - ผู้พัฒนาตรวจด้วยตา: `npx tsx --conditions=react-server scripts/dev-pdf-sample.ts` → `public/dev-preview/sample.pdf` (ไม่เข้า Git)
+## ต้นแบบบันทึกข้อความ (สเปก 18.3A)
+- `memo-template.doc` — ต้นแบบจริงที่เจ้าของส่งมา (ห้ามแก้) · `assets/docs/memo-template.docx` = ไฟล์เดียวกันที่ Word แปลงเป็น .docx ใช้เป็นฐานสร้างไฟล์ Word ของระบบ
+- ถ้าเปลี่ยนต้นแบบ: เปิด .doc ด้วย Word → บันทึกเป็น .docx ทับ `assets/docs/memo-template.docx` และบันทึกเป็น PDF ไว้ที่ `docs/screenshots/memo/template.pdf` → รัน `npx tsx scripts/memo-overlay.ts` ตรวจว่าคลาดไม่เกิน 2 มม.

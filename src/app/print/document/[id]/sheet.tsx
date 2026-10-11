@@ -11,6 +11,11 @@ const Field = ({ label, children, small }: { label: string; children: React.Reac
   <div className={`field ${small ? "small" : ""}`}><b>{label}</b><span className="fill">{children}</span></div>
 );
 
+/** บรรทัดหัวบันทึกข้อความ: ป้าย 20pt หนา + ข้อความ 16pt ทับบนเส้นจุด */
+const MemoField = ({ label, children, from, to, top }: { label: string; children: React.ReactNode; from: number; to: number; top: number }) => (
+  <div className="field"><span className="dot" style={{ left: `${from}pt`, width: `${to - from}pt`, top: `${top}pt` }} /><b>{label}</b><span className="fill">{children}</span></div>
+);
+
 const Body = ({ v }: { v: DocView }) => (
   <div className="body" style={{ marginTop: "4mm" }}>
     {v.parts.map((p, i) => <p key={i} className={p.type === "text" ? undefined : p.type}>{p.text}</p>)}
@@ -35,13 +40,14 @@ export function MemoSheet({ v, hasGaruda, annex }: { v: DocView; hasGaruda: bool
     <>
       <div className={`sheet official memo ${v.thaiNumerals ? "thai-num" : ""}`}>
         <div className="memo-head"><Garuda has={hasGaruda} mm={15} /><p className="title">{v.heading}</p></div>
-        <Field label="ส่วนราชการ">{v.orgLines[0]}</Field>
+        {/* ตำแหน่งเส้นจุด (pt จากขอบซ้ายของข้อความ) ตามเส้นในต้นแบบ docs/forms/memo-template.doc */}
+        <MemoField label="ส่วนราชการ" from={66} to={453} top={18.65}>{v.orgLines[0]}</MemoField>
         <div className="memo-row">
-          <Field label="ที่">{v.docNo}</Field>
-          <Field label="วันที่">{v.dateText}</Field>
+          <MemoField label="ที่" from={9} to={225} top={19.1}>{v.docNo}</MemoField>
+          <MemoField label="วันที่" from={24.2} to={228.3} top={19.25}>{v.dateText}</MemoField>
         </div>
-        <Field label="เรื่อง">{v.subject}</Field>
-        <p className="memo-to">เรียน&nbsp;&nbsp;{v.toLine}</p>
+        <MemoField label="เรื่อง" from={26.25} to={452.6} top={19.45}>{v.subject}</MemoField>
+        <p className="memo-to"><span className="to-label">เรียน</span>{v.toLine}</p>
         <Body v={v} />
         <div className="sign">
           <p>({v.signerName || "......................................................"})</p>
@@ -52,7 +58,6 @@ export function MemoSheet({ v, hasGaruda, annex }: { v: DocView; hasGaruda: bool
             {v.endorsements.map((e, i) => (
               <div key={i} className="endorse-box">
                 <p className="endorse-head">{e.heading}</p>
-                <p className="dots">&nbsp;</p>
                 <p className="dots">&nbsp;</p>
                 <p className="endorse-sign">({e.name || "......................................................"})</p>
                 <p className="endorse-sign">{e.title}</p>

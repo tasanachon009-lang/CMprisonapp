@@ -31,7 +31,7 @@ export function reportDocument(db: DB, r: Report) {
   const { doc, annex } = reportMemo(model, { issues: r.issues, nextPlan: r.nextPlan, note: r.note }, {
     unitName: org.unitName, toLine: `${head} (ผ่าน${via})`,
     signerName, signerTitle: signerIsHead ? unitHeadTitle : approver?.position?.trim() || "ผู้รายงาน",
-    docDate: r.approvedAt ? r.approvedAt.toISOString().slice(0, 10) : null, endorsements,
+    docNo: s("org.docPrefix") || null, docDate: r.approvedAt ? r.approvedAt.toISOString().slice(0, 10) : null, endorsements,
   });
   return { model, view: buildDocView(doc, org), annex: localizeAnnex(annex, org.thaiNumerals) };
 }

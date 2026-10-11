@@ -60,10 +60,19 @@ export function DocSettingsForm({ initial }: { initial: Record<string, string | 
       <p className="text-sm text-muted">ใช้เติมเอกสารราชการของทุกรุ่น</p>
       <div className="grid gap-3 sm:grid-cols-6">
         {text("org.headName", "ชื่อ-สกุลผู้บริหารสูงสุด (ลงนามหนังสือภายนอก/คำสั่ง)", "เช่น นาย… …")}
-        {text("org.docPrefix", "เลขที่หนังสือ (ส่วนนำหน้า)", "เช่น ยธ 07xx/")}
+        {text("org.docPrefix", "เลขที่หนังสือ (ส่วนนำหน้า) — เว้นว่าง = เส้นจุดให้เขียนเอง", "เช่น ยธ 07xx/")}
         {text("docs.unitHeadName", "ชื่อ-สกุลหัวหน้าหน่วย (ลงนามบันทึกข้อความ)")}
         {text("docs.unitHeadTitle", "ตำแหน่งหัวหน้าหน่วย")}
-        <label className="sm:col-span-6 flex items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={!!f["docs.thaiNumerals"]} onChange={(e) => setF({ ...f, "docs.thaiNumerals": e.target.checked })} /> ใช้เลขไทย (๑ ๒ ๓) ในเอกสารราชการ</label>
+        <fieldset className="sm:col-span-6">
+          <legend className="label">ตัวเลขในเอกสารราชการ (บันทึกข้อความ หนังสือ คำสั่ง รายงาน)</legend>
+          <div className="flex flex-wrap gap-2">
+            {([[true, "เลขไทย (๑ ๒ ๓)"], [false, "เลขอารบิก (1 2 3)"]] as const).map(([v, label]) => (
+              <label key={label} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 ${!!f["docs.thaiNumerals"] === v ? "border-navy bg-lime-soft font-semibold" : "border-line bg-white"}`}>
+                <input type="radio" name="docs.thaiNumerals" className="h-5 w-5" checked={!!f["docs.thaiNumerals"] === v} onChange={() => setF({ ...f, "docs.thaiNumerals": v })} /> {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <button className="btn-primary" disabled={pending} onClick={() => run(() => saveSettings(f))}>บันทึก</button>

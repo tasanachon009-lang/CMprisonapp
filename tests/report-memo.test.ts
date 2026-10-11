@@ -59,10 +59,31 @@ describe("แม่แบบบันทึกข้อความกลาง 
     expect(xml).toContain("<w:titlePg/>");
     expect(xml).toContain("<w:pageBreakBefore/>");
     expect(xml).toContain("สิ่งที่ส่งมาด้วย");
-    expect(xml).toMatch(/w:u w:val="dotted"/); // เส้นประใต้ข้อความหัวบันทึก
+    expect(xml).toMatch(/w:u w:val="dotted"/); // เส้นจุดใต้ข้อความหัวบันทึก (ขีดเส้นใต้ + แท็บ ไม่ใช่เส้นลอย)
+    expect(xml.match(/<v:line /g) ?? []).toEqual([]);
     expect(xml).toContain("<w:tab/>");
     expect(xml).not.toMatch(/ {4,}/); // ไม่ใช้การเคาะเว้นวรรคจัดตำแหน่ง
     expect(xml).toContain("๑. หัวข้อแรก");
+    // ใช้ไฟล์ต้นแบบจริงเป็นฐาน: ครุฑ + บรรทัดหัวจากต้นแบบ · ฟอนต์ทั้งไฟล์เป็น TH Sarabun New · ไม่มีเลขที่ตัวอย่างของต้นแบบ
+    expect(xml).toMatch(/<v:imagedata r:id="rId\d+"/);
+    expect(xml).toMatch(/w:tab w:val="left" w:pos="3600"/); // แท็บของ "บันทึกข้อความ" ตามต้นแบบ
+    expect(xml).toMatch(/w:pos="4500"/); // แท็บ "วันที่" 7.94 ซม.
+    expect(xml).toMatch(/w:pos="9000"/); // ปลายเส้นจุด 15.88 ซม.
+    expect(xml).toContain('w:header="1418"');
+    expect(xml).toContain('w:fmt="thaiNumbers"');
+    expect(xml).not.toContain("TH SarabunPSK");
+    expect(xml).not.toContain("นร ๐๑๐๔");
+    expect(xml).not.toContain("กกกก");
+    expect(xml).toContain("ยธ ๐๗๖๘/๑๒๓");
+    expect(Object.keys(zip.files)).toContain("word/media/image1.png");
+    for (const n of ["word/styles.xml", "word/header2.xml"]) expect(await zip.file(n)!.async("string")).not.toContain("TH SarabunPSK");
+    // ตั้งค่าเลขอารบิก: เลขหน้าและตัวเลขในเอกสารเป็นอารบิก · ไม่ตั้งเลขที่หนังสือ = ไม่มีข้อความ (เหลือเส้นจุดให้เขียนเอง)
+    const arabic = await JSZip.loadAsync(await docxOf(buildDocView({ ...doc, docNo: null }, { ...org, thaiNumerals: false }), null));
+    const ax = await arabic.file("word/document.xml")!.async("string");
+    expect(ax).toContain('w:fmt="decimal"');
+    expect(ax).toContain("1. หัวข้อแรก");
+    expect(ax).toContain("11 ตุลาคม 2569");
+    expect(ax).not.toMatch(/[๐-๙]/);
     const header = await Promise.all(Object.keys(zip.files).filter((n) => /word\/header\d\.xml/.test(n)).map((n) => zip.file(n)!.async("string")));
     expect(header.some((h) => h.includes("PAGE"))).toBe(true);
   });
@@ -132,8 +153,9 @@ describe("รายงานประจำสัปดาห์/เดือน
     expect(lines.length).toBeLessThanOrEqual(16); // อยู่ใน 1 หน้า
     expect(lines.filter((l) => /^- [กขคง]$/.test(l)).length).toBe(MEMO_MAX_LINES);
     expect(doc.body).toContain("รายการอื่นอีก 1 รายการ ตามสิ่งที่ส่งมาด้วย");
-    expect(doc.body).toMatch(/จัดกิจกรรม 5 จาก \d+ คาบ/);
-    expect(doc.body).toMatch(/ยังไม่ได้บันทึกผล \d+ คาบ/);
+    expect(doc.body).toMatch(/จัดกิจกรรม 5\/\d+ คาบ/);
+    expect(doc.body).toMatch(/ยังไม่บันทึกผล \d+ คาบ/);
+    expect(doc.body).not.toMatch(/บสต\.|งบประมาณ/); // ตัวเลข บสต./งบ อยู่ในสิ่งที่ส่งมาด้วย
     for (const title of ["ทบทวนจิตตนเอง", "ประชุมเช้า", "วิทยากรป่วย"]) expect(doc.body).not.toContain(title);
     // สิ่งที่ส่งมาด้วย
     expect(annex.blocks.map((b) => b.heading?.replace(/\s*\(.*$/, ""))).toEqual(["1. สรุปรายรุ่น", "2. กิจกรรมที่ต่างจากแผน ไม่ได้จัด หรือมีเหตุการณ์", "3. กิจกรรมที่จัดตามแผน", "4. ผลการประเมินและพฤติกรรม", "5. บสต. รท.101 ค่าตอบแทน และงบประมาณ", "6. ปัญหา อุปสรรค และข้อเสนอแนะ"]);

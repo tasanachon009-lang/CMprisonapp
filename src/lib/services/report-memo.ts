@@ -101,11 +101,10 @@ export function reportMemo(m: ReportModel, texts: { issues: string | null; nextP
   const issues = textLines(texts.issues), plan = textLines(texts.nextPlan), note = textLines(texts.note);
   const cut = (list: string[]) => (list.length > MEMO_MAX_LINES ? [...list.slice(0, MEMO_MAX_LINES).map((x) => `- ${x}`), `- รายการอื่นอีก ${list.length - MEMO_MAX_LINES} รายการ ตามสิ่งที่ส่งมาด้วย`] : list.map((x) => `- ${x}`));
   const body = [
-    `ด้วย${st.unitName || "สถานฟื้นฟูสมรรถภาพผู้ติดยาเสพติด"}ได้ดำเนินงานฟื้นฟูสมรรถภาพผู้ติดยาเสพติดตามแผนการดำเนินงาน${m.kind === "monthly" ? periodTitle(m.kind, m.from, m.to) : `ประจำสัปดาห์ ระหว่างวันที่ ${thaiDateRange(m.from, m.to)}`} จึงขอรายงานผลการดำเนินงาน รายละเอียดตามสิ่งที่ส่งมาด้วย โดยสรุปดังนี้`,
+    `ด้วย${st.unitName || "สถานฟื้นฟูสมรรถภาพผู้ติดยาเสพติด"}ได้ดำเนินงานตามแผน${m.kind === "monthly" ? periodTitle(m.kind, m.from, m.to) : `ประจำสัปดาห์ ระหว่างวันที่ ${thaiDateRange(m.from, m.to)}`} จึงขอรายงานผลโดยสรุป รายละเอียดตามสิ่งที่ส่งมาด้วย ดังนี้`,
     "# สรุปผลการดำเนินงาน",
-    `ดำเนินการ ${t.cohorts} รุ่น ผู้เข้ารับการฟื้นฟูรวม ${t.people} คน (รับใหม่ ${t.newcomers} คน จบหลักสูตร ${t.completed} คน ออกก่อนกำหนด ${t.left} คน) จัดกิจกรรมแล้ว ${t.done} จาก ${t.planned} คาบตามแผน ไม่ได้จัด ${t.notDone} คาบ ${pct(t.attendancePct)}${t.unrecorded ? ` และยังไม่ได้บันทึกผล ${t.unrecorded} คาบ` : ""}`,
-    ...m.cohorts.map((c) => `- ${c.label} จำนวน ${c.enrolled} คน จัดกิจกรรม ${c.done} จาก ${c.planned} คาบ ${pct(c.attendancePct)}${c.events ? ` มีเหตุการณ์ที่ต้องรายงาน ${c.events} เรื่อง` : ""}${c.unrecorded ? ` ยังไม่ได้บันทึกผล ${c.unrecorded} คาบ` : ""}`),
-    `บันทึกข้อมูล บสต. ${m.records.bstDone} รายการ และ รท.101 ${m.records.rtDone} รายการ อนุมัติค่าตอบแทนวิทยากร ${baht(m.money.approvedPaySatang)} บาท งบประมาณปีงบประมาณ ${m.money.budgetFiscalYear} คงเหลือ ${baht(m.money.budgetRemainingSatang)} บาท`,
+    `ดำเนินการ ${t.cohorts} รุ่น ผู้เข้ารับการฟื้นฟู ${t.people} คน (รับใหม่ ${t.newcomers} จบหลักสูตร ${t.completed} ออกก่อนกำหนด ${t.left}) จัดกิจกรรมแล้ว ${t.done} จาก ${t.planned} คาบ ไม่ได้จัด ${t.notDone} คาบ ${pct(t.attendancePct)}`,
+    ...m.cohorts.map((c) => `- ${c.label} ${c.enrolled} คน จัดกิจกรรม ${c.done}/${c.planned} คาบ ${c.attendancePct == null ? "ยังไม่มีข้อมูลการเข้าร่วม" : `เข้าร่วมร้อยละ ${c.attendancePct}`}${c.events ? ` มีเหตุการณ์ ${c.events} เรื่อง` : ""}${c.unrecorded ? ` ยังไม่บันทึกผล ${c.unrecorded} คาบ` : ""}`),
     "# ปัญหา อุปสรรค และข้อเสนอแนะ",
     ...(issues.length ? cut(issues) : ["- ไม่มี"]),
     `# แผนการดำเนินงาน${word}ถัดไป`,

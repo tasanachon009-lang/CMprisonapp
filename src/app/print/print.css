@@ -81,25 +81,44 @@
 .official .sign { margin-left: 45%; text-align: center; margin-top: 14mm; break-inside: avoid; }
 .official .contact { position: absolute; bottom: 20mm; left: 30mm; }
 
-/* แม่แบบบันทึกข้อความกลาง (สเปก 18.3A) */
-.official.memo .memo-head { position: relative; height: 15mm; margin-bottom: 1mm; }
-.official.memo .memo-head .garuda, .official.memo .memo-head .garuda-empty { position: absolute; left: 0; top: 0; }
-/* "บันทึกข้อความ" 29pt กึ่งกลางหน้ากระดาษ (ขอบซ้าย 3 ขวา 2 จึงขยายออกให้เท่าขอบกระดาษ) แนวเดียวกับครุฑ */
-.official.memo .memo-head .title { position: absolute; left: -30mm; right: -20mm; bottom: 0; text-align: center; font-weight: 700; font-size: 29pt; line-height: 1; }
-.official.memo .memo-row { display: flex; }
-/* "วันที่" เริ่มกึ่งกลางหน้า = 105 − 30 = 75 มม. จากขอบซ้ายของพื้นที่พิมพ์ */
-.official.memo .memo-row .field:first-child { flex: 0 0 75mm; }
-.official.memo .memo-row .field:last-child { flex: 1; }
-.official.memo .memo-to { margin-top: 1.2em; }
+/*
+ * แม่แบบบันทึกข้อความกลาง (สเปก 18.3A) — ค่าทุกตัววัดจากต้นแบบจริง docs/forms/memo-template.doc
+ * หน่วย pt ตามไฟล์ Word: ขอบบน 42.55pt (1.5 ซม.) · หัว "บันทึกข้อความ" เว้นก่อน 26 ระยะบรรทัดตายตัว 21 เว้นหลัง 3
+ * บรรทัดหัวข้อ (20pt) ระยะบรรทัด 26pt · เนื้อความ 16pt ระยะบรรทัดเดียว = 21pt เว้นก่อนย่อหน้า 6pt · ย่อหน้า 1418 twips (2.5 ซม.)
+ * ตรวจทับกับต้นแบบด้วย npx tsx scripts/memo-overlay.ts (ต้องคลาดไม่เกิน 1–2 มม.)
+ */
+.print-root .sheet.official.memo { line-height: 21pt; }
+.official.memo .memo-head { position: relative; height: 50pt; }
+/* ครุฑ 38.55 × 42.4pt (1.36 × 1.5 ซม.) ชิดซ้ายบรรทัดแรก */
+.official.memo .memo-head .garuda, .official.memo .memo-head .garuda-empty { position: absolute; left: -0.3pt; top: var(--garuda-top, 0pt); width: 38.55pt !important; height: 42.4pt !important; }
+/* "บันทึกข้อความ" 29pt หนา บีบระยะอักษร 1pt เริ่มที่แท็บ 3600 twips (6.35 ซม.) */
+.official.memo .memo-head .title { position: absolute; left: 180pt; top: var(--title-top, 26pt); font-weight: 700; font-size: 29pt; letter-spacing: -0.77pt; line-height: 21pt; white-space: nowrap; }
+.official.memo .field { position: relative; display: block; height: 26pt; line-height: 26pt; white-space: nowrap; }
+.official.memo .field b { font-size: 20pt; line-height: 26pt; }
+.official.memo .field .fill { border: 0; font-size: 16pt; padding-left: var(--pad, 10.5pt); min-height: 0; }
+/* เส้นจุดใต้ข้อความ: ตำแหน่งตามเส้นในต้นแบบ (จากขอบซ้ายของข้อความ) */
+.official.memo .field .dot { position: absolute; top: var(--dot-top, 18.65pt); border-top: 1pt dotted #000; height: 0; }
+.official.memo .memo-row { position: relative; display: block; height: 26pt; }
+.official.memo .memo-row .field { position: absolute; top: 0; }
+.official.memo .memo-row .field:first-child { left: 0; flex: none; }
+/* "วันที่" ที่แท็บ 4500 twips (7.94 ซม.) */
+.official.memo .memo-row .field:last-child { left: 225pt; flex: none; }
+/* "เรียน" เว้นก่อน 6pt · ข้อความเริ่มที่ 36pt (720 twips) */
+.official.memo .memo-to { margin-top: 6pt; padding-left: 36pt; text-indent: -36pt; }
+.official.memo .memo-to .to-label { display: inline-block; width: 36pt; text-indent: 0; }
 .official.memo .body { margin-top: 0 !important; }
-/* ลงชื่อ: เว้น 3 บรรทัด · บล็อกกึ่งกลางที่ 60% ของความกว้างหน้า (126 มม. จากขอบกระดาษ = 96 มม. จากขอบซ้ายของพื้นที่พิมพ์) */
-.official.memo .sign { margin-left: 46mm; width: 100mm; margin-top: 3.6em; text-align: center; break-inside: avoid; }
-.official.memo .endorse { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 8mm; margin-top: 0.3em; break-inside: avoid; }
+.official.memo .body p { margin-top: 6pt; text-indent: 70.9pt; }
+.official.memo .body p.item, .official.memo .body p.list { margin-top: 0; }
+.official.memo .body p.item { padding-left: 85pt; text-indent: 0; }
+.official.memo .body p.list { padding-left: 70.9pt; text-indent: 0; }
+/* ลงชื่อ: เว้น 3 บรรทัด · จัดกึ่งกลางโดยเยื้องซ้าย 1412 twips (2.5 ซม.) ตามต้นแบบ */
+.official.memo .sign { margin: 63pt 0 0 0; padding-left: 70.6pt; width: auto; text-align: center; break-inside: avoid; }
+.official.memo .endorse { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 8mm; margin-top: 3pt; break-inside: avoid; }
 .official.memo .endorse-box { break-inside: avoid; }
 .official.memo .endorse-head { font-weight: 700; }
-.official.memo .dots { border-bottom: 1px dotted #000; line-height: 1; }
+.official.memo .dots { border-bottom: 1pt dotted #000; line-height: 18pt; }
 .official.memo .endorse-sign { text-align: center; }
-.official.memo .dots + .endorse-sign { margin-top: 0.6em; }
+.official.memo .dots + .endorse-sign { margin-top: 6pt; }
 
 /* สิ่งที่ส่งมาด้วย (หน้าใหม่) */
 .print-root .sheet.official.annex { break-before: page; }
@@ -117,7 +136,6 @@
   .print-root .sheet.official.thai-num { page: official-th; }
   .official .garuda-empty { visibility: hidden; }
   .official .contact { position: fixed; bottom: 0; left: 0; }
-  .official.memo .memo-head .title { left: -30mm; right: -20mm; }
   @page official { size: A4; margin: 15mm 20mm 20mm 30mm; @top-center { content: "- " counter(page) " -"; font-family: "TH Sarabun New"; font-size: 16pt; vertical-align: bottom; } }
   @page official-th { size: A4; margin: 15mm 20mm 20mm 30mm; @top-center { content: "- " counter(page, thai) " -"; font-family: "TH Sarabun New"; font-size: 16pt; vertical-align: bottom; } }
   /* หน้าแรกไม่มีเลขหน้า */
